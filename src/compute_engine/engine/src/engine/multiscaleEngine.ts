@@ -75,6 +75,7 @@ import { selfOverlap, type FieldHistory } from "../dynamics/selfMeasurement.ts";
 import { FluxLedger, residualToBoundary, ladderNeighbors } from "../dynamics/crossScaleFlow.ts";
 import { DensityField } from "../information/densityField.ts";
 import { burden, FULL_REGION } from "../information/burden.ts";
+import { ScaleMeasurer, type ScaleMeasurement } from "./scaleMeasurement.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuration
@@ -171,9 +172,12 @@ export class MultiscaleEngine {
   private stepCount = 0;
   private readonly ledger = new FluxLedger();
   private readonly residualTrajectory: number[] = [];
+  /** Persistent scale-native measurer (File 19) — holds lag/drift bookkeeping across calls. */
+  private readonly measurer: ScaleMeasurer;
 
   constructor(config: EngineConfig = {}) {
     this.rungs = config.rungs ?? STABLE_SCALES;
+    this.measurer = new ScaleMeasurer(this.rungs);
     this.config = {
       seed: config.seed ?? "harmonic",
       dtFactor: config.dtFactor ?? 1,
@@ -389,5 +393,32 @@ export class MultiscaleEngine {
   /** The number of steps executed so far. */
   get stepsExecuted(): number {
     return this.stepCount;
+  }
+
+  // ── scale-native measurement (File 19) — opt-in, read-only ────────────────
+
+  /**
+   * Measure every scale at its OWN native resolution, largest scales first.
+   *
+   * This is a PURE OBSERVER pass: it reads the live field state and reports the
+   * per-scale field measurement the flat FIELD_SAMPLES snapshot cannot see. It
+   * never mutates dynamics — `step()` is untouched, so determinism and the
+   * conservative guarantees are unaffected. Opt-in: call it only when a
+   * scale-resolved reading is wanted (it costs more than a step, by design —
+   * that cost IS the measured computational drift, File 19 fact 3).
+   *
+   * `fullSweep` (default true) measures all 18 scales this call. Pass false to
+   * measure only the scales DUE at the current step per their density cadence —
+   * dense scales are re-measured less often, which is exactly what produces the
+   * observable phase lag between cheap large scales and expensive dense ones.
+   */
+  measurement(fullSweep = true): readonly ScaleMeasurement[] {
+    const schedule = fullSweep ? undefined : this.measurer.dueAt(this.stepCount);
+    // Structural read-only view of the live per-scale state (never mutated).
+    return this.measurer.measure(
+      this.scales as unknown as ReadonlyMap<StableScaleIndex, never>,
+      this.stepCount,
+      schedule,
+    );
   }
 }
