@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "lastModified": "2026-07-28T19:17:35.471Z",
+  "lastModified": "2026-07-28T19:50:44.333Z",
   "entries": [
     {
       "id": "92e9b020-af80-4af3-b946-28e2a2174244",
@@ -100,6 +100,28 @@
         "ollama",
         "hardware",
         "constraints"
+      ],
+      "archived": false,
+      "branch": null,
+      "directoryScope": null
+    },
+    {
+      "id": "2764bcb4-8978-4b34-b0b1-54c9ce45b74a",
+      "category": "architecture",
+      "layer": "project",
+      "content": "File 19 scaleMeasurement.ts built & calibrated (2026-07-28, commit ddc75af). Scale-native measurement layer for the 18-torus engine — a PURE OBSERVER (reads field state, never mutates dynamics → zero regression by construction; proven by a bit-identical-trajectory test).\n\nWIRED IN: MultiscaleEngine got an opt-in read-only `measurement(fullSweep=true)` method + a persistent `ScaleMeasurer` (holds lag/drift bookkeeping). step() untouched.\n\nPHYSICS (honest provenance):\n- resolutionForScale(n): linear map of node-logφ-index (n−1) onto [RES_MIN=8, RES_MAX=128]. Larger scales (more nodes φⁿ⁻¹) resolve finer. Monotone ↑ with n. n=125→128, n=1→8.\n- densityOversample(n): linear map of density span (125−n) onto [1, OVERSAMPLE_MAX=16]. Denser (small n, high ρ∝φ⁻ⁿ) oversamples harder. Monotone ↓ with n. n=1→16, n=125→1.\n- samples = res²×oversample; total across all 18 ≈ 515k — computable in one live pass.\n- phaseLag: MEASURED staleness (field steps since a scale's last completed measurement) + measuredCostMs (wall-clock). NOT asserted as physics — computational, honestly tagged POSTULATE. Dense scales are costlier → phase-skipped via cadenceForScale → observable lag. This is the \"computational drift of dense information\" the user described.\n\nGOTCHA FIXED: first version had densityOversample = (φ^(125−n))^0.25 = combinatorial explosion (7 BILLION samples on n=27, 3M× on n=1) — demo caught it, tests didn't. Rewrote to info-linear bounded form. LESSON: always live-demo a schedule before trusting it; geometric multipliers on mesh² explode.\n\nTests: 8 new in tests/file19.scaleMeasurement.test.ts (resolution monotone, oversample bounded+monotone, largest-first, 4 invariants each, phase-lag measured, ZERO-REGRESSION purity, determinism, guards). Full battery 221/221 (was 213), tsc exit 0. Commits: 4bac30a baseline, 1f4ef3e file19, ddc75af calibration.",
+      "createdAt": "2026-07-28T19:50:44.333Z",
+      "updatedAt": "2026-07-28T19:50:44.333Z",
+      "lastRecalledAt": null,
+      "recallCount": 0,
+      "tags": [
+        "rhuft",
+        "engine",
+        "file19",
+        "scaleMeasurement",
+        "measurement",
+        "phase-lag",
+        "verified"
       ],
       "archived": false,
       "branch": null,

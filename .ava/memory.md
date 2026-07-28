@@ -61,3 +61,18 @@ KEY HONESTY CONSTRAINTS (zero-mock):
 - The ONLY sanctioned sensory injection port into engine dynamics = MemoryKernel.dampedRegularization (exact integrating factor, bounded, never secular). Raw additive form is REJECTED (diverges, dominant root 1.29).
 - Engine has NO concept of words. Words live only in LLM layer. Grounding = link stable field-states → LLM labels. No dictionary exists yet.
 - A real-time sensory version of the FULL 18-scale brain does NOT exist yet (live loop is a simpler 64-node ring). Must be built via the conservative boundary channel.
+
+#### 2026-07-28
+File 19 scaleMeasurement.ts built & calibrated (2026-07-28, commit ddc75af). Scale-native measurement layer for the 18-torus engine — a PURE OBSERVER (reads field state, never mutates dynamics → zero regression by construction; proven by a bit-identical-trajectory test).
+
+WIRED IN: MultiscaleEngine got an opt-in read-only `measurement(fullSweep=true)` method + a persistent `ScaleMeasurer` (holds lag/drift bookkeeping). step() untouched.
+
+PHYSICS (honest provenance):
+- resolutionForScale(n): linear map of node-logφ-index (n−1) onto [RES_MIN=8, RES_MAX=128]. Larger scales (more nodes φⁿ⁻¹) resolve finer. Monotone ↑ with n. n=125→128, n=1→8.
+- densityOversample(n): linear map of density span (125−n) onto [1, OVERSAMPLE_MAX=16]. Denser (small n, high ρ∝φ⁻ⁿ) oversamples harder. Monotone ↓ with n. n=1→16, n=125→1.
+- samples = res²×oversample; total across all 18 ≈ 515k — computable in one live pass.
+- phaseLag: MEASURED staleness (field steps since a scale's last completed measurement) + measuredCostMs (wall-clock). NOT asserted as physics — computational, honestly tagged POSTULATE. Dense scales are costlier → phase-skipped via cadenceForScale → observable lag. This is the "computational drift of dense information" the user described.
+
+GOTCHA FIXED: first version had densityOversample = (φ^(125−n))^0.25 = combinatorial explosion (7 BILLION samples on n=27, 3M× on n=1) — demo caught it, tests didn't. Rewrote to info-linear bounded form. LESSON: always live-demo a schedule before trusting it; geometric multipliers on mesh² explode.
+
+Tests: 8 new in tests/file19.scaleMeasurement.test.ts (resolution monotone, oversample bounded+monotone, largest-first, 4 invariants each, phase-lag measured, ZERO-REGRESSION purity, determinism, guards). Full battery 221/221 (was 213), tsc exit 0. Commits: 4bac30a baseline, 1f4ef3e file19, ddc75af calibration.
