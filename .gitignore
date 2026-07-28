@@ -9,9 +9,6 @@ out/
 *.log
 # 5.4G of re-pullable Ollama model blobs — never commit
 **/ollama_models/
+**/blobs/
 # electron / bundler artifacts
 **/*.tsbuildinfo
-
-# 5.4G of re-pullable Ollama model blobs — never commit
-**/ollama_models/
-**/blobs/
