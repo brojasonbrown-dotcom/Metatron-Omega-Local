@@ -73,9 +73,10 @@ export class ConceptRegistry {
   private readonly _hnsw = new HnswIndex();
   /**
    * Concepts above which ANN is preferred over brute force. Below this the exact
-   * scan is cheaper than graph maintenance; above it the graph wins. [SPEC]
+   * scan is cheaper than graph maintenance; above it the graph wins. Mutable so
+   * tests can cross the strategy boundary without minting 144 concepts. [SPEC]
    */
-  readonly annThreshold: number = 144; // F_12
+  annThreshold: number = 144; // F_12
 
   /** Recognition threshold λ = 1/φ². [SPEC] */
   readonly recognitionThreshold: number = COHERENCE_THRESHOLD;
@@ -344,6 +345,7 @@ export class ConceptRegistry {
    */
   restore(state: SerializedMindState): void {
     this._concepts.clear();
+    this._hnsw.clear(); // the index is rebuilt from the restored concepts below. [FIX]
     let maxNum = 0;
     for (const sc of state.concepts) {
       const proto = decodeFieldBase64(sc.prototype);
@@ -381,5 +383,11 @@ export class ConceptRegistry {
       if (Number.isFinite(num) && num > maxNum) maxNum = num;
     }
     this._nextId = maxNum + 1;
+    // Rebuild the ANN index from the restored prototypes so recognition keeps
+    // working above annThreshold after a restart. Without this the graph is
+    // empty and nearest() returns nothing at scale. [FIX]
+    for (const c of this._concepts.values()) {
+      this._hnsw.add(c.id, c.prototype);
+    }
   }
 }

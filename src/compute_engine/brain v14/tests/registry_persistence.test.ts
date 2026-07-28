@@ -12,9 +12,19 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { encodeText } from "../adapters/language_codec.ts";
+import { fieldFromLuminanceGrid } from "../adapters/sensors/signal_codec.ts";
 import { ConceptRegistry } from "../cognition/concept_registry.ts";
 import { MemoryStore } from "../cognition/memory_store.ts";
 import { decodeFieldBase64, encodeFieldBase64 } from "../schemas/validate.ts";
+
+/** A raw sensory field (distinct geometry from encodeText). */
+function percept(seed: number): Float64Array {
+  const g = new Float64Array(64);
+  for (let i = 0; i < 64; i++) {
+    g[i] = Math.sin(seed * 1.7 + i * 0.618) * Math.cos(seed * 0.3 + i * 0.11);
+  }
+  return fieldFromLuminanceGrid(g, 8, 8);
+}
 
 let tmpDir: string;
 
@@ -158,5 +168,43 @@ describe("MemoryStore journal", () => {
     expect(lines.length).toBe(2);
     expect(JSON.parse(lines[0]).kind).toBe("boot");
     expect(JSON.parse(lines[1]).kind).toBe("thought");
+  });
+});
+
+describe("ConceptRegistry ANN index across restore", () => {
+  it("recognition keeps working above annThreshold after a restart", () => {
+    // Regression: restore() used to leave the HNSW index empty, so nearest()
+    // returned nothing once size >= annThreshold. Build past the (lowered)
+    // threshold, snapshot, restore, and confirm recognition still fires.
+    const registry = new ConceptRegistry();
+    registry.annThreshold = 3; // force the ANN path with few concepts
+    const query = percept(1);
+    for (let i = 0; i < 6; i++) registry.observe(percept(i * 13 + 1), [], "test");
+    const before = registry.nearest(query, 1)[0];
+    expect(before).toBeDefined();
+
+    const snapshot = registry.serialize(0);
+    const restored = new ConceptRegistry();
+    restored.annThreshold = 3;
+    restored.restore(snapshot);
+
+    expect(restored.size).toBe(registry.size);
+    const after = restored.nearest(query, 1)[0];
+    expect(after).toBeDefined(); // empty index would make this undefined
+    expect(after!.concept.id).toBe(before!.concept.id);
+  });
+
+  it("restoring twice does not double-index or corrupt recognition", () => {
+    const registry = new ConceptRegistry();
+    registry.annThreshold = 2;
+    for (let i = 0; i < 4; i++) registry.observe(percept(i * 7 + 3), [], "test");
+    const snap = registry.serialize(0);
+    const restored = new ConceptRegistry();
+    restored.annThreshold = 2;
+    restored.restore(snap);
+    restored.restore(snap); // second restore must reset, not accumulate
+    expect(restored.size).toBe(registry.size);
+    const q = percept(3);
+    expect(restored.nearest(q, 1)[0]).toBeDefined();
   });
 });
