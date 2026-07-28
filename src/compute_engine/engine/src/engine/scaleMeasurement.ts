@@ -86,37 +86,51 @@ import { burden, FULL_REGION } from "../information/burden.ts";
 
 /** Per-dimension mesh floor/ceiling (real-time bandwidth cap — POSTULATE). */
 export const RES_MIN = 8;
-export const RES_MAX = 256;
-/** Base mesh for the sparsest rung. */
-export const RES_BASE = 8;
-/** φ-exponent divisor: one φ-step of resolution per this many φ-steps of nodes. */
-export const RES_PHI_STEP = 4;
+export const RES_MAX = 128;
+
+/**
+ * Oversampling ceiling: the densest rung may take at most this many samples per
+ * mesh node. A REAL-TIME POSTULATE (finite sampling budget), NOT a field
+ * property — it keeps the densest measurement computable in a live loop.
+ */
+export const OVERSAMPLE_MAX = 16;
+
+/** The ladder's extreme rungs (anchor the density-weighted information span). */
+const STABLE_SCALES_MIN_N: StableScaleIndex = 1;
+const STABLE_SCALES_MAX_N: StableScaleIndex = 125;
 
 /**
  * The per-dimension measurement mesh for a scale, derived from its File-4 node
- * count. φ-quantized so resolution changes in discrete golden steps (no
- * arbitrary real-valued mesh), clamped to the real-time band. Deterministic.
+ * count nNodes ∝ φⁿ⁻¹ (EXACT). Larger scales (larger n) carry more nodes and
+ * are resolved on a finer mesh; the densest small rungs sit at the floor. The
+ * node's log-φ index is mapped LINEARLY across the real-time band [RES_MIN,
+ * RES_MAX] — linear, so the resolution genuinely separates across the ladder
+ * instead of saturating. Deterministic. [nNodes EXACT; the band is POSTULATE]
  */
 export function resolutionForScale(n: StableScaleIndex): number {
-  const nNodes = getScale(n).nNodes.toFloat64OrNull() ?? 1;
-  const logPhi = Math.log(Math.max(1, nNodes)) / Math.log(PHI);
-  const k = Math.round(logPhi / RES_PHI_STEP);
-  const res = RES_BASE * Math.pow(PHI, k);
+  // Node log-φ index for rung n: log_φ(φⁿ⁻¹) = n − 1 (exact).
+  const span = STABLE_SCALES_MAX_N - STABLE_SCALES_MIN_N; // 124
+  const frac = span <= 0 ? 1 : (n - STABLE_SCALES_MIN_N) / span; // ∈ [0,1]
+  const res = RES_MIN + frac * (RES_MAX - RES_MIN);
   return Math.max(RES_MIN, Math.min(RES_MAX, Math.round(res)));
 }
 
 /**
  * Oversampling factor for a scale: how many field samples to take per mesh
- * node, derived from its information density relative to the sparsest (largest)
- * rung. Denser ⇒ more samples per node. Returns a real ≥ 1; the caller rounds
- * to an integer sample count. Deterministic; the mapping is POSTULATE.
+ * node. Information density is ρ_I(n) = ρ₀φ⁻ⁿ (EXACT, File 4/13) — it is
+ * HIGHEST at the smallest n and falls geometrically. Dense scales carry more
+ * information per node, so they are sampled harder: the log-φ density span
+ * (125 − n) is mapped LINEARLY onto [1, OVERSAMPLE_MAX], so the densest rung
+ * (n=1) = OVERSAMPLE_MAX and the sparsest (n=125) = 1, with every rung strictly
+ * between. Bounded by construction — no combinatorial explosion, and monotone:
+ * denser ⇒ strictly more oversampling. [ρ_I envelope EXACT; the linear map +
+ * cap are POSTULATE]
  */
 export function densityOversample(n: StableScaleIndex, sparsestN: StableScaleIndex): number {
-  // Relative density ρ(n)/ρ(sparsest) = φ^{sparsest−n}. For n < sparsest this
-  // is > 1 (denser). Take its fourth root as a gentle oversample exponent so
-  // the densest rung is heavily but finitely oversampled.
-  const rel = Math.pow(PHI, sparsestN - n);
-  return Math.max(1, Math.pow(rel, 0.25));
+  void sparsestN; // the span is anchored by the ladder extremes, not the arg
+  const span = STABLE_SCALES_MAX_N - STABLE_SCALES_MIN_N; // 124
+  const frac = span <= 0 ? 1 : (STABLE_SCALES_MAX_N - n) / span; // ∈ [0,1], 1 at n=1
+  return 1 + (OVERSAMPLE_MAX - 1) * Math.max(0, Math.min(1, frac));
 }
 
 /** The total field-sample count for a scale: mesh² × oversampling (rounded). */

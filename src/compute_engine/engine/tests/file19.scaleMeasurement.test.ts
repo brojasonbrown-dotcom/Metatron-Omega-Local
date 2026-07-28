@@ -28,6 +28,7 @@ import {
   sampleCountForScale,
   RES_MIN,
   RES_MAX,
+  OVERSAMPLE_MAX,
 } from "../src/engine/scaleMeasurement.js";
 
 const LARGEST = STABLE_SCALES[STABLE_SCALES.length - 1]!; // n = 125
@@ -38,27 +39,49 @@ describe("FILE 19 — scale-native field measurement", () => {
   it("resolution grows with scale size and stays within the real-time band", () => {
     const resLargest = resolutionForScale(LARGEST);
     const resSmallest = resolutionForScale(SMALLEST);
-    expect(resLargest).toBeGreaterThanOrEqual(resSmallest);
+    expect(resLargest).toBeGreaterThan(resSmallest);
+    expect(resLargest).toBe(RES_MAX); // sparsest rung resolves at the ceiling
+    expect(resSmallest).toBe(RES_MIN); // densest rung at the floor
     for (const n of STABLE_SCALES) {
       const r = resolutionForScale(n);
       expect(r).toBeGreaterThanOrEqual(RES_MIN);
       expect(r).toBeLessThanOrEqual(RES_MAX);
       expect(Number.isInteger(r)).toBe(true);
     }
+    // Monotone: resolution never decreases as n increases (more nodes ⇒ finer).
+    for (let i = 1; i < STABLE_SCALES.length; i++) {
+      expect(resolutionForScale(STABLE_SCALES[i]!)).toBeGreaterThanOrEqual(
+        resolutionForScale(STABLE_SCALES[i - 1]!),
+      );
+    }
   });
 
-  // ── 2. Density → oversampling ─────────────────────────────────────────
-  it("denser rungs are oversampled at least as much as sparser rungs", () => {
-    // n=1 (densest core) vs n=125 (sparsest): dense rung gets ≥ oversampling.
+  // ── 2. Density → oversampling (bounded, information-linear) ───────────
+  it("denser rungs are oversampled more, bounded by the real-time ceiling", () => {
+    // n=1 (densest core) oversamples hardest; n=125 (sparsest) the least.
     const overDense = densityOversample(SMALLEST, LARGEST);
     const overSparse = densityOversample(LARGEST, LARGEST);
-    expect(overDense).toBeGreaterThanOrEqual(overSparse);
-    expect(overSparse).toBeCloseTo(1, 10); // sparsest anchors the baseline = 1
-    // Sample count is monotone non-decreasing in density for a fixed mesh cap.
-    const sDense = sampleCountForScale(SMALLEST, LARGEST);
-    const sSparse = sampleCountForScale(LARGEST, LARGEST);
-    expect(sDense).toBeGreaterThan(0);
-    expect(sSparse).toBeGreaterThan(0);
+    expect(overDense).toBe(OVERSAMPLE_MAX); // densest saturates the ceiling
+    expect(overSparse).toBe(1); // sparsest anchors the baseline
+    // Bounded by construction — no combinatorial explosion (File 19 fact 2).
+    for (const n of STABLE_SCALES) {
+      const o = densityOversample(n, LARGEST);
+      expect(o).toBeGreaterThanOrEqual(1);
+      expect(o).toBeLessThanOrEqual(OVERSAMPLE_MAX);
+    }
+    // Monotone: denser (smaller n) ⇒ strictly more oversampling.
+    for (let i = 1; i < STABLE_SCALES.length; i++) {
+      expect(densityOversample(STABLE_SCALES[i]!, LARGEST)).toBeLessThan(
+        densityOversample(STABLE_SCALES[i - 1]!, LARGEST),
+      );
+    }
+    // Every rung's sample count is finite and computable in a live loop.
+    for (const n of STABLE_SCALES) {
+      const s = sampleCountForScale(n, LARGEST);
+      expect(Number.isFinite(s)).toBe(true);
+      expect(s).toBeGreaterThan(0);
+      expect(s).toBeLessThanOrEqual(RES_MAX * RES_MAX * OVERSAMPLE_MAX);
+    }
   });
 
   // ── 3 + 4. Largest-first ordering + four invariants per scale ─────────
