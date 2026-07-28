@@ -1,0 +1,21 @@
+{
+  "name": "rhuft-ava-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AVA — desktop chat interface to the RHUFT 18-stable-scale computational engine. Real computation only: every answer is computed live from the engine, never canned.",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "bundle:engine": "node scripts/bundle-engine.mjs",
+    "icon": "python scripts/make-icon.py",
+    "start": "npm run bundle:engine && electron .",
+    "smoke": "npm run bundle:engine && node scripts/smoke.mjs",
+    "smoke:gui": "npm run bundle:engine && electron . --ci",
+    "pack": "npm run bundle:engine && electron-builder --dir",
+    "dist": "npm run bundle:engine && electron-builder",
+    "verify:dist": "electron-builder --dir && release/win-unpacked/AVA.exe --ci"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.15.3"
+  }
+}

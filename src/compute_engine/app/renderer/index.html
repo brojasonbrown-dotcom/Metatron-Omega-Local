@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AVA — RHUFT Engine Interface</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <canvas id="rain" aria-hidden="true"></canvas>
+
+    <main id="app">
+      <header id="bar">
+        <div class="brand">
+          <span class="dot"></span>
+          <h1>AVA</h1>
+          <span class="tag">RHUFT&nbsp;ENGINE</span>
+        </div>
+        <p class="sub">18 stable scales · Lucas-locked ladder · every answer computed live · nothing canned</p>
+      </header>
+
+      <section id="log" aria-live="polite"></section>
+
+      <form id="composer" autocomplete="off">
+        <span id="prompt">&gt;</span>
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="query the engine…  (help · scale 13 · closure 13 · lucas 27 · phi · overlap · status)"
+          autofocus
+        ></textarea>
+        <button id="send" type="submit" aria-label="send">➤</button>
+      </form>
+    </main>
+
+    <aside id="stab" class="hidden" aria-label="framework stability">
+      <h2>FRAMEWORK STABILITY</h2>
+      <div id="stab-body">
+        <p class="stab-dim">engine idle — press ⏻ to run the live loop</p>
+      </div>
+    </aside>
+
+    <div id="camprev" class="hidden">
+      <video id="camvideo" autoplay muted playsinline></video>
+    </div>
+
+    <nav id="fab" aria-label="controls">
+      <button id="fab-engine" title="engine start / stop">⏻</button>
+      <button id="fab-stab" title="framework stability">Σ</button>
+      <button id="fab-mic" title="microphone">🎙</button>
+      <button id="fab-cam" title="camera">📷</button>
+    </nav>
+
+    <script src="rain.js"></script>
+    <script src="chat.js"></script>
+    <script src="sensors.js"></script>
+    <script src="fab.js"></script>
+  </body>
+</html>

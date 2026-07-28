@@ -1,0 +1,55 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 15.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[      1268,         45]
+NotebookOptionsPosition[       878,         30]
+NotebookOutlinePosition[      1313,         47]
+CellTagsIndexPosition[      1270,         44]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ TemplateBox[{
+   TemplateBox[{
+     GraphicsBox[{}, DefaultBaseStyle -> {"CanvasGraphics"}, ImageSize -> 
+      Medium, PlotRange -> 1]}, "CanvasFrame"]},
+  "Canvas"]], "Input",
+ CellChangeTimes->{{3.9923312490402756`*^9, 
+  3.992331260135929*^9}},ExpressionUUID->"d6acf830-875d-504e-a142-\
+7bfa288f0829"]
+},
+WindowSize->{952.5, 954.75},
+WindowMargins->{{165, Automatic}, {49.5, Automatic}},
+Magnification:>1.1 Inherited,
+FrontEndVersion->"15.0 for Microsoft Windows (64-bit) (May 19, 2026)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"f0a511fb-41ce-424e-a8ee-51c4640fbe83"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[554, 20, 320, 8, 421, "Input",ExpressionUUID->"d6acf830-875d-504e-a142-7bfa288f0829"]
+}
+]
+*)
+
+(* End of internal cache information *)
+

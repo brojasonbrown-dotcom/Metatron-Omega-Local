@@ -1,0 +1,2317 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 15.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[    101048,       2309]
+NotebookOptionsPosition[     93709,       2195]
+NotebookOutlinePosition[     94120,       2211]
+CellTagsIndexPosition[     94077,       2208]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Full RHUFT Scale Evaluation Framework", "Title",ExpressionUUID->"f097fc1e-f443-da4c-b081-b31a556c2724"],
+
+Cell["\<\
+Below is a refined, testable Wolfram Language notebook-style framework that: \
+\>", "Text",ExpressionUUID->"fba85e5a-d6fa-b14e-be46-c025a457a2e1"],
+
+Cell["evaluates each scale individually", "Item",ExpressionUUID->"f61c056c-dc95-9846-9409-745d10b06183"],
+
+Cell["provides rigorous per-scale diagnostics", "Item",ExpressionUUID->"1eecd163-6bca-b948-8626-8583b6013266"],
+
+Cell["adds waveform search and stability optimization tools", "Item",ExpressionUUID->"e188ad7e-d741-124c-9d65-e74504388b14"],
+
+Cell["avoids the unsaved-notebook export issue", "Item",ExpressionUUID->"5d4381bb-99af-7c4e-9282-92f8f82e45ad"],
+
+Cell["keeps the code modular and directly executable", "Item",ExpressionUUID->"642e210e-dd71-274f-bf6a-a127adabf967"],
+
+Cell[CellGroupData[{
+
+Cell["Design notes", "Section",ExpressionUUID->"9addec1b-989f-0146-87c7-d7e422396287"],
+
+Cell["A few corrections were needed for rigor and validity: ", "Text",ExpressionUUID->"d8a4228c-7cba-8d47-ab2c-1a44590fa936"],
+
+Cell[TextData[{
+ "Your original ",
+ Cell[BoxData[Cell["testResultGrid",
+   Background->None,ExpressionUUID->"eb0d0769-edea-0444-9245-aab9ec6c20ac"]], 
+  "InlineCode",ExpressionUUID->"cfb4d909-be40-f44b-975a-bfdb190298cf"],
+ " background rule does not color rows by pass/fail correctly."
+}], "Item",ExpressionUUID->"3c52b6c1-3761-2a46-8cb0-abab4276ba57"],
+
+Cell[TextData[{
+ Cell[BoxData[Cell["runScaleTests",
+   Background->None,ExpressionUUID->"501f91cd-0f4e-da4e-9048-67a7a157bfed"]], 
+  "InlineCode",ExpressionUUID->"62179b33-9993-bb40-97fc-8de9202eb468"],
+ " looked at ",
+ Cell[BoxData[Cell["n-1",
+   Background->None,ExpressionUUID->"4d3f9a51-53e3-3540-a196-ab7223cc6549"]], 
+  "InlineCode",ExpressionUUID->"31fd4df0-c369-d44d-81b4-a48cb623873a"],
+ " and ",
+ Cell[BoxData[Cell["n+1",
+   Background->None,ExpressionUUID->"0fa67162-5723-f44b-8087-086d77891b0d"]], 
+  "InlineCode",ExpressionUUID->"e6c31fe6-f1ee-7447-bf1a-aa6cc19cf2e7"],
+ ", but your stable scales are not consecutive, so those neighbors were \
+almost always absent."
+}], "Item",ExpressionUUID->"a5db186f-5bfb-9843-adff-33cf054a12de"],
+
+Cell[TextData[{
+ Cell[BoxData[Cell["WaveSpeedRatio",
+   Background->None,ExpressionUUID->"33d4d2b3-d3c9-9d4e-acb6-bf5ce775df2f"]], 
+  "InlineCode",ExpressionUUID->"84da76ea-d175-c048-b972-5174910e3de8"],
+ " in your code ignored the user-supplied light-speed normalization in the \
+displayed plots."
+}], "Item",ExpressionUUID->"47752809-a682-d441-8231-ea56d7ff8cea"],
+
+Cell[TextData[{
+ "Infinite working precision is not generally realizable for numerical \
+procedures in the Wolfram Language; the practical rigorous replacement is to \
+use exact arithmetic where possible, and configurable arbitrarily high ",
+ ButtonBox["WorkingPrecision",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/WorkingPrecision"],
+ " for numerical tasks."
+}], "Item",ExpressionUUID->"7ee612b3-cb1c-284f-a99f-3a705f83dd76"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  RowBox[{"Export", "[", 
+   RowBox[{"FileNameJoin", "[", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"NotebookDirectory", "[", "]"}], ",", "..."}], "}"}], "]"}], 
+   "]"}]], "InlineWL", "Input",
+  ShowAutoStyles->True,
+  ShowSyntaxStyles->True,
+  LanguageCategory->"Input",
+  ShowStringCharacters->True,ExpressionUUID->
+  "112c3eab-e30f-eb45-9250-ee1629c91165"],
+ " fails for unsaved notebooks. A robust export helper should fall back to ",
+ ButtonBox["$HomeDirectory",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/$HomeDirectory"],
+ " or use ",
+ ButtonBox["SystemDialogInput",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/SystemDialogInput"],
+ "."
+}], "Item",ExpressionUUID->"103582f6-ffb7-584c-9717-7614e66de41d"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["1. Initialization and constants", "Section",ExpressionUUID->"516795fa-d869-4744-9d3e-97f7e2091249"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "goldenRatio", ",", "stableScales", ",", "planckLength", ",", 
+     "planckTime", ",", "lightSpeedSI"}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"stableScales", "=", 
+    RowBox[{"{", 
+     RowBox[{
+     "0", ",", "13", ",", "20", ",", "40", ",", "60", ",", "80", ",", "100", ",",
+       "120", ",", "140", ",", "160", ",", "180", ",", "186", ",", "200", ",",
+       "220", ",", "240", ",", "260", ",", "280", ",", "292"}], "}"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"goldenRatio", "=", 
+   RowBox[{"N", "[", 
+    RowBox[{"GoldenRatio", ",", "100"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"planckLength", "=", 
+   RowBox[{"Quantity", "[", 
+    RowBox[{
+     RowBox[{"1.616255", "*", 
+      RowBox[{"10", "^", 
+       RowBox[{"-", "35"}]}]}], ",", "\"\<Meters\>\""}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"planckTime", "=", 
+   RowBox[{"Quantity", "[", 
+    RowBox[{
+     RowBox[{"5.391247", "*", 
+      RowBox[{"10", "^", 
+       RowBox[{"-", "44"}]}]}], ",", "\"\<Seconds\>\""}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"lightSpeedSI", "=", 
+   RowBox[{"Quantity", "[", 
+    RowBox[{"299792458", ",", 
+     RowBox[{"\"\<Meters\>\"", "/", "\"\<Seconds\>\""}]}], "]"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"9de0817e-d8bf-cf43-abf8-6415ffb16a31"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["2. Realm labels", "Section",ExpressionUUID->"53fe5def-1219-5d48-b8e2-1643d3002307"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "realmName", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"realmName", "=", 
+   RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"0", "->", "\"\<Planck Foam\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"13", "->", "\"\<Quark Core\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"20", "->", "\"\<QGP\>\""}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"40", "->", "\"\<Muon/Pion\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"60", "->", "\"\<Proton/Neutron\>\""}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"80", "->", "\"\<Atom Core\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"100", "->", "\"\<Bohr Atom\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"120", "->", "\"\<Molecule\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"140", "->", "\"\<DNA\>\""}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"160", "->", "\"\<Organelle\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"180", "->", "\"\<Cell\>\""}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"186", "->", "\"\<Neural\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"200", "->", "\"\<Human\>\""}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"220", "->", "\"\<Planetary\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"240", "->", "\"\<Solar System\>\""}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"260", "->", "\"\<Galactic\>\""}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"280", "->", "\"\<Galaxy Cluster\>\""}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"292", "->", "\"\<Observable Universe\>\""}]}], 
+    "\[IndentingNewLine]", "|>"}]}], ";"}]}], "Input",ExpressionUUID->\
+"450f6e8a-e602-de41-a8c5-53377075ddc4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["3. Core RHUFT parameterization", "Section",ExpressionUUID->"b515ae49-6098-c049-8a1e-b61f04a90298"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+    "kappaConst", ",", "lambdaConst", ",", "\[IndentingNewLine]", "  ", 
+     "lengthScale", ",", "timeQuantum", ",", "spatialResolution", ",", 
+     "\[IndentingNewLine]", "  ", "complexityMeasure", ",", 
+     "informationDensityRatio", ",", "\[IndentingNewLine]", "  ", 
+     "stabilityResidual", ",", "stabilityScore", ",", "windingNumber", ",", 
+     "\[IndentingNewLine]", "  ", "infoCoupling", ",", "gradientCoupling", ",",
+      "waveSpeedRatio", ",", "\[IndentingNewLine]", "  ", 
+     "nearestStableNeighbors", ",", "scaleAssociation"}], 
+    "\[IndentingNewLine]", "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"kappaConst", "=", 
+   RowBox[{"1", "/", 
+    RowBox[{"(", 
+     RowBox[{"goldenRatio", " ", "Pi"}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"lambdaConst", "=", 
+    RowBox[{"1", "/", 
+     RowBox[{"goldenRatio", "^", "2"}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"lengthScale", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"planckLength", "*", 
+     RowBox[{"goldenRatio", "^", "n"}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"timeQuantum", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"epsilon_", ":", " ", "0"}]}], "]"}], ":=", 
+    RowBox[{"planckTime", "*", 
+     RowBox[{"goldenRatio", "^", "n"}], "*", 
+     RowBox[{"(", 
+      RowBox[{"1", "+", 
+       RowBox[{"epsilon", " ", "n"}]}], ")"}]}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"spatialResolution", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"planckLength", "*", 
+     RowBox[{"goldenRatio", "^", 
+      RowBox[{"-", "n"}]}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"complexityMeasure", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"3", " ", "n", " ", 
+     RowBox[{"Log", "[", "goldenRatio", "]"}]}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"informationDensityRatio", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"goldenRatio", "^", 
+     RowBox[{"-", "n"}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"stabilityResidual", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"x", "=", 
+        RowBox[{
+         RowBox[{"goldenRatio", "^", "n"}], "/", "13"}]}], "}"}], ",", 
+      RowBox[{
+       RowBox[{"Abs", "[", 
+        RowBox[{"x", "-", 
+         RowBox[{"Round", "[", "x", "]"}]}], "]"}], "/", "x"}]}], "]"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"stabilityScore", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"1", "-", 
+     RowBox[{"stabilityResidual", "[", "n", "]"}]}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"windingNumber", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"Round", "[", 
+     RowBox[{
+      RowBox[{"goldenRatio", "^", "n"}], "/", "13"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"infoCoupling", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"hbar_", ":", " ", "1"}], ",", 
+      RowBox[{"c_", ":", " ", "1"}]}], "]"}], ":=", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"hbar", "/", 
+       RowBox[{"c", "^", "2"}]}], ")"}], " ", 
+     RowBox[{"goldenRatio", "^", 
+      RowBox[{"-", "n"}]}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"gradientCoupling", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"mass_", ":", " ", "1"}], ",", 
+      RowBox[{"hbar_", ":", " ", "1"}], ",", 
+      RowBox[{"c_", ":", " ", "1"}]}], "]"}], ":=", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"hbar", "/", 
+       RowBox[{"(", 
+        RowBox[{"mass", " ", 
+         RowBox[{"c", "^", "2"}]}], ")"}]}], ")"}], " ", 
+     RowBox[{"goldenRatio", "^", 
+      RowBox[{"-", "n"}]}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"waveSpeedRatio", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"epsilon_", ":", " ", "0"}], ",", 
+      RowBox[{"rho0_", ":", " ", "1"}], ",", 
+      RowBox[{"kappa_", ":", " ", "kappaConst"}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"rho", ",", "tau"}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"rho", "=", 
+        RowBox[{"rho0", " ", 
+         RowBox[{"informationDensityRatio", "[", "n", "]"}]}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"tau", "=", 
+        RowBox[{
+         RowBox[{"goldenRatio", "^", "n"}], " ", 
+         RowBox[{"(", 
+          RowBox[{"1", "+", 
+           RowBox[{"epsilon", " ", "n"}]}], ")"}]}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"1", "/", 
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"Sqrt", "[", 
+           RowBox[{"rho", " ", "kappa"}], "]"}], " ", "tau"}], ")"}]}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"nearestStableNeighbors", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", "pos", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"pos", "=", 
+        RowBox[{"FirstPosition", "[", 
+         RowBox[{"stableScales", ",", "n", ",", 
+          RowBox[{"Missing", "[", "\"\<NotStableScale\>\"", "]"}]}], "]"}]}], 
+       ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"MissingQ", "[", "pos", "]"}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"<|", 
+          RowBox[{
+           RowBox[{"\"\<Previous\>\"", "->", 
+            RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}], ",", 
+           RowBox[{"\"\<Next\>\"", "->", 
+            RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}]}], "|>"}],
+          ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"<|", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"\"\<Previous\>\"", "->", 
+            RowBox[{"If", "[", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"pos", "[", 
+                RowBox[{"[", "1", "]"}], "]"}], ">", "1"}], ",", 
+              RowBox[{"stableScales", "[", 
+               RowBox[{"[", 
+                RowBox[{
+                 RowBox[{"pos", "[", 
+                  RowBox[{"[", "1", "]"}], "]"}], "-", "1"}], "]"}], "]"}], ",", 
+              RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}], 
+             "]"}]}], ",", "\[IndentingNewLine]", "      ", 
+           RowBox[{"\"\<Next\>\"", "->", 
+            RowBox[{"If", "[", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"pos", "[", 
+                RowBox[{"[", "1", "]"}], "]"}], "<", 
+               RowBox[{"Length", "[", "stableScales", "]"}]}], ",", 
+              RowBox[{"stableScales", "[", 
+               RowBox[{"[", 
+                RowBox[{
+                 RowBox[{"pos", "[", 
+                  RowBox[{"[", "1", "]"}], "]"}], "+", "1"}], "]"}], "]"}], ",", 
+              RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}], 
+             "]"}]}]}], "\[IndentingNewLine]", "    ", "|>"}]}], 
+        "\[IndentingNewLine]", "  ", "]"}]}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "scaleAssociation", "]"}], "=", 
+    RowBox[{"{", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"\"\<Epsilon\>\"", "->", "0"}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"\"\<Rho0\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Mass\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<HBar\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<LightSpeed\>\"", "->", "1"}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"\"\<StabilityThreshold\>\"", "->", "0.99"}]}], 
+     "\[IndentingNewLine]", "}"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"scaleAssociation", "[", 
+    RowBox[{"n_Integer", ",", 
+     RowBox[{"opts", " ", ":", " ", 
+      RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", "\[IndentingNewLine]", "    ", 
+      RowBox[{
+       RowBox[{"epsilon", "=", 
+        RowBox[{"OptionValue", "[", "\"\<Epsilon\>\"", "]"}]}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"rho0", "=", 
+        RowBox[{"OptionValue", "[", "\"\<Rho0\>\"", "]"}]}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"mass", "=", 
+        RowBox[{"OptionValue", "[", "\"\<Mass\>\"", "]"}]}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"hbar", "=", 
+        RowBox[{"OptionValue", "[", "\"\<HBar\>\"", "]"}]}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"c", "=", 
+        RowBox[{"OptionValue", "[", "\"\<LightSpeed\>\"", "]"}]}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"threshold", "=", 
+        RowBox[{"OptionValue", "[", "\"\<StabilityThreshold\>\"", "]"}]}], ",",
+        "\[IndentingNewLine]", "    ", "score", ",", "neighbors"}], 
+      "\[IndentingNewLine]", "  ", "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"score", "=", 
+       RowBox[{"stabilityScore", "[", "n", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"neighbors", "=", 
+       RowBox[{"nearestStableNeighbors", "[", "n", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"\"\<Scale\>\"", "->", "n"}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<Realm\>\"", "->", 
+         RowBox[{"Lookup", "[", 
+          RowBox[{"realmName", ",", "n", ",", "\"\<Unknown\>\""}], "]"}]}], ",",
+         "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<LengthScale\>\"", "->", 
+         RowBox[{"lengthScale", "[", "n", "]"}]}], ",", "\[IndentingNewLine]",
+         "    ", 
+        RowBox[{"\"\<TimeQuantum\>\"", "->", 
+         RowBox[{"timeQuantum", "[", 
+          RowBox[{"n", ",", "epsilon"}], "]"}]}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<SpatialResolution\>\"", "->", 
+         RowBox[{"spatialResolution", "[", "n", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Complexity\>\"", "->", 
+         RowBox[{"complexityMeasure", "[", "n", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<InformationDensityRatio\>\"", "->", 
+         RowBox[{"informationDensityRatio", "[", "n", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<WaveSpeedRatio\>\"", "->", 
+         RowBox[{"waveSpeedRatio", "[", 
+          RowBox[{"n", ",", "epsilon", ",", "rho0"}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<InfoCoupling\>\"", "->", 
+         RowBox[{"infoCoupling", "[", 
+          RowBox[{"n", ",", "hbar", ",", "c"}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<GradientCoupling\>\"", "->", 
+         RowBox[{"gradientCoupling", "[", 
+          RowBox[{"n", ",", "mass", ",", "hbar", ",", "c"}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Kappa\>\"", "->", "kappaConst"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Lambda\>\"", "->", "lambdaConst"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<StabilityResidual\>\"", "->", 
+         RowBox[{"stabilityResidual", "[", "n", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<StabilityScore\>\"", "->", "score"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<WindingNumber\>\"", "->", 
+         RowBox[{"windingNumber", "[", "n", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<StableQ\>\"", "->", 
+         RowBox[{"score", ">=", "threshold"}]}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<PreviousStableScale\>\"", "->", 
+         RowBox[{"neighbors", "[", "\"\<Previous\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<NextStableScale\>\"", "->", 
+         RowBox[{"neighbors", "[", "\"\<Next\>\"", "]"}]}]}], 
+       "\[IndentingNewLine]", "  ", "|>"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"e018a5fa-17df-e14a-86a1-\
+5e86a187eac1"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["4. Per-scale rigorous test suite", "Section",ExpressionUUID->"361f8ff7-e74e-a14b-9130-f7358e25dc07"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "scaleNeighborComparisons", ",", "runScaleTests", ",", 
+     "summarizePassRate"}], "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"scaleNeighborComparisons", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"opts", " ", ":", " ", 
+       RowBox[{"OptionsPattern", "[", "scaleAssociation", "]"}]}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"prevNext", "=", 
+         RowBox[{"nearestStableNeighbors", "[", "n", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", "current", ",", "prev", ",", "next"}], 
+       "\[IndentingNewLine]", "  ", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"current", "=", 
+        RowBox[{"scaleAssociation", "[", 
+         RowBox[{"n", ",", "opts"}], "]"}]}], ";", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{"prev", "=", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"IntegerQ", "[", 
+           RowBox[{"prevNext", "[", "\"\<Previous\>\"", "]"}], "]"}], ",", 
+          RowBox[{"scaleAssociation", "[", 
+           RowBox[{
+            RowBox[{"prevNext", "[", "\"\<Previous\>\"", "]"}], ",", "opts"}],
+            "]"}], ",", 
+          RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}], "]"}]}], ";",
+        "\[IndentingNewLine]", "  ", 
+       RowBox[{"next", "=", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"IntegerQ", "[", 
+           RowBox[{"prevNext", "[", "\"\<Next\>\"", "]"}], "]"}], ",", 
+          RowBox[{"scaleAssociation", "[", 
+           RowBox[{
+            RowBox[{"prevNext", "[", "\"\<Next\>\"", "]"}], ",", "opts"}], 
+           "]"}], ",", 
+          RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}], "]"}]}], ";",
+        "\[IndentingNewLine]", "  ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<Current\>\"", "->", "current"}], ",", 
+         RowBox[{"\"\<Previous\>\"", "->", "prev"}], ",", 
+         RowBox[{"\"\<Next\>\"", "->", "next"}]}], "|>"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "runScaleTests", "]"}], "=", 
+    RowBox[{"Join", "[", 
+     RowBox[{
+      RowBox[{"Options", "[", "scaleAssociation", "]"}], ",", 
+      RowBox[{"{", "\[IndentingNewLine]", "  ", 
+       RowBox[{
+        RowBox[{"\"\<WaveSpeedUpperBound\>\"", "->", "Infinity"}], ",", 
+        "\[IndentingNewLine]", "  ", 
+        RowBox[{"\"\<WorkingPrecision\>\"", "->", "80"}]}], 
+       "\[IndentingNewLine]", "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"runScaleTests", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"opts", " ", ":", " ", 
+       RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", "\[IndentingNewLine]", "    ", 
+       RowBox[{"assoc", ",", "comps", ",", "\[IndentingNewLine]", "    ", 
+        RowBox[{"threshold", "=", 
+         RowBox[{"OptionValue", "[", "\"\<StabilityThreshold\>\"", "]"}]}], ",",
+         "\[IndentingNewLine]", "    ", 
+        RowBox[{"waveUpper", "=", 
+         RowBox[{"OptionValue", "[", "\"\<WaveSpeedUpperBound\>\"", "]"}]}], ",",
+         "\[IndentingNewLine]", "    ", "prev", ",", "next"}], 
+       "\[IndentingNewLine]", "  ", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"assoc", "=", 
+        RowBox[{"scaleAssociation", "[", 
+         RowBox[{"n", ",", 
+          RowBox[{"FilterRules", "[", 
+           RowBox[{
+            RowBox[{"{", "opts", "}"}], ",", 
+            RowBox[{"Options", "[", "scaleAssociation", "]"}]}], "]"}]}], 
+         "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"comps", "=", 
+        RowBox[{"scaleNeighborComparisons", "[", 
+         RowBox[{"n", ",", 
+          RowBox[{"FilterRules", "[", 
+           RowBox[{
+            RowBox[{"{", "opts", "}"}], ",", 
+            RowBox[{"Options", "[", "scaleAssociation", "]"}]}], "]"}]}], 
+         "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"prev", "=", 
+        RowBox[{"comps", "[", "\"\<Previous\>\"", "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"next", "=", 
+        RowBox[{"comps", "[", "\"\<Next\>\"", "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"\"\<StableScaleMembershipTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", "n"}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{"MemberQ", "[", 
+              RowBox[{"stableScales", ",", "n"}], "]"}]}]}], "|>"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<StabilityThresholdTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"assoc", "[", "\"\<StabilityScore\>\"", "]"}]}], ",", 
+            RowBox[{"\"\<Threshold\>\"", "->", "threshold"}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{
+              RowBox[{"assoc", "[", "\"\<StabilityScore\>\"", "]"}], ">=", 
+              "threshold"}]}]}], "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<ResidualBoundTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"assoc", "[", "\"\<StabilityResidual\>\"", "]"}]}], ",", 
+            RowBox[{"\"\<Threshold\>\"", "->", 
+             RowBox[{"1", "-", "threshold"}]}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{
+              RowBox[{"assoc", "[", "\"\<StabilityResidual\>\"", "]"}], "<=", 
+              RowBox[{"1", "-", "threshold"}]}]}]}], "|>"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<PositiveLengthTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"UnitConvert", "[", 
+              RowBox[{
+               RowBox[{"assoc", "[", "\"\<LengthScale\>\"", "]"}], 
+               ",", "\"\<Meters\>\""}], "]"}]}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{
+              RowBox[{"QuantityMagnitude", "@", 
+               RowBox[{"UnitConvert", "[", 
+                RowBox[{
+                 RowBox[{"assoc", "[", "\"\<LengthScale\>\"", "]"}], 
+                 ",", "\"\<Meters\>\""}], "]"}]}], ">", "0"}]}]}], "|>"}]}], ",",
+          "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<PositiveTimeTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"UnitConvert", "[", 
+              RowBox[{
+               RowBox[{"assoc", "[", "\"\<TimeQuantum\>\"", "]"}], 
+               ",", "\"\<Seconds\>\""}], "]"}]}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{
+              RowBox[{"QuantityMagnitude", "@", 
+               RowBox[{"UnitConvert", "[", 
+                RowBox[{
+                 RowBox[{"assoc", "[", "\"\<TimeQuantum\>\"", "]"}], 
+                 ",", "\"\<Seconds\>\""}], "]"}]}], ">", "0"}]}]}], "|>"}]}], 
+         ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<PositiveResolutionTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"UnitConvert", "[", 
+              RowBox[{
+               RowBox[{"assoc", "[", "\"\<SpatialResolution\>\"", "]"}], 
+               ",", "\"\<Meters\>\""}], "]"}]}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{
+              RowBox[{"QuantityMagnitude", "@", 
+               RowBox[{"UnitConvert", "[", 
+                RowBox[{
+                 RowBox[{"assoc", "[", "\"\<SpatialResolution\>\"", "]"}], 
+                 ",", "\"\<Meters\>\""}], "]"}]}], ">", "0"}]}]}], "|>"}]}], ",",
+          "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<ComplexityNonnegativeTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"assoc", "[", "\"\<Complexity\>\"", "]"}]}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{
+              RowBox[{"assoc", "[", "\"\<Complexity\>\"", "]"}], ">=", 
+              "0"}]}]}], "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<DensityDecayRangeTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"assoc", "[", "\"\<InformationDensityRatio\>\"", "]"}]}],
+             ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{"0", "<", 
+              RowBox[{"assoc", "[", "\"\<InformationDensityRatio\>\"", "]"}], 
+              "<=", "1"}]}]}], "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<WindingIntegralityTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"assoc", "[", "\"\<WindingNumber\>\"", "]"}]}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{"IntegerQ", "[", 
+              RowBox[{"assoc", "[", "\"\<WindingNumber\>\"", "]"}], "]"}]}]}],
+            "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<FiniteWaveSpeedTest\>\"", "->", 
+          RowBox[{"<|", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"assoc", "[", "\"\<WaveSpeedRatio\>\"", "]"}]}], ",", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{
+              RowBox[{"NumericQ", "[", 
+               RowBox[{"assoc", "[", "\"\<WaveSpeedRatio\>\"", "]"}], "]"}], "&&", 
+              RowBox[{"TrueQ", "[", 
+               RowBox[{"0", "<", 
+                RowBox[{"assoc", "[", "\"\<WaveSpeedRatio\>\"", "]"}], "<", 
+                "waveUpper"}], "]"}]}]}]}], "|>"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<LengthResolutionDualityTest\>\"", "->", 
+          RowBox[{"<|", "\[IndentingNewLine]", "      ", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"UnitSimplify", "[", 
+              RowBox[{
+               RowBox[{"assoc", "[", "\"\<LengthScale\>\"", "]"}], " ", 
+               RowBox[{"assoc", "[", "\"\<SpatialResolution\>\"", "]"}]}], 
+              "]"}]}], ",", "\[IndentingNewLine]", "      ", 
+            RowBox[{"\"\<Reference\>\"", "->", 
+             RowBox[{"UnitSimplify", "[", 
+              RowBox[{"planckLength", "^", "2"}], "]"}]}], ",", 
+            "\[IndentingNewLine]", "      ", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{"TrueQ", "[", 
+              RowBox[{"UnitSimplify", "[", 
+               RowBox[{
+                RowBox[{
+                 RowBox[{"assoc", "[", "\"\<LengthScale\>\"", "]"}], " ", 
+                 RowBox[{"assoc", "[", "\"\<SpatialResolution\>\"", "]"}]}], "==", 
+                RowBox[{"planckLength", "^", "2"}]}], "]"}], "]"}]}]}], 
+           "\[IndentingNewLine]", "    ", "|>"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<PreviousComplexityMonotonicityTest\>\"", "->", 
+          RowBox[{"<|", "\[IndentingNewLine]", "      ", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"If", "[", 
+              RowBox[{
+               RowBox[{"AssociationQ", "[", "prev", "]"}], ",", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"prev", "[", "\"\<Complexity\>\"", "]"}], ",", 
+                 RowBox[{"assoc", "[", "\"\<Complexity\>\"", "]"}]}], "}"}], ",", 
+               RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}], 
+              "]"}]}], ",", "\[IndentingNewLine]", "      ", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{"If", "[", 
+              RowBox[{
+               RowBox[{"AssociationQ", "[", "prev", "]"}], ",", 
+               RowBox[{
+                RowBox[{"assoc", "[", "\"\<Complexity\>\"", "]"}], ">=", 
+                RowBox[{"prev", "[", "\"\<Complexity\>\"", "]"}]}], ",", 
+               "True"}], "]"}]}]}], "\[IndentingNewLine]", "    ", "|>"}]}], ",",
+          "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<NextDensityMonotonicityTest\>\"", "->", 
+          RowBox[{"<|", "\[IndentingNewLine]", "      ", 
+           RowBox[{
+            RowBox[{"\"\<Value\>\"", "->", 
+             RowBox[{"If", "[", 
+              RowBox[{
+               RowBox[{"AssociationQ", "[", "next", "]"}], ",", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{
+                 "assoc", "[", "\"\<InformationDensityRatio\>\"", "]"}], ",", 
+                 RowBox[{
+                 "next", "[", "\"\<InformationDensityRatio\>\"", "]"}]}], 
+                "}"}], ",", 
+               RowBox[{"Missing", "[", "\"\<NotAvailable\>\"", "]"}]}], 
+              "]"}]}], ",", "\[IndentingNewLine]", "      ", 
+            RowBox[{"\"\<Pass\>\"", "->", 
+             RowBox[{"If", "[", 
+              RowBox[{
+               RowBox[{"AssociationQ", "[", "next", "]"}], ",", 
+               RowBox[{
+                RowBox[{
+                "assoc", "[", "\"\<InformationDensityRatio\>\"", "]"}], ">=", 
+                RowBox[{
+                "next", "[", "\"\<InformationDensityRatio\>\"", "]"}]}], ",", 
+               "True"}], "]"}]}]}], "\[IndentingNewLine]", "    ", "|>"}]}]}],
+         "\[IndentingNewLine]", "  ", "|>"}]}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"summarizePassRate", "[", "testAssoc_Association", "]"}], ":=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", "passes", "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"passes", "=", 
+       RowBox[{"Lookup", "[", 
+        RowBox[{
+         RowBox[{"Values", "[", "testAssoc", "]"}], ",", "\"\<Pass\>\""}], 
+        "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"\"\<PassCount\>\"", "->", 
+         RowBox[{"Count", "[", 
+          RowBox[{"passes", ",", "True"}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<FailCount\>\"", "->", 
+         RowBox[{"Count", "[", 
+          RowBox[{"passes", ",", "False"}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<PassFraction\>\"", "->", 
+         RowBox[{"N", "[", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"Count", "[", 
+             RowBox[{"passes", ",", "True"}], "]"}], "/", 
+            RowBox[{"Length", "[", "passes", "]"}]}], ",", "20"}], "]"}]}]}], 
+       "\[IndentingNewLine]", "  ", "|>"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"7cd8c25e-912d-c442-a0b3-\
+4ced13a80b78"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["5. Waveform family, PDE residual proxy, and stability search", "Section",ExpressionUUID->"db6eb1a4-c0ad-0d4d-abca-672c495716e9"],
+
+Cell["\<\
+This section adds automatic search for \"most stable waveforms\" in a \
+testable way. Since the full integro-differential equation is symbolic and \
+not fully specified numerically, the practical rigorous approach is: \
+\>", "Text",ExpressionUUID->"9858ca86-d648-5d41-8aa1-4f99c8c0d0aa"],
+
+Cell["define a parameterized waveform family", "Item",ExpressionUUID->"c835e29b-77cb-fd46-a827-57fa1cf685d6"],
+
+Cell["define a residual-like stability functional", "Item",ExpressionUUID->"d32c0c00-2985-fe43-bdbf-2ef2c4e0f3b6"],
+
+Cell[CellGroupData[{
+
+Cell["optimize it over waveform parameters for each scale", "Item",ExpressionUUID->"41451229-7f0e-784f-af12-4af0e40d3a98"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+    "waveformFunction", ",", "waveformParameterAssociation", ",", 
+     "\[IndentingNewLine]", "  ", "waveformResidualFunctional", ",", 
+     "waveformObjective", ",", "\[IndentingNewLine]", "  ", 
+     "findMostStableWaveform", ",", "batchFindMostStableWaveforms"}], 
+    "\[IndentingNewLine]", "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"waveformFunction", "[", 
+      RowBox[{"n_Integer", ",", "params_Association"}], "]"}], "[", 
+     RowBox[{"x_", ",", "t_"}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"amplitude", "=", 
+         RowBox[{"params", "[", "\"\<Amplitude\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"decay", "=", 
+         RowBox[{"params", "[", "\"\<Decay\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"omega", "=", 
+         RowBox[{"params", "[", "\"\<Omega\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"k", "=", 
+         RowBox[{"params", "[", "\"\<WaveNumber\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"phase", "=", 
+         RowBox[{"params", "[", "\"\<Phase\>\"", "]"}]}]}], 
+       "\[IndentingNewLine]", "  ", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"amplitude", " ", 
+       RowBox[{"Exp", "[", 
+        RowBox[{
+         RowBox[{"-", "decay"}], " ", "t"}], "]"}], " ", 
+       RowBox[{"Cos", "[", 
+        RowBox[{
+         RowBox[{"k", " ", "x"}], "-", 
+         RowBox[{"omega", " ", "t"}], "+", "phase"}], "]"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"waveformParameterAssociation", "[", 
+     RowBox[{"{", 
+      RowBox[{
+      "amplitude_", ",", "decay_", ",", "omega_", ",", "waveNumber_", ",", 
+       "phase_"}], "}"}], "]"}], ":=", 
+    RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"\"\<Amplitude\>\"", "->", "amplitude"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Decay\>\"", "->", "decay"}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"\"\<Omega\>\"", "->", "omega"}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"\"\<WaveNumber\>\"", "->", "waveNumber"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Phase\>\"", "->", "phase"}]}], "\[IndentingNewLine]", 
+     "|>"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "waveformResidualFunctional", "]"}], "=", 
+    RowBox[{"Join", "[", 
+     RowBox[{
+      RowBox[{"Options", "[", "scaleAssociation", "]"}], ",", 
+      RowBox[{"{", "\[IndentingNewLine]", "  ", 
+       RowBox[{
+        RowBox[{"\"\<XDomain\>\"", "->", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "1"}], ",", "1"}], "}"}]}], ",", 
+        "\[IndentingNewLine]", "  ", 
+        RowBox[{"\"\<TDomain\>\"", "->", 
+         RowBox[{"{", 
+          RowBox[{"0", ",", "1"}], "}"}]}], ",", "\[IndentingNewLine]", "  ", 
+        RowBox[{"\"\<WorkingPrecision\>\"", "->", "80"}]}], 
+       "\[IndentingNewLine]", "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"waveformResidualFunctional", "[", 
+     RowBox[{"n_Integer", ",", "params_Association", ",", 
+      RowBox[{"opts", " ", ":", " ", 
+       RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"epsilon", "=", 
+         RowBox[{"OptionValue", "[", "\"\<Epsilon\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"rho0", "=", 
+         RowBox[{"OptionValue", "[", "\"\<Rho0\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"mass", "=", 
+         RowBox[{"OptionValue", "[", "\"\<Mass\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"hbar", "=", 
+         RowBox[{"OptionValue", "[", "\"\<HBar\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"c", "=", 
+         RowBox[{"OptionValue", "[", "\"\<LightSpeed\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"xDomain", "=", 
+         RowBox[{"OptionValue", "[", "\"\<XDomain\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"tDomain", "=", 
+         RowBox[{"OptionValue", "[", "\"\<TDomain\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"wp", "=", 
+         RowBox[{"OptionValue", "[", "\"\<WorkingPrecision\>\"", "]"}]}], ",",
+         "\[IndentingNewLine]", "    ", "psi", ",", "waveRatio", ",", 
+        "gCoupling", ",", "iCoupling", ",", "pdeExpr"}], 
+       "\[IndentingNewLine]", "  ", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"psi", "[", 
+         RowBox[{"x_", ",", "t_"}], "]"}], ":=", 
+        RowBox[{
+         RowBox[{"waveformFunction", "[", 
+          RowBox[{"n", ",", "params"}], "]"}], "[", 
+         RowBox[{"x", ",", "t"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"waveRatio", "=", 
+        RowBox[{"SetPrecision", "[", 
+         RowBox[{
+          RowBox[{"waveSpeedRatio", "[", 
+           RowBox[{"n", ",", "epsilon", ",", "rho0"}], "]"}], ",", "wp"}], 
+         "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"gCoupling", "=", 
+        RowBox[{"SetPrecision", "[", 
+         RowBox[{
+          RowBox[{"gradientCoupling", "[", 
+           RowBox[{"n", ",", "mass", ",", "hbar", ",", "c"}], "]"}], ",", 
+          "wp"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"iCoupling", "=", 
+        RowBox[{"SetPrecision", "[", 
+         RowBox[{
+          RowBox[{"infoCoupling", "[", 
+           RowBox[{"n", ",", "hbar", ",", "c"}], "]"}], ",", "wp"}], "]"}]}], 
+       ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"pdeExpr", "=", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"(", 
+           RowBox[{"1", "/", 
+            RowBox[{"waveRatio", "^", "2"}]}], ")"}], " ", 
+          RowBox[{"D", "[", 
+           RowBox[{
+            RowBox[{"psi", "[", 
+             RowBox[{"x", ",", "t"}], "]"}], ",", 
+            RowBox[{"{", 
+             RowBox[{"t", ",", "2"}], "}"}]}], "]"}]}], "-", 
+         RowBox[{"D", "[", 
+          RowBox[{
+           RowBox[{"psi", "[", 
+            RowBox[{"x", ",", "t"}], "]"}], ",", 
+           RowBox[{"{", 
+            RowBox[{"x", ",", "2"}], "}"}]}], "]"}], "+", 
+         RowBox[{
+          RowBox[{"params", "[", "\"\<Decay\>\"", "]"}], " ", 
+          RowBox[{"D", "[", 
+           RowBox[{
+            RowBox[{"psi", "[", 
+             RowBox[{"x", ",", "t"}], "]"}], ",", "t"}], "]"}]}], "+", 
+         RowBox[{"gCoupling", " ", 
+          RowBox[{"psi", "[", 
+           RowBox[{"x", ",", "t"}], "]"}]}], "+", "iCoupling"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"NIntegrate", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"Evaluate", "[", 
+          RowBox[{
+           RowBox[{"Abs", "[", "pdeExpr", "]"}], "^", "2"}], "]"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"{", 
+          RowBox[{"x", ",", 
+           RowBox[{"xDomain", "[", 
+            RowBox[{"[", "1", "]"}], "]"}], ",", 
+           RowBox[{"xDomain", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}], "}"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"{", 
+          RowBox[{"t", ",", 
+           RowBox[{"tDomain", "[", 
+            RowBox[{"[", "1", "]"}], "]"}], ",", 
+           RowBox[{"tDomain", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}], "}"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"WorkingPrecision", "->", "wp"}], ",", "\[IndentingNewLine]",
+          "    ", 
+         RowBox[{"AccuracyGoal", "->", 
+          RowBox[{"Floor", "[", 
+           RowBox[{"wp", "/", "3"}], "]"}]}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"PrecisionGoal", "->", 
+          RowBox[{"Floor", "[", 
+           RowBox[{"wp", "/", "3"}], "]"}]}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"Method", "->", 
+          RowBox[{"{", 
+           RowBox[{"\"\<GlobalAdaptive\>\"", ",", 
+            RowBox[{"\"\<SymbolicProcessing\>\"", "->", "0"}]}], "}"}]}]}], 
+        "\[IndentingNewLine]", "  ", "]"}]}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "waveformObjective", "]"}], "=", 
+    RowBox[{"Options", "[", "waveformResidualFunctional", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"waveformObjective", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"vars", " ", ":", " ", 
+       RowBox[{"{", 
+        RowBox[{
+        "amplitude_", ",", "decay_", ",", "omega_", ",", "waveNumber_", ",", 
+         "phase_"}], "}"}]}], ",", 
+      RowBox[{"opts", " ", ":", " ", 
+       RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"waveformResidualFunctional", "[", 
+     RowBox[{"n", ",", 
+      RowBox[{"waveformParameterAssociation", "[", "vars", "]"}], ",", 
+      "opts"}], "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "findMostStableWaveform", "]"}], "=", 
+    RowBox[{"Join", "[", 
+     RowBox[{
+      RowBox[{"Options", "[", "waveformResidualFunctional", "]"}], ",", 
+      RowBox[{"{", "\[IndentingNewLine]", "  ", 
+       RowBox[{"\"\<SearchRanges\>\"", "->", 
+        RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+         RowBox[{
+          RowBox[{"\"\<Amplitude\>\"", "->", 
+           RowBox[{"{", 
+            RowBox[{"0.1", ",", "2"}], "}"}]}], ",", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"\"\<Decay\>\"", "->", 
+           RowBox[{"{", 
+            RowBox[{"0", ",", "2"}], "}"}]}], ",", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"\"\<Omega\>\"", "->", 
+           RowBox[{"{", 
+            RowBox[{"0.1", ",", "10"}], "}"}]}], ",", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"\"\<WaveNumber\>\"", "->", 
+           RowBox[{"{", 
+            RowBox[{"0.1", ",", "10"}], "}"}]}], ",", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"\"\<Phase\>\"", "->", 
+           RowBox[{"{", 
+            RowBox[{"0", ",", 
+             RowBox[{"2", " ", "Pi"}]}], "}"}]}]}], "\[IndentingNewLine]", 
+         "  ", "|>"}]}], "\[IndentingNewLine]", "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"findMostStableWaveform", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"opts", " ", ":", " ", 
+       RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"ranges", "=", 
+         RowBox[{"OptionValue", "[", "\"\<SearchRanges\>\"", "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"wp", "=", 
+         RowBox[{"OptionValue", "[", "\"\<WorkingPrecision\>\"", "]"}]}], ",",
+         "\[IndentingNewLine]", "    ", "result"}], "\[IndentingNewLine]", 
+       "  ", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"result", "=", 
+        RowBox[{"NMinimize", "[", "\[IndentingNewLine]", "    ", 
+         RowBox[{
+          RowBox[{"{", "\[IndentingNewLine]", "      ", 
+           RowBox[{
+            RowBox[{"waveformObjective", "[", 
+             RowBox[{"n", ",", 
+              RowBox[{"{", 
+               RowBox[{
+               "amplitude", ",", "decay", ",", "omega", ",", "waveNumber", ",",
+                 "phase"}], "}"}], ",", 
+              RowBox[{"FilterRules", "[", 
+               RowBox[{
+                RowBox[{"{", "opts", "}"}], ",", 
+                RowBox[{"Options", "[", "waveformResidualFunctional", "]"}]}],
+                "]"}]}], "]"}], ",", "\[IndentingNewLine]", "      ", 
+            RowBox[{
+             RowBox[{
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Amplitude\>\"", "]"}], "[", 
+               RowBox[{"[", "1", "]"}], "]"}], "<=", "amplitude", "<=", 
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Amplitude\>\"", "]"}], "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}], "&&", "\[IndentingNewLine]", 
+             "      ", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Decay\>\"", "]"}], "[", 
+               RowBox[{"[", "1", "]"}], "]"}], "<=", "decay", "<=", 
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Decay\>\"", "]"}], "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}], "&&", "\[IndentingNewLine]", 
+             "      ", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Omega\>\"", "]"}], "[", 
+               RowBox[{"[", "1", "]"}], "]"}], "<=", "omega", "<=", 
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Omega\>\"", "]"}], "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}], "&&", "\[IndentingNewLine]", 
+             "      ", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<WaveNumber\>\"", "]"}], "[", 
+               RowBox[{"[", "1", "]"}], "]"}], "<=", "waveNumber", "<=", 
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<WaveNumber\>\"", "]"}], "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}], "&&", "\[IndentingNewLine]", 
+             "      ", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Phase\>\"", "]"}], "[", 
+               RowBox[{"[", "1", "]"}], "]"}], "<=", "phase", "<=", 
+              RowBox[{
+               RowBox[{"ranges", "[", "\"\<Phase\>\"", "]"}], "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}]}]}], "\[IndentingNewLine]", 
+           "    ", "}"}], ",", "\[IndentingNewLine]", "    ", 
+          RowBox[{"{", 
+           RowBox[{
+           "amplitude", ",", "decay", ",", "omega", ",", "waveNumber", ",", 
+            "phase"}], "}"}], ",", "\[IndentingNewLine]", "    ", 
+          RowBox[{"WorkingPrecision", "->", "wp"}], ",", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"AccuracyGoal", "->", 
+           RowBox[{"Floor", "[", 
+            RowBox[{"wp", "/", "3"}], "]"}]}], ",", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"PrecisionGoal", "->", 
+           RowBox[{"Floor", "[", 
+            RowBox[{"wp", "/", "3"}], "]"}]}], ",", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"Method", "->", 
+           RowBox[{"{", 
+            RowBox[{"\"\<NelderMead\>\"", ",", 
+             RowBox[{"\"\<RandomSeed\>\"", "->", "1234"}]}], "}"}]}]}], 
+         "\[IndentingNewLine]", "  ", "]"}]}], ";", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"\"\<Scale\>\"", "->", "n"}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"\"\<Realm\>\"", "->", 
+          RowBox[{"Lookup", "[", 
+           RowBox[{"realmName", ",", "n", ",", "\"\<Unknown\>\""}], "]"}]}], ",",
+          "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<MinimumResidual\>\"", "->", 
+          RowBox[{"result", "[", 
+           RowBox[{"[", "1", "]"}], "]"}]}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"\"\<BestParameters\>\"", "->", 
+          RowBox[{"AssociationThread", "[", "\[IndentingNewLine]", "      ", 
+           RowBox[{
+            RowBox[{"{", 
+             
+             RowBox[{"\"\<Amplitude\>\"", ",", "\"\<Decay\>\"", 
+              ",", "\"\<Omega\>\"", ",", "\"\<WaveNumber\>\"", 
+              ",", "\"\<Phase\>\""}], "}"}], ",", "\[IndentingNewLine]", 
+            "      ", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{
+              "amplitude", ",", "decay", ",", "omega", ",", "waveNumber", ",",
+                "phase"}], "}"}], " ", "/.", " ", 
+             RowBox[{"result", "[", 
+              RowBox[{"[", "2", "]"}], "]"}]}]}], "\[IndentingNewLine]", 
+           "    ", "]"}]}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<RawOptimizationResult\>\"", "->", "result"}]}], 
+        "\[IndentingNewLine]", "  ", "|>"}]}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"batchFindMostStableWaveforms", "[", 
+    RowBox[{"opts", " ", ":", " ", 
+     RowBox[{"OptionsPattern", "[", "findMostStableWaveform", "]"}]}], "]"}], 
+   ":=", "\[IndentingNewLine]", "  ", 
+   RowBox[{"AssociationThread", "[", 
+    RowBox[{"stableScales", ",", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"findMostStableWaveform", "[", 
+        RowBox[{"#", ",", "opts"}], "]"}], " ", "&"}], " ", "/@", " ", 
+      "stableScales"}]}], "]"}]}], ";"}]}], "Input",ExpressionUUID->"6cada95d-\
+64b1-ae48-ba0a-25bff7ae137f"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6. Visual helpers", "Section",ExpressionUUID->"f88a5eb4-d702-1a45-82e8-aa95a208e56c"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "testResultGrid", ",", "scaleSummaryDataset", ",", "stabilityPlot", ",", 
+     "waveformPlot", ",", "waveformResidualBarChart"}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"testResultGrid", "[", "testAssoc_Association", "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", "rows", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"rows", "=", 
+        RowBox[{"KeyValueMap", "[", "\[IndentingNewLine]", "    ", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"With", "[", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"pass", "=", 
+               RowBox[{"TrueQ", "[", 
+                RowBox[{"#2", "[", "\"\<Pass\>\"", "]"}], "]"}]}], "}"}], ",",
+              "\[IndentingNewLine]", "      ", 
+             RowBox[{"{", 
+              RowBox[{
+               RowBox[{"If", "[", 
+                RowBox[{"pass", ",", 
+                 RowBox[{"Lighter", "[", 
+                  RowBox[{"Green", ",", ".9"}], "]"}], ",", 
+                 RowBox[{"Lighter", "[", 
+                  RowBox[{"Red", ",", ".9"}], "]"}]}], "]"}], ",", "#1", ",", 
+               RowBox[{"#2", "[", "\"\<Value\>\"", "]"}], ",", 
+               RowBox[{"Lookup", "[", 
+                RowBox[{"#2", ",", "\"\<Threshold\>\"", ",", "\"\<\>\""}], 
+                "]"}], ",", "pass"}], "}"}]}], "\[IndentingNewLine]", "    ", 
+            "]"}], " ", "&"}], ",", "\[IndentingNewLine]", "    ", 
+          "testAssoc"}], "\[IndentingNewLine]", "  ", "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"Grid", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"Prepend", "[", 
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"Rest", " ", "/@", " ", "rows"}], ")"}], ",", 
+           RowBox[{"{", 
+            
+            RowBox[{"\"\<Test\>\"", ",", "\"\<Value\>\"", 
+             ",", "\"\<Threshold\>\"", ",", "\"\<Pass\>\""}], "}"}]}], "]"}], 
+         ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"Frame", "->", "All"}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"Background", "->", 
+          RowBox[{"Prepend", "[", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{"List", " ", "/@", " ", 
+              RowBox[{"rows", "[", 
+               RowBox[{"[", 
+                RowBox[{"All", ",", "1"}], "]"}], "]"}]}], ")"}], ",", 
+            "None"}], "]"}]}]}], "\[IndentingNewLine]", "  ", "]"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "scaleSummaryDataset", "]"}], "=", 
+    RowBox[{"Options", "[", "scaleAssociation", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"scaleSummaryDataset", "[", 
+     RowBox[{"opts", " ", ":", " ", 
+      RowBox[{"OptionsPattern", "[", "]"}]}], "]"}], ":=", 
+    RowBox[{"Dataset", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"scaleAssociation", "[", 
+        RowBox[{"#", ",", "opts"}], "]"}], " ", "&"}], " ", "/@", " ", 
+      "stableScales"}], "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"stabilityPlot", "[", 
+     RowBox[{"opts", " ", ":", " ", 
+      RowBox[{"OptionsPattern", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<Threshold\>\"", "->", "0.99"}], "}"}], "]"}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"scores", ",", 
+        RowBox[{"threshold", "=", 
+         RowBox[{"OptionValue", "[", "\"\<Threshold\>\"", "]"}]}]}], "}"}], ",",
+       "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"scores", "=", 
+        RowBox[{"stabilityScore", " ", "/@", " ", "stableScales"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"ListLinePlot", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"{", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"Transpose", "[", 
+            RowBox[{"{", 
+             RowBox[{"stableScales", ",", "scores"}], "}"}], "]"}], ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"Transpose", "[", 
+            RowBox[{"{", 
+             RowBox[{"stableScales", ",", 
+              RowBox[{"ConstantArray", "[", 
+               RowBox[{"threshold", ",", 
+                RowBox[{"Length", "[", "stableScales", "]"}]}], "]"}]}], 
+             "}"}], "]"}]}], "\[IndentingNewLine]", "    ", "}"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"PlotLegends", "->", 
+          RowBox[{"{", 
+           RowBox[{"\"\<StabilityScore\>\"", ",", "\"\<Threshold\>\""}], 
+           "}"}]}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"PlotMarkers", "->", "Automatic"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"GridLines", "->", 
+          RowBox[{"{", 
+           RowBox[{"stableScales", ",", 
+            RowBox[{"{", "threshold", "}"}]}], "}"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"ImageSize", "->", "Large"}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"PlotRange", "->", "All"}]}], "\[IndentingNewLine]", "  ", 
+        "]"}]}]}], "\[IndentingNewLine]", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"waveformPlot", "[", 
+     RowBox[{"n_Integer", ",", "params_Association", ",", 
+      RowBox[{"tValue_", ":", " ", "0"}]}], "]"}], ":=", 
+    RowBox[{"Plot", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Evaluate", "[", 
+       RowBox[{
+        RowBox[{"waveformFunction", "[", 
+         RowBox[{"n", ",", "params"}], "]"}], "[", 
+        RowBox[{"x", ",", "tValue"}], "]"}], "]"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"x", ",", 
+        RowBox[{
+         RowBox[{"-", "2"}], " ", "Pi"}], ",", 
+        RowBox[{"2", " ", "Pi"}]}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"PlotRange", "->", "All"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"PlotLabel", "->", 
+       RowBox[{"Row", "[", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Waveform at scale \>\"", ",", "n", 
+          ",", "\"\< and time \>\"", ",", "tValue"}], "}"}], "]"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"AxesLabel", "->", 
+       RowBox[{"{", 
+        RowBox[{"\"\<x\>\"", ",", "\"\<Psi\>\""}], "}"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"ImageSize", "->", "Large"}]}], "\[IndentingNewLine]", "]"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"waveformResidualBarChart", "[", "resultAssoc_Association", "]"}], 
+   ":=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"vals", ",", "keys"}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"keys", "=", 
+       RowBox[{"Keys", "[", "resultAssoc", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"vals", "=", 
+       RowBox[{"Lookup", "[", 
+        RowBox[{
+         RowBox[{"resultAssoc", " ", "/@", " ", "keys"}], 
+         ",", "\"\<MinimumResidual\>\""}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"BarChart", "[", "\[IndentingNewLine]", "    ", 
+       RowBox[{"vals", ",", "\[IndentingNewLine]", "    ", 
+        RowBox[{"ChartLabels", "->", 
+         RowBox[{"Placed", "[", 
+          RowBox[{"keys", ",", "Below"}], "]"}]}], ",", "\[IndentingNewLine]",
+         "    ", 
+        RowBox[{"ScalingFunctions", "->", "\"\<Log\>\""}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{
+        "PlotLabel", "->", "\"\<Minimum Residual by Stable Scale\>\""}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"ImageSize", "->", "Large"}]}], "\[IndentingNewLine]", "  ", 
+       "]"}]}]}], "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",ExpressionU\
+UID->"c6e0bc3d-070f-b146-8ac4-f87b3f5aa317"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7. Per-scale report generator", "Section",ExpressionUUID->"6dba00de-fbb7-584a-9cf1-71ab42bd6940"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "scaleReport", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "scaleReport", "]"}], "=", 
+    RowBox[{"Join", "[", 
+     RowBox[{
+      RowBox[{"Options", "[", "runScaleTests", "]"}], ",", 
+      RowBox[{"Options", "[", "findMostStableWaveform", "]"}]}], "]"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"scaleReport", "[", 
+    RowBox[{"n_Integer", ",", 
+     RowBox[{"opts", " ", ":", " ", 
+      RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"assoc", ",", "tests", ",", "passSummary", ",", "bestWave"}], 
+      "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"assoc", "=", 
+       RowBox[{"scaleAssociation", "[", 
+        RowBox[{"n", ",", 
+         RowBox[{"FilterRules", "[", 
+          RowBox[{
+           RowBox[{"{", "opts", "}"}], ",", 
+           RowBox[{"Options", "[", "scaleAssociation", "]"}]}], "]"}]}], 
+        "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"tests", "=", 
+       RowBox[{"runScaleTests", "[", 
+        RowBox[{"n", ",", 
+         RowBox[{"FilterRules", "[", 
+          RowBox[{
+           RowBox[{"{", "opts", "}"}], ",", 
+           RowBox[{"Options", "[", "runScaleTests", "]"}]}], "]"}]}], "]"}]}],
+       ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"passSummary", "=", 
+       RowBox[{"summarizePassRate", "[", "tests", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"bestWave", "=", 
+       RowBox[{"findMostStableWaveform", "[", 
+        RowBox[{"n", ",", 
+         RowBox[{"FilterRules", "[", 
+          RowBox[{
+           RowBox[{"{", "opts", "}"}], ",", 
+           RowBox[{"Options", "[", "findMostStableWaveform", "]"}]}], "]"}]}],
+         "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"\"\<ScaleData\>\"", "->", "assoc"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Tests\>\"", "->", "tests"}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<TestSummary\>\"", "->", "passSummary"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<BestWaveform\>\"", "->", "bestWave"}]}], 
+       "\[IndentingNewLine]", "  ", "|>"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"3aebc492-dac2-9847-8d96-\
+fb61cf49ebfe"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["8. Export helpers that work in unsaved notebooks", "Section",ExpressionUUID->"1246ff53-8596-fc40-a18d-3732926b8507"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "safeExportDirectory", ",", "exportRHUFTJSON", ",", "exportRHUFTWXF"}], 
+    "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"safeExportDirectory", "[", "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"dir", "=", 
+        RowBox[{"Quiet", "@", 
+         RowBox[{"NotebookDirectory", "[", "]"}]}]}], "}"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Which", "[", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"StringQ", "[", "dir", "]"}], ",", "dir", ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"StringQ", "[", "$HomeDirectory", "]"}], ",", 
+        "$HomeDirectory", ",", "\[IndentingNewLine]", "    ", "True", ",", 
+        RowBox[{"Directory", "[", "]"}]}], "\[IndentingNewLine]", "  ", 
+       "]"}]}], "\[IndentingNewLine]", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"exportRHUFTJSON", "[", 
+     RowBox[{"data_", ",", 
+      RowBox[{"fileName_", ":", " ", "\"\<rhuft-scale-summary.json\>\""}]}], 
+     "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", "path", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"path", "=", 
+        RowBox[{"FileNameJoin", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"safeExportDirectory", "[", "]"}], ",", "fileName"}], 
+          "}"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"Export", "[", 
+        RowBox[{"path", ",", "data", ",", "\"\<JSON\>\""}], "]"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"exportRHUFTWXF", "[", 
+    RowBox[{"data_", ",", 
+     RowBox[{"fileName_", ":", " ", "\"\<rhuft-scale-summary.wxf\>\""}]}], 
+    "]"}], ":=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", "path", "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"path", "=", 
+       RowBox[{"FileNameJoin", "[", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"safeExportDirectory", "[", "]"}], ",", "fileName"}], "}"}],
+         "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"Export", "[", 
+       RowBox[{"path", ",", "data", ",", "\"\<WXF\>\""}], "]"}]}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",ExpressionUUID->\
+"ed0ef9f8-ee62-0c49-8b2b-e9b465ca7201"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["9. Button-driven interactive evaluator", "Section",ExpressionUUID->"207c4492-d1a2-014b-9ace-1b1b3cbb2d8f"],
+
+Cell[BoxData[
+ RowBox[{"DynamicModule", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{"{", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{"n", "=", "13"}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"epsilon", "=", "0."}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"rho0", "=", "1."}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"mass", "=", "1."}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"hbar", "=", "1."}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"cNorm", "=", "1."}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"stabilityThreshold", "=", "0.99"}], ",", "\[IndentingNewLine]", 
+     "    ", 
+     RowBox[{"waveSpeedUpperBound", "=", 
+      RowBox[{"10", "^", "12"}]}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"workingPrecision", "=", "50"}], ",", "\[IndentingNewLine]", 
+     "    ", 
+     RowBox[{"currentAssoc", "=", 
+      RowBox[{"<|", "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"currentTests", "=", 
+      RowBox[{"<|", "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"currentReport", "=", 
+      RowBox[{"<|", "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"bestWave", "=", 
+      RowBox[{"<|", "|>"}]}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"allWaveResults", "=", 
+      RowBox[{"<|", "|>"}]}]}], "\[IndentingNewLine]", "  ", "}"}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"Column", "[", 
+    RowBox[{
+     RowBox[{"{", "\[IndentingNewLine]", "    ", 
+      RowBox[{
+       RowBox[{"Style", "[", 
+        RowBox[{"\"\<RHUFT Full Scale Evaluator\>\"", ",", "20", ",", 
+         "Bold"}], "]"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Grid", "[", 
+        RowBox[{
+         RowBox[{"{", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"\"\<Scale\>\"", ",", 
+             RowBox[{"PopupMenu", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "n", "]"}], ",", "stableScales"}], 
+              "]"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<Epsilon\>\"", ",", 
+             RowBox[{"Slider", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "epsilon", "]"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"0", ",", "0.1"}], "}"}]}], "]"}]}], "}"}], ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<Rho0\>\"", ",", 
+             RowBox[{"InputField", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "rho0", "]"}], ",", "Number"}], 
+              "]"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<Mass\>\"", ",", 
+             RowBox[{"InputField", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "mass", "]"}], ",", "Number"}], 
+              "]"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<HBar\>\"", ",", 
+             RowBox[{"InputField", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "hbar", "]"}], ",", "Number"}], 
+              "]"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<LightSpeedNorm\>\"", ",", 
+             RowBox[{"InputField", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "cNorm", "]"}], ",", "Number"}], 
+              "]"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<StabilityThreshold\>\"", ",", 
+             RowBox[{"Slider", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "stabilityThreshold", "]"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"0.9", ",", "0.999999"}], "}"}]}], "]"}]}], "}"}], ",",
+            "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<WaveSpeedUpperBound\>\"", ",", 
+             RowBox[{"InputField", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "waveSpeedUpperBound", "]"}], ",", 
+               "Number"}], "]"}]}], "}"}], ",", "\[IndentingNewLine]", 
+           "      ", 
+           RowBox[{"{", 
+            RowBox[{"\"\<WorkingPrecision\>\"", ",", 
+             RowBox[{"SetterBar", "[", 
+              RowBox[{
+               RowBox[{"Dynamic", "[", "workingPrecision", "]"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"30", ",", "50", ",", "80", ",", "100"}], "}"}]}], 
+              "]"}]}], "}"}]}], "\[IndentingNewLine]", "    ", "}"}], ",", 
+         RowBox[{"Alignment", "->", "Left"}]}], "]"}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"Row", "[", 
+        RowBox[{"{", "\[IndentingNewLine]", "      ", 
+         RowBox[{
+          RowBox[{"Button", "[", 
+           
+           RowBox[{"\"\<Compute Scale Data\>\"", ",", "\[IndentingNewLine]", 
+            "        ", 
+            RowBox[{"currentAssoc", "=", 
+             RowBox[{
+             "scaleAssociation", "[", "\[IndentingNewLine]", "          ", 
+              RowBox[{"n", ",", "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Epsilon\>\"", "->", "epsilon"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Rho0\>\"", "->", "rho0"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Mass\>\"", "->", "mass"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<HBar\>\"", "->", "hbar"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<LightSpeed\>\"", "->", "cNorm"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               
+               RowBox[{"\"\<StabilityThreshold\>\"", "->", 
+                "stabilityThreshold"}]}], "\[IndentingNewLine]", "        ", 
+              "]"}]}], ",", "\[IndentingNewLine]", "        ", 
+            RowBox[{"Method", "->", "\"\<Queued\>\""}]}], 
+           "\[IndentingNewLine]", "      ", "]"}], ",", "\[IndentingNewLine]",
+           "      ", 
+          RowBox[{"Spacer", "[", "10", "]"}], ",", "\[IndentingNewLine]", 
+          "      ", 
+          RowBox[{"Button", "[", 
+           
+           RowBox[{"\"\<Run Tests\>\"", ",", "\[IndentingNewLine]", 
+            "        ", 
+            RowBox[{"currentTests", "=", 
+             RowBox[{
+             "runScaleTests", "[", "\[IndentingNewLine]", "          ", 
+              RowBox[{"n", ",", "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Epsilon\>\"", "->", "epsilon"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Rho0\>\"", "->", "rho0"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Mass\>\"", "->", "mass"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<HBar\>\"", "->", "hbar"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<LightSpeed\>\"", "->", "cNorm"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               
+               RowBox[{"\"\<StabilityThreshold\>\"", "->", 
+                "stabilityThreshold"}], ",", "\[IndentingNewLine]", 
+               "          ", 
+               
+               RowBox[{"\"\<WaveSpeedUpperBound\>\"", "->", 
+                "waveSpeedUpperBound"}], ",", "\[IndentingNewLine]", 
+               "          ", 
+               
+               RowBox[{"\"\<WorkingPrecision\>\"", "->", 
+                "workingPrecision"}]}], "\[IndentingNewLine]", "        ", 
+              "]"}]}], ",", "\[IndentingNewLine]", "        ", 
+            RowBox[{"Method", "->", "\"\<Queued\>\""}]}], 
+           "\[IndentingNewLine]", "      ", "]"}], ",", "\[IndentingNewLine]",
+           "      ", 
+          RowBox[{"Spacer", "[", "10", "]"}], ",", "\[IndentingNewLine]", 
+          "      ", 
+          RowBox[{"Button", "[", 
+           
+           RowBox[{"\"\<Find Most Stable Waveform\>\"", ",", 
+            "\[IndentingNewLine]", "        ", 
+            RowBox[{"bestWave", "=", 
+             RowBox[{
+             "findMostStableWaveform", "[", "\[IndentingNewLine]", 
+              "          ", 
+              RowBox[{"n", ",", "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Epsilon\>\"", "->", "epsilon"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Rho0\>\"", "->", "rho0"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Mass\>\"", "->", "mass"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<HBar\>\"", "->", "hbar"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<LightSpeed\>\"", "->", "cNorm"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               
+               RowBox[{"\"\<WorkingPrecision\>\"", "->", 
+                "workingPrecision"}]}], "\[IndentingNewLine]", "        ", 
+              "]"}]}], ",", "\[IndentingNewLine]", "        ", 
+            RowBox[{"Method", "->", "\"\<Queued\>\""}]}], 
+           "\[IndentingNewLine]", "      ", "]"}], ",", "\[IndentingNewLine]",
+           "      ", 
+          RowBox[{"Spacer", "[", "10", "]"}], ",", "\[IndentingNewLine]", 
+          "      ", 
+          RowBox[{"Button", "[", 
+           
+           RowBox[{"\"\<Build Full Scale Report\>\"", ",", 
+            "\[IndentingNewLine]", "        ", 
+            RowBox[{"currentReport", "=", 
+             RowBox[{"scaleReport", "[", "\[IndentingNewLine]", "          ", 
+              RowBox[{"n", ",", "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Epsilon\>\"", "->", "epsilon"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Rho0\>\"", "->", "rho0"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Mass\>\"", "->", "mass"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<HBar\>\"", "->", "hbar"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<LightSpeed\>\"", "->", "cNorm"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               
+               RowBox[{"\"\<StabilityThreshold\>\"", "->", 
+                "stabilityThreshold"}], ",", "\[IndentingNewLine]", 
+               "          ", 
+               
+               RowBox[{"\"\<WaveSpeedUpperBound\>\"", "->", 
+                "waveSpeedUpperBound"}], ",", "\[IndentingNewLine]", 
+               "          ", 
+               
+               RowBox[{"\"\<WorkingPrecision\>\"", "->", 
+                "workingPrecision"}]}], "\[IndentingNewLine]", "        ", 
+              "]"}]}], ",", "\[IndentingNewLine]", "        ", 
+            RowBox[{"Method", "->", "\"\<Queued\>\""}]}], 
+           "\[IndentingNewLine]", "      ", "]"}], ",", "\[IndentingNewLine]",
+           "      ", 
+          RowBox[{"Spacer", "[", "10", "]"}], ",", "\[IndentingNewLine]", 
+          "      ", 
+          RowBox[{"Button", "[", 
+           
+           RowBox[{"\"\<Search All Stable Scales\>\"", ",", 
+            "\[IndentingNewLine]", "        ", 
+            RowBox[{"allWaveResults", "=", 
+             RowBox[{
+             "batchFindMostStableWaveforms", "[", "\[IndentingNewLine]", 
+              "          ", 
+              RowBox[{
+               RowBox[{"\"\<Epsilon\>\"", "->", "epsilon"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Rho0\>\"", "->", "rho0"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<Mass\>\"", "->", "mass"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<HBar\>\"", "->", "hbar"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               RowBox[{"\"\<LightSpeed\>\"", "->", "cNorm"}], ",", 
+               "\[IndentingNewLine]", "          ", 
+               
+               RowBox[{"\"\<WorkingPrecision\>\"", "->", 
+                "workingPrecision"}]}], "\[IndentingNewLine]", "        ", 
+              "]"}]}], ",", "\[IndentingNewLine]", "        ", 
+            RowBox[{"Method", "->", "\"\<Queued\>\""}]}], 
+           "\[IndentingNewLine]", "      ", "]"}]}], "\[IndentingNewLine]", 
+         "    ", "}"}], "]"}], ",", "\[IndentingNewLine]", "    ", 
+       "Delimiter", ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Style", "[", 
+        RowBox[{"\"\<Current Scale Data\>\"", ",", "16", ",", "Bold"}], "]"}],
+        ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Dynamic", "[", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"currentAssoc", "===", 
+           RowBox[{"<|", "|>"}]}], ",", "\"\<No scale data computed yet.\>\"",
+           ",", 
+          RowBox[{"Dataset", "[", "currentAssoc", "]"}]}], "]"}], "]"}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"Style", "[", 
+        RowBox[{"\"\<Current Tests\>\"", ",", "16", ",", "Bold"}], "]"}], ",",
+        "\[IndentingNewLine]", "    ", 
+       RowBox[{"Dynamic", "[", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"currentTests", "===", 
+           RowBox[{"<|", "|>"}]}], ",", "\"\<No tests run yet.\>\"", ",", 
+          RowBox[{"testResultGrid", "[", "currentTests", "]"}]}], "]"}], 
+        "]"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Style", "[", 
+        RowBox[{"\"\<Best Waveform\>\"", ",", "16", ",", "Bold"}], "]"}], ",",
+        "\[IndentingNewLine]", "    ", 
+       RowBox[{"Dynamic", "[", "\[IndentingNewLine]", "      ", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"bestWave", "===", 
+           RowBox[{"<|", "|>"}]}], ",", "\[IndentingNewLine]", 
+          "        ", "\"\<No waveform search run yet.\>\"", ",", 
+          "\[IndentingNewLine]", "        ", 
+          RowBox[{"Column", "[", 
+           RowBox[{"{", "\[IndentingNewLine]", "          ", 
+            RowBox[{
+             RowBox[{"Dataset", "[", "bestWave", "]"}], ",", 
+             "\[IndentingNewLine]", "          ", 
+             RowBox[{"waveformPlot", "[", 
+              RowBox[{"n", ",", 
+               RowBox[{"bestWave", "[", "\"\<BestParameters\>\"", "]"}]}], 
+              "]"}]}], "\[IndentingNewLine]", "        ", "}"}], "]"}]}], 
+         "\[IndentingNewLine]", "      ", "]"}], "\[IndentingNewLine]", 
+        "    ", "]"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Style", "[", 
+        RowBox[{"\"\<Full Scale Report\>\"", ",", "16", ",", "Bold"}], "]"}], 
+       ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Dynamic", "[", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"currentReport", "===", 
+           RowBox[{"<|", "|>"}]}], ",", "\"\<No full report built yet.\>\"", ",", 
+          RowBox[{"Dataset", "[", "currentReport", "]"}]}], "]"}], "]"}], ",",
+        "\[IndentingNewLine]", "    ", 
+       RowBox[{"Style", "[", 
+        RowBox[{"\"\<Global Stability Plot\>\"", ",", "16", ",", "Bold"}], 
+        "]"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Dynamic", "[", 
+        RowBox[{"stabilityPlot", "[", 
+         RowBox[{"\"\<Threshold\>\"", "->", "stabilityThreshold"}], "]"}], 
+        "]"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Style", "[", 
+        RowBox[{"\"\<All-Scale Waveform Search Summary\>\"", ",", "16", ",", 
+         "Bold"}], "]"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"Dynamic", "[", "\[IndentingNewLine]", "      ", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"allWaveResults", "===", 
+           RowBox[{"<|", "|>"}]}], ",", "\[IndentingNewLine]", 
+          "        ", "\"\<No batch search run yet.\>\"", ",", 
+          "\[IndentingNewLine]", "        ", 
+          RowBox[{"Column", "[", 
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"Dataset", "[", "allWaveResults", "]"}], ",", 
+             RowBox[{
+             "waveformResidualBarChart", "[", "allWaveResults", "]"}]}], 
+            "}"}], "]"}]}], "\[IndentingNewLine]", "      ", "]"}], 
+        "\[IndentingNewLine]", "    ", "]"}]}], "\[IndentingNewLine]", "  ", 
+      "}"}], ",", 
+     RowBox[{"Spacings", "->", "2"}]}], "]"}]}], "\[IndentingNewLine]", 
+  "]"}]], "Input",ExpressionUUID->"348fc7ce-4deb-ba49-a8af-1017796326e2"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["10. Build all individual scale reports at once", "Section",ExpressionUUID->"cc121771-4f76-2941-88bf-d17eacb6abac"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "allScaleReports", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "allScaleReports", "]"}], "=", 
+    RowBox[{"Options", "[", "scaleReport", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"allScaleReports", "[", 
+    RowBox[{"opts", " ", ":", " ", 
+     RowBox[{"OptionsPattern", "[", "]"}]}], "]"}], ":=", 
+   RowBox[{"AssociationThread", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{"stableScales", ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"scaleReport", "[", 
+        RowBox[{"#", ",", "opts"}], "]"}], " ", "&"}], " ", "/@", " ", 
+      "stableScales"}]}], "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",Exp\
+ressionUUID->"dc6f4249-4d9f-8041-a77b-707c9fe80b02"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["11. Example usage", "Section",ExpressionUUID->"d7b11320-372b-3240-90e6-cc4d5d80746b"],
+
+Cell["Generate one complete report for a single scale: ", "CodeText",ExpressionUUID->"f9a30381-249c-894a-a277-f74c60dfb828"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"report13", "=", 
+   RowBox[{"scaleReport", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{"13", ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<Epsilon\>\"", "->", "0.001"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<Rho0\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<Mass\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<HBar\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<LightSpeed\>\"", "->", "1"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<StabilityThreshold\>\"", "->", "0.99"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<WaveSpeedUpperBound\>\"", "->", 
+      RowBox[{"10", "^", "12"}]}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<WorkingPrecision\>\"", "->", "50"}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}]], "Input",ExpressionUUID->"26f95ce5-\
+5413-6e43-85c9-f5e999893c27"],
+
+Cell["Generate all reports: ", "CodeText",ExpressionUUID->"24517637-6d89-3048-9afe-ed2037595060"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"reports", "=", 
+   RowBox[{"allScaleReports", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"\"\<Epsilon\>\"", "->", "0.001"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<Rho0\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<Mass\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<HBar\>\"", "->", "1"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<LightSpeed\>\"", "->", "1"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<StabilityThreshold\>\"", "->", "0.99"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<WaveSpeedUpperBound\>\"", "->", 
+      RowBox[{"10", "^", "12"}]}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<WorkingPrecision\>\"", "->", "50"}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}]], "Input",ExpressionUUID->"98c21f2b-\
+21b7-0d4c-9d7e-bf3feafaf92c"],
+
+Cell["Export safely: ", "CodeText",ExpressionUUID->"d9002a48-233c-f84a-822f-ae7167383baa"],
+
+Cell[BoxData[
+ RowBox[{"exportRHUFTJSON", "[", 
+  RowBox[{
+   RowBox[{"Normal", "@", 
+    RowBox[{"scaleSummaryDataset", "[", "]"}]}], 
+   ",", "\"\<rhuft-scale-summary.json\>\""}], "]"}]], "Input",ExpressionUUID->\
+"7d0fc769-884c-cb42-b46b-4d564d531d23"],
+
+Cell["Export all reports: ", "CodeText",ExpressionUUID->"34838125-3e98-2848-8cfb-b19dd14c37dc"],
+
+Cell[BoxData[
+ RowBox[{"exportRHUFTWXF", "[", 
+  RowBox[{"reports", ",", "\"\<rhuft-all-scale-reports.wxf\>\""}], 
+  "]"}]], "Input",ExpressionUUID->"8847769d-776b-cc44-8b2b-b71abfd36767"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["12. Functional entry points", "Section",ExpressionUUID->"47e4e8e4-e590-3949-a50e-5d2147e2b400"],
+
+Cell["These are the main callable functions in the framework: ", "Text",ExpressionUUID->"a46f462f-81c9-b14d-ab30-8825daa49fd7"],
+
+Cell[TextData[Cell[BoxData[Cell["scaleAssociation[n, ...]",
+  Background->None,ExpressionUUID->
+  "f3ed0ae3-2758-7548-8aed-50699d91de19"]], \
+"InlineCode",ExpressionUUID->"717abb40-7ac1-124e-a3b1-4f73f0eb1939"]], "Item",\
+ExpressionUUID->"b5c8ef47-5ff7-5b44-bf48-806ead9e20a8"],
+
+Cell[TextData[Cell[BoxData[Cell["runScaleTests[n, ...]",
+  Background->None,ExpressionUUID->
+  "7759dce6-e35a-f347-99f5-6dcfb1406b86"]], \
+"InlineCode",ExpressionUUID->"c5812fd8-258a-ba47-9829-778b74468040"]], "Item",\
+ExpressionUUID->"3d04066b-0a53-0e4c-a747-053b6c85c911"],
+
+Cell[TextData[Cell[BoxData[Cell["scaleReport[n, ...]",
+  Background->None,ExpressionUUID->
+  "8523c1bb-accd-434f-a165-1cefbd719634"]], \
+"InlineCode",ExpressionUUID->"007fb24e-ac69-c74e-a3d8-ef9cbe21360a"]], "Item",\
+ExpressionUUID->"432560a3-75f5-8445-a988-fff321740c20"],
+
+Cell[TextData[Cell[BoxData[Cell["allScaleReports[...]",
+  Background->None,ExpressionUUID->
+  "cc1c6056-203d-2044-903a-a6b59ac0d7db"]], \
+"InlineCode",ExpressionUUID->"143a919d-3166-654a-b15b-4cb7dd2fa4ce"]], "Item",\
+ExpressionUUID->"e89ceed5-70a7-714b-a84b-f80bbece9437"],
+
+Cell[TextData[Cell[BoxData[Cell["findMostStableWaveform[n, ...]",
+  Background->None,ExpressionUUID->
+  "de3d9d2e-d2e9-9045-b69b-277389bd8a3e"]], \
+"InlineCode",ExpressionUUID->"85f3e9d6-6426-6449-ae74-a2a32f2b0048"]], "Item",\
+ExpressionUUID->"dd11e129-b4a2-384e-b434-9c162c80b2dc"],
+
+Cell[TextData[Cell[BoxData[Cell["batchFindMostStableWaveforms[...]",
+  Background->None,ExpressionUUID->
+  "b763ce29-c977-3847-bbea-44c4558d2647"]], \
+"InlineCode",ExpressionUUID->"4235dc91-35f2-de43-95b6-14f8da193ddb"]], "Item",\
+ExpressionUUID->"59daef84-243d-4d43-af1a-a576663cf2a3"],
+
+Cell[TextData[Cell[BoxData[Cell["scaleSummaryDataset[...]",
+  Background->None,ExpressionUUID->
+  "98a09ddf-8ae7-9444-abc3-903d8bace946"]], \
+"InlineCode",ExpressionUUID->"afde20b9-8edb-734a-9ff5-2ee2b8066308"]], "Item",\
+ExpressionUUID->"0fa893f1-4e48-df46-99d0-20f71570e259"],
+
+Cell[TextData[Cell[BoxData[Cell["exportRHUFTJSON[data, fileName]",
+  Background->None,ExpressionUUID->
+  "537e350a-938d-ce47-a3dd-db06ace48aa6"]], \
+"InlineCode",ExpressionUUID->"f44ee1d6-8d24-ab45-9d61-bc9cc60c85ad"]], "Item",\
+ExpressionUUID->"cd4b6518-38d1-7c4f-a405-e4b7c203451e"],
+
+Cell[TextData[Cell[BoxData[Cell["exportRHUFTWXF[data, fileName]",
+  Background->None,ExpressionUUID->
+  "70872464-eaac-2f49-bdfb-6a88cb12f778"]], \
+"InlineCode",ExpressionUUID->"b29b1903-c8c2-4b47-a711-6adbad1aba93"]], "Item",\
+ExpressionUUID->"a8e99416-04d2-4841-b9c2-5c11d6890a85"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["13. Final note on rigor", "Section",ExpressionUUID->"fd789d99-fdee-744f-9ade-0986acc5a25e"],
+
+Cell["\<\
+This framework is more rigorous than the original notebook because it \
+distinguishes: \
+\>", "Text",ExpressionUUID->"72a5002b-734c-a34d-a68c-e9d5852738ac"],
+
+Cell["symbolic RHUFT parameter definitions", "Item",ExpressionUUID->"beb0fa37-b55a-3f4b-a0cc-5f864045ef41"],
+
+Cell["algebraic consistency tests", "Item",ExpressionUUID->"74c3ea2c-61fd-4b45-b01c-0732b8d14189"],
+
+Cell["monotonicity and duality checks", "Item",ExpressionUUID->"3d72ed80-6fc2-5f49-9bf3-b2483b5ab2e1"],
+
+Cell["numerical residual minimization for waveform stability", "Item",ExpressionUUID->"cf03a8ee-af8d-ac4d-a6d4-b8789aaa5e77"],
+
+Cell["reproducible, button-driven execution", "Item",ExpressionUUID->"5234b28b-5d9a-194c-89da-b393691a1383"],
+
+Cell["safe exporting independent of notebook save state", "Item",ExpressionUUID->"98f3cbc9-0f16-d944-8ce3-b1bca1927012"],
+
+Cell["If you want, I can next generate either:", "Text",ExpressionUUID->"a609f839-a2e8-2c43-b91a-34fc1dcc6241"],
+
+Cell[TextData[{
+ "1. a ",
+ StyleBox["TypeScript project skeleton",
+  FontWeight->Bold],
+ " matching these functions, or"
+}], "Text",ExpressionUUID->"7bd52531-4415-d64e-82bd-1c78e9d8ff47"],
+
+Cell[TextData[{
+ "2. an even more advanced ",
+ StyleBox["variational/PDE residual framework",
+  FontWeight->Bold],
+ " using ",
+ ButtonBox["NDSolve",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/NDSolve"],
+ ", ",
+ ButtonBox["ParametricNDSolveValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/ParametricNDSolveValue"],
+ ", and eigenmode analysis."
+}], "Text",ExpressionUUID->"7feb0219-a168-9d4b-ae29-151f222e16da"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{581.25, 1016.25},
+WindowMargins->{{Automatic, 725.25}, {Automatic, 226.5}},
+FrontEndVersion->"15.0 for Microsoft Windows (64-bit) (May 19, 2026)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"5f7a9f1e-65c5-1f41-b235-d5f82df196ba"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 109, 0, 157, "Title",ExpressionUUID->"f097fc1e-f443-da4c-b081-b31a556c2724"],
+Cell[688, 24, 156, 2, 55, "Text",ExpressionUUID->"fba85e5a-d6fa-b14e-be46-c025a457a2e1"],
+Cell[847, 28, 104, 0, 30, "Item",ExpressionUUID->"f61c056c-dc95-9846-9409-745d10b06183"],
+Cell[954, 30, 110, 0, 30, "Item",ExpressionUUID->"1eecd163-6bca-b948-8626-8583b6013266"],
+Cell[1067, 32, 124, 0, 30, "Item",ExpressionUUID->"e188ad7e-d741-124c-9d65-e74504388b14"],
+Cell[1194, 34, 111, 0, 30, "Item",ExpressionUUID->"5d4381bb-99af-7c4e-9282-92f8f82e45ad"],
+Cell[1308, 36, 117, 0, 30, "Item",ExpressionUUID->"642e210e-dd71-274f-bf6a-a127adabf967"],
+Cell[CellGroupData[{
+Cell[1450, 40, 86, 0, 66, "Section",ExpressionUUID->"9addec1b-989f-0146-87c7-d7e422396287"],
+Cell[1539, 42, 125, 0, 33, "Text",ExpressionUUID->"d8a4228c-7cba-8d47-ab2c-1a44590fa936"],
+Cell[1667, 44, 353, 6, 50, "Item",ExpressionUUID->"3c52b6c1-3761-2a46-8cb0-abab4276ba57"],
+Cell[2023, 52, 746, 14, 50, "Item",ExpressionUUID->"a5db186f-5bfb-9843-adff-33cf054a12de"],
+Cell[2772, 68, 365, 6, 50, "Item",ExpressionUUID->"47752809-a682-d441-8231-ea56d7ff8cea"],
+Cell[3140, 76, 431, 8, 90, "Item",ExpressionUUID->"7ee612b3-cb1c-284f-a99f-3a705f83dd76"],
+Cell[3574, 86, 754, 22, 70, "Item",ExpressionUUID->"103582f6-ffb7-584c-9717-7614e66de41d"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4365, 113, 105, 0, 66, "Section",ExpressionUUID->"516795fa-d869-4744-9d3e-97f7e2091249"],
+Cell[4473, 115, 1497, 40, 199, "Input",ExpressionUUID->"9de0817e-d8bf-cf43-abf8-6415ffb16a31"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6007, 160, 89, 0, 66, "Section",ExpressionUUID->"53fe5def-1219-5d48-b8e2-1643d3002307"],
+Cell[6099, 162, 1904, 41, 427, "Input",ExpressionUUID->"450f6e8a-e602-de41-a8c5-53377075ddc4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8040, 208, 104, 0, 66, "Section",ExpressionUUID->"b515ae49-6098-c049-8a1e-b61f04a90298"],
+Cell[8147, 210, 13032, 315, 1930, "Input",ExpressionUUID->"e018a5fa-17df-e14a-86a1-5e86a187eac1"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[21216, 530, 106, 0, 66, "Section",ExpressionUUID->"361f8ff7-e74e-a14b-9130-f7358e25dc07"],
+Cell[21325, 532, 15182, 336, 2197, "Input",ExpressionUUID->"7cd8c25e-912d-c442-a0b3-4ced13a80b78"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[36544, 873, 134, 0, 103, "Section",ExpressionUUID->"db6eb1a4-c0ad-0d4d-abca-672c495716e9"],
+Cell[36681, 875, 297, 4, 77, "Text",ExpressionUUID->"9858ca86-d648-5d41-8aa1-4f99c8c0d0aa"],
+Cell[36981, 881, 109, 0, 30, "Item",ExpressionUUID->"c835e29b-77cb-fd46-a827-57fa1cf685d6"],
+Cell[37093, 883, 114, 0, 30, "Item",ExpressionUUID->"d32c0c00-2985-fe43-bdbf-2ef2c4e0f3b6"],
+Cell[CellGroupData[{
+Cell[37232, 887, 122, 0, 30, "Item",ExpressionUUID->"41451229-7f0e-784f-af12-4af0e40d3a98"],
+Cell[37357, 889, 17473, 409, 2501, "Input",ExpressionUUID->"6cada95d-64b1-ae48-ba0a-25bff7ae137f"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[54879, 1304, 91, 0, 66, "Section",ExpressionUUID->"f88a5eb4-d702-1a45-82e8-aa95a208e56c"],
+Cell[54973, 1306, 8178, 196, 1245, "Input",ExpressionUUID->"c6e0bc3d-070f-b146-8ac4-f87b3f5aa317"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[63188, 1507, 103, 0, 66, "Section",ExpressionUUID->"6dba00de-fbb7-584a-9cf1-71ab42bd6940"],
+Cell[63294, 1509, 2590, 64, 446, "Input",ExpressionUUID->"3aebc492-dac2-9847-8d96-fb61cf49ebfe"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[65921, 1578, 122, 0, 103, "Section",ExpressionUUID->"1246ff53-8596-fc40-a18d-3732926b8507"],
+Cell[66046, 1580, 2539, 66, 427, "Input",ExpressionUUID->"ed0ef9f8-ee62-0c49-8b2b-e9b465ca7201"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[68622, 1651, 112, 0, 66, "Section",ExpressionUUID->"207c4492-d1a2-014b-9ace-1b1b3cbb2d8f"],
+Cell[68737, 1653, 16477, 335, 2558, "Input",ExpressionUUID->"348fc7ce-4deb-ba49-a8af-1017796326e2"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[85251, 1993, 120, 0, 66, "Section",ExpressionUUID->"cc121771-4f76-2941-88bf-d17eacb6abac"],
+Cell[85374, 1995, 904, 23, 161, "Input",ExpressionUUID->"dc6f4249-4d9f-8041-a77b-707c9fe80b02"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[86315, 2023, 91, 0, 66, "Section",ExpressionUUID->"d7b11320-372b-3240-90e6-cc4d5d80746b"],
+Cell[86409, 2025, 124, 0, 36, "CodeText",ExpressionUUID->"f9a30381-249c-894a-a277-f74c60dfb828"],
+Cell[86536, 2027, 964, 18, 218, "Input",ExpressionUUID->"26f95ce5-5413-6e43-85c9-f5e999893c27"],
+Cell[87503, 2047, 97, 0, 36, "CodeText",ExpressionUUID->"24517637-6d89-3048-9afe-ed2037595060"],
+Cell[87603, 2049, 927, 18, 199, "Input",ExpressionUUID->"98c21f2b-21b7-0d4c-9d7e-bf3feafaf92c"],
+Cell[88533, 2069, 90, 0, 36, "CodeText",ExpressionUUID->"d9002a48-233c-f84a-822f-ae7167383baa"],
+Cell[88626, 2071, 255, 6, 47, "Input",ExpressionUUID->"7d0fc769-884c-cb42-b46b-4d564d531d23"],
+Cell[88884, 2079, 95, 0, 36, "CodeText",ExpressionUUID->"34838125-3e98-2848-8cfb-b19dd14c37dc"],
+Cell[88982, 2081, 188, 3, 28, "Input",ExpressionUUID->"8847769d-776b-cc44-8b2b-b71abfd36767"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[89207, 2089, 101, 0, 66, "Section",ExpressionUUID->"47e4e8e4-e590-3949-a50e-5d2147e2b400"],
+Cell[89311, 2091, 127, 0, 33, "Text",ExpressionUUID->"a46f462f-81c9-b14d-ab30-8825daa49fd7"],
+Cell[89441, 2093, 277, 4, 29, "Item",ExpressionUUID->"b5c8ef47-5ff7-5b44-bf48-806ead9e20a8"],
+Cell[89721, 2099, 274, 4, 29, "Item",ExpressionUUID->"3d04066b-0a53-0e4c-a747-053b6c85c911"],
+Cell[89998, 2105, 272, 4, 29, "Item",ExpressionUUID->"432560a3-75f5-8445-a988-fff321740c20"],
+Cell[90273, 2111, 273, 4, 29, "Item",ExpressionUUID->"e89ceed5-70a7-714b-a84b-f80bbece9437"],
+Cell[90549, 2117, 283, 4, 29, "Item",ExpressionUUID->"dd11e129-b4a2-384e-b434-9c162c80b2dc"],
+Cell[90835, 2123, 286, 4, 29, "Item",ExpressionUUID->"59daef84-243d-4d43-af1a-a576663cf2a3"],
+Cell[91124, 2129, 277, 4, 29, "Item",ExpressionUUID->"0fa893f1-4e48-df46-99d0-20f71570e259"],
+Cell[91404, 2135, 284, 4, 29, "Item",ExpressionUUID->"cd4b6518-38d1-7c4f-a405-e4b7c203451e"],
+Cell[91691, 2141, 283, 4, 29, "Item",ExpressionUUID->"a8e99416-04d2-4841-b9c2-5c11d6890a85"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[92011, 2150, 97, 0, 66, "Section",ExpressionUUID->"fd789d99-fdee-744f-9ade-0986acc5a25e"],
+Cell[92111, 2152, 166, 3, 55, "Text",ExpressionUUID->"72a5002b-734c-a34d-a68c-e9d5852738ac"],
+Cell[92280, 2157, 107, 0, 30, "Item",ExpressionUUID->"beb0fa37-b55a-3f4b-a0cc-5f864045ef41"],
+Cell[92390, 2159, 98, 0, 30, "Item",ExpressionUUID->"74c3ea2c-61fd-4b45-b01c-0732b8d14189"],
+Cell[92491, 2161, 102, 0, 30, "Item",ExpressionUUID->"3d72ed80-6fc2-5f49-9bf3-b2483b5ab2e1"],
+Cell[92596, 2163, 125, 0, 30, "Item",ExpressionUUID->"cf03a8ee-af8d-ac4d-a6d4-b8789aaa5e77"],
+Cell[92724, 2165, 108, 0, 30, "Item",ExpressionUUID->"5234b28b-5d9a-194c-89da-b393691a1383"],
+Cell[92835, 2167, 120, 0, 30, "Item",ExpressionUUID->"98f3cbc9-0f16-d944-8ce3-b1bca1927012"],
+Cell[92958, 2169, 111, 0, 33, "Text",ExpressionUUID->"a609f839-a2e8-2c43-b91a-34fc1dcc6241"],
+Cell[93072, 2171, 187, 5, 33, "Text",ExpressionUUID->"7bd52531-4415-d64e-82bd-1c78e9d8ff47"],
+Cell[93262, 2178, 419, 13, 55, "Text",ExpressionUUID->"7feb0219-a168-9d4b-ae29-151f222e16da"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+

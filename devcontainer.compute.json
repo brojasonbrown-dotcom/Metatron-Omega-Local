@@ -1,0 +1,116 @@
+// Computational Software Engineering Dev Container
+// Use this instead of the base devcontainer.json for heavy compute work
+{
+  "name": "Computational Engineering Environment",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/nvidia-cuda:1": {
+      "installCudnn": true
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest",
+      "profile": "complete"
+    },
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": false,
+      "installOhMyZsh": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python & Data Science
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.vscode-jupyter-cell-tags",
+        "ms-toolsai.vscode-jupyter-slideshow",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "ms-python.flake8",
+        "ms-python.mypy-type-checker",
+        "ms-python.debugpy",
+        
+        // C/C++
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+        
+        // Rust
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "serayuzgur.crates",
+        
+        // Go
+        "golang.go",
+        
+        // JavaScript/TypeScript (base from original)
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        
+        // Docker & DevOps
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.remote-containers",
+        
+        // Git & Collaboration
+        "github.copilot",
+        "github.copilot-chat",
+        "eamodio.gitlens",
+        "github.vscode-pull-request-github",
+        
+        // Documentation
+        "yzhang.markdown-all-in-one",
+        "davidanson.vscode-markdownlint",
+        "editorconfig.editorconfig",
+        
+        // Utilities
+        "Gruntfuggly.todo-tree",
+        "usernamehw.errorlens",
+        "aaron-bond.better-comments",
+        "VisualStudioExptTeam.vscodeintellicode",
+        
+        // Visualization (for data/plots)
+        "GrapeCity.gc-excelviewer",
+        "RandomFractalsInc.vscode-data-preview"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "editor.rulers": [80, 120],
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "rust-analyzer.checkOnSave": true,
+        "rust-analyzer.cargo.features": "all",
+        "go.toolsManagement.autoUpdate": true,
+        "C_Cpp.default.cppStandard": "c++20",
+        "C_Cpp.default.cStandard": "c17"
+      }
+    }
+  },
+  "postCreateCommand": "pip install numpy scipy pandas matplotlib jupyter scikit-learn torch --index-url https://download.pytorch.org/whl/cpu && npm install",
+  "postStartCommand": "git config --global --add safe.directory /workspaces/${localWorkspaceFolderBasename}",
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
+  ],
+  "runArgs": [
+    "--env-file", ".env",
+    "--gpus", "all"
+  ],
+  "remoteUser": "vscode"
+}

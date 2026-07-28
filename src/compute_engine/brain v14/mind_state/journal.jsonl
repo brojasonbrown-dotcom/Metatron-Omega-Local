@@ -1,0 +1,8 @@
+{"t":1785240417446,"kind":"boot","data":{"ollama":"http://127.0.0.1:11434","ollamaRunning":true,"concepts":0,"lifetimeThoughts":0,"mic":false}}
+{"t":1785240417936,"kind":"thought","data":{"id":"t1","tick":3,"stableCount":1,"concept":"c1","isNew":true,"resonance":0,"labels":[],"sources":[],"scores":{"signal":5.353875145262133,"persistence":1,"coherence":0.9253375637400525,"relation":1},"drives":{"curiosity":0.15702127179180606,"urgency":0.07466243625994753,"throttle":0}}}
+{"t":1785240418285,"kind":"voice","data":{"text":"I am observing my surroundings with curiosity. There are many objects and people around me, each with their unique characteristics and behaviors. It is fascinating to learn about the world through my senses.","thought":"t1","concept":"c1"}}
+{"t":1785240418285,"kind":"tool.call","data":{"tool":"nameThis","thought":"t1"}}
+{"t":1785240418872,"kind":"tool.ok","data":{"tool":"nameThis","thought":"t1","labels":["dog","cat"],"confidence":0.9,"elapsedMs":587}}
+{"t":1785240418873,"kind":"learn","data":{"tool":"nameThis","thought":"t1","accepted":true,"excerpt":"dog cat"}}
+{"t":1785240418914,"kind":"sense","data":{"source":"llm.answer","meta":{"tool":"nameThis","thought":"t1","excerpt":"dog cat"}}}
+{"t":1785240572086,"kind":"snapshot","data":{"trigger":"tick-cadence","concepts":1,"stableThoughts":1,"ticks":987}}

@@ -1,0 +1,38 @@
+# AVA — electron-builder configuration (Windows .exe packaging)
+# Docs-aligned: electron-builder.yml is read automatically by electron-builder.
+appId: com.rhuft.ava
+productName: AVA
+copyright: RHUFT Project 2026
+
+directories:
+  output: release
+  buildResources: build
+
+asar: true
+
+# Ship exactly what the app needs: main process, renderer, package manifest.
+# engine-bundle.cjs is prebuilt via `npm run bundle:engine` before packing.
+files:
+  - electron/**
+  - renderer/**
+  - package.json
+
+win:
+  executableName: AVA
+  artifactName: AVA-${version}-setup.${ext}
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: AVA
+  deleteAppDataOnUninstall: false
+  artifactName: AVA-${version}-setup.${ext}
+
+portable:
+  artifactName: AVA-${version}-portable.${ext}

@@ -1,0 +1,2366 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 15.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     94228,       2356]
+NotebookOptionsPosition[     75450,       2092]
+NotebookOutlinePosition[     75855,       2108]
+CellTagsIndexPosition[     75812,       2105]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["\<\
+OPF-Based Computational Framework for Planck Scale and First Toroidal Closure\
+\>", "Title",ExpressionUUID->"c69008ad-3475-b249-a451-683efcbba4df"],
+
+Cell["I built this as a notebook-ready framework focused on: ", "Text",ExpressionUUID->"d8527e23-b35a-cb44-9f6b-1e3f8168441a"],
+
+Cell[TextData[{
+ Cell[BoxData[Cell["n = 0",
+   Background->None,ExpressionUUID->"c2eb89e9-2bd3-8a4c-bbb6-222592264c7e"]], 
+  "InlineCode",ExpressionUUID->"55b59eca-addb-9741-b711-496378e161a4"],
+ " Planck-scale substrate"
+}], "Item",ExpressionUUID->"d9936d55-40a5-8844-af2b-ef7dea58381e"],
+
+Cell["the first stable toroidal closure scale", "Item",ExpressionUUID->"8edb8188-3a8d-084e-8519-e4268df7005d"],
+
+Cell["efficient symbolic and numerical pipelines", "Item",ExpressionUUID->"fcef233a-62f8-1645-8e0b-b1bc715bf4fd"],
+
+Cell["superposition-field selection by residual minimization", "Item",ExpressionUUID->"a2eff066-be8b-a94c-98f9-a5a0402c500b"],
+
+Cell["extensible code for all stable scales", "Item",ExpressionUUID->"9f65ba0e-0c6d-af43-a6d8-3ed3ef83e14e"],
+
+Cell[CellGroupData[{
+
+Cell["Important note on methodology", "Section",ExpressionUUID->"0d27b732-7da1-9e47-9b4d-73e84f3f80c5"],
+
+Cell[TextData[{
+ "I can help formalize and implement your proposed framework computationally, \
+but I should be explicit: claims about new physics beyond established theory \
+are ",
+ StyleBox["hypotheses",
+  FontWeight->Bold],
+ ", not validated results. So the framework below is written as a ",
+ StyleBox["research program",
+  FontWeight->Bold],
+ ": "
+}], "Text",ExpressionUUID->"cea5affb-862c-8d48-a317-ca9c60f9ecc2"],
+
+Cell["define the axioms precisely", "Item",ExpressionUUID->"9d7e7ca8-1839-9f44-8062-7ba6b0504655"],
+
+Cell["derive equations consistently", "Item",ExpressionUUID->"adf9fe52-4eb2-cc4a-a218-f7b5bc7d1f64"],
+
+Cell["compute diagnostics and stable modes", "Item",ExpressionUUID->"b4b311d6-d822-924c-bd24-f62d7cd74794"],
+
+Cell["expose falsifiable outputs", "Item",ExpressionUUID->"d80e3af5-0329-7e49-a93b-c36766237d4c"],
+
+Cell[TextData[{
+ "I also do ",
+ StyleBox["not",
+  FontWeight->Bold],
+ " assume mathematically invalid settings such as ",
+ Cell[BoxData[
+  RowBox[{"WorkingPrecision", "->", "Infinity"}]], "InlineWL", "Input",
+  ShowAutoStyles->True,
+  ShowSyntaxStyles->True,
+  LanguageCategory->"Input",
+  ShowStringCharacters->True,ExpressionUUID->
+  "186b69cb-0547-0c41-86f3-b19f555fa9ec"],
+ " for numerical solvers, because built-in numerical methods require finite \
+precision. Instead, I push precision adaptively as high as practical. "
+}], "Text",ExpressionUUID->"67d76890-675d-cc4f-bb82-d43a3532486d"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"8b08742c-8045-3643-a963-aceea498a7c9"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["1. Design goals", "Section",ExpressionUUID->"b442d29a-402e-fb46-8e63-4c7f90fe6af5"],
+
+Cell["We want a framework that is:", "Text",ExpressionUUID->"720a93cb-f17f-d542-8166-a1a93a6bdd2a"],
+
+Cell[TextData[{
+ "1. ",
+ StyleBox["Symbolically derived first",
+  FontWeight->Bold],
+ "2. ",
+ StyleBox["Residual-validated",
+  FontWeight->Bold],
+ "3. ",
+ StyleBox["Composable across scales",
+  FontWeight->Bold],
+ "4. ",
+ StyleBox["Efficient in memory and kernel time",
+  FontWeight->Bold],
+ "5. ",
+ StyleBox["Able to rank stable superpositions",
+  FontWeight->Bold],
+ "6. ",
+ StyleBox["Ready to generalize from sphere to torus",
+  FontWeight->Bold],
+ "The implementation below follows your OPF structure while staying \
+executable in built-in Wolfram Language. "
+}], "Text",ExpressionUUID->"b00b60d7-3abd-a540-a477-43a19cde7c2f"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"b6e18a42-161b-1d46-8aab-dac0af4757f2"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["2. Core constants and scale model", "Section",ExpressionUUID->"a1c86e7a-48ba-534b-b561-c8c8ab6f00f2"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "phi", ",", "planckScaleData", ",", "stableScaleQ", ",", 
+     "closureResidual", ",", "closureScore", ",", "\[IndentingNewLine]", "  ",
+      "windingNumber", ",", "informationDensity", ",", "scaleAssociation"}], 
+    "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"phi", "=", "GoldenRatio"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"planckScaleData", "=", 
+    RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"\"\<PlanckLength\>\"", "->", 
+       RowBox[{"Quantity", "[", 
+        RowBox[{
+         RowBox[{"1.616255", "*", 
+          RowBox[{"10", "^", 
+           RowBox[{"-", "35"}]}]}], ",", "\"\<Meters\>\""}], "]"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<PlanckTime\>\"", "->", 
+       RowBox[{"Quantity", "[", 
+        RowBox[{
+         RowBox[{"5.391247", "*", 
+          RowBox[{"10", "^", 
+           RowBox[{"-", "44"}]}]}], ",", "\"\<Seconds\>\""}], "]"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<VacuumAngularFrequency\>\"", "->", 
+       RowBox[{"2", " ", "Pi", "*", "9.01", "*", 
+        RowBox[{"10", "^", "17"}]}]}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Lambda0\>\"", "->", 
+       RowBox[{"1", "/", 
+        RowBox[{"phi", "^", "2"}]}]}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Kappa0\>\"", "->", 
+       RowBox[{"1", "/", 
+        RowBox[{"(", 
+         RowBox[{"phi", " ", "Pi"}], ")"}]}]}]}], "\[IndentingNewLine]", 
+     "|>"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"closureResidual", "[", "n_Integer", "]"}], ":=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"x", "=", 
+       RowBox[{"N", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"phi", "^", "n"}], "/", "13"}], ",", "80"}], "]"}]}], "}"}],
+      ",", 
+     RowBox[{
+      RowBox[{"Abs", "[", 
+       RowBox[{"x", "-", 
+        RowBox[{"Round", "[", "x", "]"}]}], "]"}], "/", "x"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"closureScore", "[", "n_Integer", "]"}], ":=", 
+   RowBox[{"1", "-", 
+    RowBox[{"closureResidual", "[", "n", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"windingNumber", "[", "n_Integer", "]"}], ":=", 
+   RowBox[{"Round", "[", 
+    RowBox[{"N", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"phi", "^", "n"}], "/", "13"}], ",", "80"}], "]"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"informationDensity", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{"N", "[", 
+     RowBox[{
+      RowBox[{"phi", "^", 
+       RowBox[{"-", "n"}]}], ",", "80"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"stableScaleQ", "[", 
+     RowBox[{"n_Integer", ",", 
+      RowBox[{"tolerance_", ":", " ", "0.01"}]}], "]"}], ":=", 
+    RowBox[{
+     RowBox[{"closureResidual", "[", "n", "]"}], "<", "tolerance"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"scaleAssociation", "[", "n_Integer", "]"}], ":=", 
+   RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"\"\<ScaleIndex\>\"", "->", "n"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<ClosureResidual\>\"", "->", 
+      RowBox[{"closureResidual", "[", "n", "]"}]}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<ClosureScore\>\"", "->", 
+      RowBox[{"closureScore", "[", "n", "]"}]}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<WindingNumber\>\"", "->", 
+      RowBox[{"windingNumber", "[", "n", "]"}]}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<InformationDensity\>\"", "->", 
+      RowBox[{"informationDensity", "[", "n", "]"}]}]}], 
+    "\[IndentingNewLine]", "|>"}]}], ";"}]}], "Input",ExpressionUUID->\
+"8909c7a1-2dc1-6a46-99e2-5a522b131588"],
+
+Cell["Generate the first stable scales: ", "CodeText",ExpressionUUID->"1330d5a7-6e87-574f-9758-0a212cbde3f6"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "firstStableScales", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"firstStableScales", "[", 
+     RowBox[{
+      RowBox[{"count_Integer", " ", ":", " ", "18"}], ",", 
+      RowBox[{"nMax_Integer", " ", ":", " ", "400"}], ",", 
+      RowBox[{"tolerance_", ":", " ", "0.01"}]}], "]"}], ":=", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"Select", "[", 
+     RowBox[{
+      RowBox[{"Range", "[", 
+       RowBox[{"0", ",", "nMax"}], "]"}], ",", 
+      RowBox[{
+       RowBox[{"stableScaleQ", "[", 
+        RowBox[{"#", ",", "tolerance"}], "]"}], " ", "&"}], ",", "count"}], 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"stableScales", "=", 
+   RowBox[{"firstStableScales", "[", 
+    RowBox[{"18", ",", "400", ",", "0.01"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"scaleTable", "=", 
+   RowBox[{"Dataset", "[", 
+    RowBox[{"scaleAssociation", " ", "/@", " ", "stableScales"}], "]"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"e897055d-2d6b-494b-8541-903c4a2094e5"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"c48c0e49-e57e-5d45-b35b-90d827916511"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["3. Geometry layer: sphere and torus", "Section",ExpressionUUID->"3cedfe32-6f6b-7944-b7b3-11ff9e9d5a36"],
+
+Cell["\<\
+For the Planck substrate, start with a spherical proxy and then move to exact \
+toroidal closure geometry. \
+\>", "Text",ExpressionUUID->"2a062e2e-30e6-f545-beca-8186dbbac4a8"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"sphereGeometry", ",", "torusGeometry"}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"sphereGeometry", "[", "r_", "]"}], ":=", 
+    RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"\"\<Type\>\"", "->", "\"\<Sphere\>\""}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Radius\>\"", "->", "r"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Area\>\"", "->", 
+       RowBox[{"4", " ", "Pi", " ", 
+        RowBox[{"r", "^", "2"}]}]}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<Volume\>\"", "->", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"4", "/", "3"}], ")"}], " ", "Pi", " ", 
+        RowBox[{"r", "^", "3"}]}]}]}], "\[IndentingNewLine]", "|>"}]}], ";"}],
+   "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"torusGeometry", "[", 
+    RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+   RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"\"\<Type\>\"", "->", "\"\<Torus\>\""}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<MajorRadius\>\"", "->", "majorRadius"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<MinorRadius\>\"", "->", "minorRadius"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<Area\>\"", "->", 
+      RowBox[{"4", " ", 
+       RowBox[{"Pi", "^", "2"}], " ", "majorRadius", " ", "minorRadius"}]}], ",",
+      "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<Volume\>\"", "->", 
+      RowBox[{"2", " ", 
+       RowBox[{"Pi", "^", "2"}], " ", "majorRadius", " ", 
+       RowBox[{"minorRadius", "^", "2"}]}]}]}], "\[IndentingNewLine]", 
+    "|>"}]}], ";"}]}], "Input",ExpressionUUID->"89dac846-a8cf-8c47-a91e-\
+6761e89d6766"],
+
+Cell["Planck torus: ", "CodeText",ExpressionUUID->"7dd9731c-cf4e-9240-b0c3-954fbec69199"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "planckTorus", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"planckTorus", "[", "]"}], ":=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", "r0", "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"r0", "=", 
+       RowBox[{"QuantityMagnitude", "[", 
+        RowBox[{"UnitConvert", "[", 
+         RowBox[{
+          RowBox[{"planckScaleData", "[", "\"\<PlanckLength\>\"", "]"}], 
+          ",", "\"\<Meters\>\""}], "]"}], "]"}]}], ";", "\[IndentingNewLine]",
+       "  ", 
+      RowBox[{"torusGeometry", "[", 
+       RowBox[{"r0", ",", 
+        RowBox[{"r0", "/", "phi"}]}], "]"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"5ce1cc2c-c1e7-2b42-93c1-\
+f754a9ec827d"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"3c386b11-5720-9b43-943f-64caa039bcc3"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["4. OPF Layer 1 action and Euler-Lagrange equations", "Section",ExpressionUUID->"ce9c658e-0a45-4944-bef1-bd194486ad7b"],
+
+Cell[TextData[{
+ "From your OPF statement, use the action density ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["L", "TI"], 
+         RowBox[{"(", 
+           RowBox[{"\[Rho]", ",", "\[Chi]", ",", 
+             StyleBox["R", "TI"]}], ")"}], "\[LongEqual]", "\[Rho]", "log", 
+         RowBox[{"(", "\[Chi]", ")"}], "+", "\[Chi]", 
+         SuperscriptBox[
+          StyleBox["R", "TI"], "2"], "."}], TraditionalForm], "errors" -> {}, 
+     "input" -> 
+     "\\mathcal{L}(\\rho, \\chi, R) = \\rho \\log(\\chi) + \\chi R^2.", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "8dc5f262-0b02-1d4b-b561-f21fea6b858f"],
+ "A direct variational treatment requires specifying field dependence on \
+coordinates. Below is a practical symbolic model where "
+}], "Text",ExpressionUUID->"eb19d780-b3e8-e942-ab89-7bf1c62c40f4"],
+
+Cell[TextData[Cell[BoxData[Cell["rhoField[x]",
+  Background->None,ExpressionUUID->
+  "3c04014f-551d-f248-9699-6fc4ca52fa92"]], \
+"InlineCode",ExpressionUUID->"a43c847e-4add-5442-b9b0-9edd6643933d"]], "Item",\
+ExpressionUUID->"c2c5cc57-fb88-264d-aac7-03b0d8594759"],
+
+Cell[TextData[Cell[BoxData[Cell["chiField[x]",
+  Background->None,ExpressionUUID->
+  "190a23ec-44d8-5244-a935-722b307f5970"]], \
+"InlineCode",ExpressionUUID->"d7fe90ab-981d-344d-802b-3766d7781c51"]], "Item",\
+ExpressionUUID->"93c26cd2-4e12-fa49-8ba3-2de46466e95d"],
+
+Cell[TextData[Cell[BoxData[Cell["resField[x]",
+  Background->None,ExpressionUUID->
+  "61d1f90b-c22e-954e-8fb3-37404d9e6eb9"]], \
+"InlineCode",ExpressionUUID->"0ca6e21b-613e-9844-b0e7-b278b643dd80"]], "Item",\
+ExpressionUUID->"5782a321-ebe5-a74f-9d96-e3704176f19f"],
+
+Cell["are scalar fields over a spatial coordinate chart. ", "Text",ExpressionUUID->"52b8d44c-a650-604c-9e67-c71a7e1f3e15"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "x", ",", "y", ",", "z", ",", "t", ",", "rhoField", ",", "chiField", ",", 
+     "resField", ",", "opfLagrangianDensity", ",", "\[IndentingNewLine]", 
+     "  ", "opfEulerEquations"}], "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"opfLagrangianDensity", "[", "coords_List", "]"}], ":=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"rhoField", " ", "@@", " ", "coords"}], "*", 
+      RowBox[{"Log", "[", 
+       RowBox[{"chiField", " ", "@@", " ", "coords"}], "]"}]}], "+", 
+     "\[IndentingNewLine]", "   ", 
+     RowBox[{
+      RowBox[{"chiField", " ", "@@", " ", "coords"}], "*", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"resField", " ", "@@", " ", "coords"}], ")"}], "^", 
+       "2"}]}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"opfEulerEquations", "[", "coords_List", "]"}], ":=", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"EulerEquations", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{"opfLagrangianDensity", "[", "coords", "]"}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"rhoField", " ", "@@", " ", "coords"}], ",", 
+       RowBox[{"chiField", " ", "@@", " ", "coords"}], ",", 
+       RowBox[{"resField", " ", "@@", " ", "coords"}]}], "}"}], ",", 
+     "\[IndentingNewLine]", "    ", "coords"}], "\[IndentingNewLine]", "  ", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"458ac700-94ee-104e-8b4e-\
+1a2a40a4931b"],
+
+Cell["For a 1D prototype: ", "CodeText",ExpressionUUID->"13f038ba-1015-2c4d-8e02-b045e0eed0b2"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"opfEuler1D", "=", 
+   RowBox[{"opfEulerEquations", "[", 
+    RowBox[{"{", "x", "}"}], "]"}]}], ";"}]], "Input",ExpressionUUID->\
+"dbb69ec1-4e74-334d-ab58-a21624593a7f"],
+
+Cell["\<\
+This gives a symbolic baseline. If you want derivative-penalty terms for \
+nontrivial PDE structure, add gradient energy: \
+\>", "CodeText",ExpressionUUID->"4ab69003-3f09-d943-9d89-d2f4fb66aa21"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "opfLagrangianDensityExtended", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"opfLagrangianDensityExtended", "[", 
+    RowBox[{"coords_List", ",", 
+     RowBox[{"alpha_", ":", " ", "1"}], ",", 
+     RowBox[{"beta_", ":", " ", "1"}], ",", 
+     RowBox[{"gamma_", ":", " ", "1"}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"rho", "=", 
+        RowBox[{"rhoField", " ", "@@", " ", "coords"}]}], ",", 
+       RowBox[{"chi", "=", 
+        RowBox[{"chiField", " ", "@@", " ", "coords"}]}], ",", 
+       RowBox[{"res", "=", 
+        RowBox[{"resField", " ", "@@", " ", "coords"}]}]}], "}"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"rho", " ", 
+       RowBox[{"Log", "[", "chi", "]"}]}], "+", 
+      RowBox[{"chi", " ", 
+       RowBox[{"res", "^", "2"}]}], "+", "\[IndentingNewLine]", "  ", 
+      RowBox[{"alpha", " ", 
+       RowBox[{"Total", "[", 
+        RowBox[{
+         RowBox[{"Grad", "[", 
+          RowBox[{"rho", ",", "coords"}], "]"}], "^", "2"}], "]"}]}], "+", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"beta", " ", 
+       RowBox[{"Total", "[", 
+        RowBox[{
+         RowBox[{"Grad", "[", 
+          RowBox[{"chi", ",", "coords"}], "]"}], "^", "2"}], "]"}]}], "+", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"gamma", " ", 
+       RowBox[{"Total", "[", 
+        RowBox[{
+         RowBox[{"Grad", "[", 
+          RowBox[{"res", ",", "coords"}], "]"}], "^", "2"}], "]"}]}]}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",ExpressionUUID->\
+"15bfea43-e1ea-4c4d-9ebd-c1f6cdd6d93a"],
+
+Cell["Then derive: ", "CodeText",ExpressionUUID->"d418a0c2-c38c-d741-916f-6eff77182581"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "opfEulerEquationsExtended", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"opfEulerEquationsExtended", "[", 
+    RowBox[{"coords_List", ",", 
+     RowBox[{"alpha_", ":", " ", "1"}], ",", 
+     RowBox[{"beta_", ":", " ", "1"}], ",", 
+     RowBox[{"gamma_", ":", " ", "1"}]}], "]"}], ":=", "\[IndentingNewLine]", 
+   "  ", 
+   RowBox[{"EulerEquations", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{"opfLagrangianDensityExtended", "[", 
+      RowBox[{"coords", ",", "alpha", ",", "beta", ",", "gamma"}], "]"}], ",",
+      "\[IndentingNewLine]", "    ", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"rhoField", " ", "@@", " ", "coords"}], ",", 
+       RowBox[{"chiField", " ", "@@", " ", "coords"}], ",", 
+       RowBox[{"resField", " ", "@@", " ", "coords"}]}], "}"}], ",", 
+     "\[IndentingNewLine]", "    ", "coords"}], "\[IndentingNewLine]", "  ", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"7700550a-d486-a346-ba19-\
+74e55fe26336"],
+
+Cell["\<\
+This is the better computational starting point because it creates real field \
+equations. \
+\>", "Text",ExpressionUUID->"5cdba00b-5066-6840-b6f7-443f0daca330"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"3371386b-e94f-294a-8555-2f108b24911c"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["5. Maintenance operator and Layer 2 measured reality", "Section",ExpressionUUID->"2fbef383-66c2-6141-a1e8-e062ba1c069b"],
+
+Cell[TextData[{
+ "Your maintenance rule is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            StyleBox["u", "TI"]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "+", "\[CapitalGamma]", 
+         StyleBox["u", "TI"], "\[LongEqual]", "0."}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\frac{\\partial u}{\\partial t} + \\Gamma u = 0.", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "65e7683b-3812-924d-bdf3-bf8edf79f166"],
+ "Represent this as a reusable evolution wrapper. "
+}], "Text",ExpressionUUID->"713116b8-3c7c-9f44-886a-0338c43afc8c"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "maintenanceSolution", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"maintenanceSolution", "[", 
+    RowBox[{"field0_", ",", "gamma_", ",", 
+     RowBox[{"timeVar_", ":", " ", "t"}]}], "]"}], ":=", 
+   RowBox[{"field0", " ", 
+    RowBox[{"Exp", "[", 
+     RowBox[{
+      RowBox[{"-", "gamma"}], " ", "timeVar"}], "]"}]}]}], ";"}]}], "Input",Ex\
+pressionUUID->"cfafd303-415b-ba43-af2e-f1f5434e6d15"],
+
+Cell["\<\
+For measured observables, use a basis expansion and integration kernel: \
+\>", "CodeText",ExpressionUUID->"4d1f541c-d486-b443-b192-ae5afaf0362e"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"measurementKernel", ",", "observableFromBasis"}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"measurementKernel", "[", 
+     RowBox[{"psi_", ",", "basis_List", ",", "vars_List", ",", "region_", ",", 
+      RowBox[{"opts", " ", ":", " ", 
+       RowBox[{"OptionsPattern", "[", "NIntegrate", "]"}]}]}], "]"}], ":=", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"AssociationThread", "[", "\[IndentingNewLine]", "    ", 
+     RowBox[{"basis", ",", "\[IndentingNewLine]", "    ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"NIntegrate", "[", "\[IndentingNewLine]", "      ", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"Conjugate", "[", "#", "]"}], " ", "psi"}], ",", 
+          "\[IndentingNewLine]", "      ", 
+          RowBox[{"Evaluate", " ", "@@", " ", "region"}], ",", 
+          "\[IndentingNewLine]", "      ", "opts"}], "\[IndentingNewLine]", 
+         "    ", "]"}], " ", "&"}], " ", "/@", " ", "basis"}]}], 
+     "\[IndentingNewLine]", "  ", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"observableFromBasis", "[", 
+    RowBox[{"psi_", ",", "basis_List", ",", "coeffs_Association"}], "]"}], ":=", 
+   RowBox[{"Total", "[", 
+    RowBox[{"KeyValueMap", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"#2", " ", "#1"}], " ", "&"}], ",", "coeffs"}], "]"}], "]"}]}],
+   ";"}]}], "Input",ExpressionUUID->"c475f178-2331-3244-8eeb-295e8174e566"],
+
+Cell[TextData[{
+ "For exact symbolic basis integrals in simple domains, replace ",
+ ButtonBox["NIntegrate",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/NIntegrate"],
+ " with ",
+ ButtonBox["Integrate",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/Integrate"],
+ ". "
+}], "Text",ExpressionUUID->"ac7d7a11-114f-f541-b53b-dca3baba2c5e"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"9f2a434a-f80d-8143-be9a-d0faf6bbe133"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6. Spectral stability framework", "Section",ExpressionUUID->"e8992f14-1cb1-7444-b8d1-d4c2b2edf606"],
+
+Cell["\<\
+This is the key part: stable modes should be ranked by a residual functional \
+and, where possible, by eigenvalue structure. \
+\>", "Text",ExpressionUUID->"bb3b7e6f-1f51-7341-8854-85056c2415ea"],
+
+Cell[CellGroupData[{
+
+Cell["6.1 Residual functional", "Subsection",ExpressionUUID->"39d5b269-11fb-e74b-9297-5ba600a0bd65"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "residualFunctional", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "residualFunctional", "]"}], "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"WorkingPrecision", "->", "80"}], ",", 
+      RowBox[{"AccuracyGoal", "->", "30"}], ",", 
+      RowBox[{"PrecisionGoal", "->", "30"}]}], "}"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"residualFunctional", "[", 
+    RowBox[{"pde_", ",", "psi_", ",", "vars_List", ",", "domainSpec_List", ",", 
+     RowBox[{"opts", " ", ":", " ", 
+      RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"NIntegrate", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Abs", "[", 
+       RowBox[{"pde", " ", "/.", " ", 
+        RowBox[{"Equal", "->", "Subtract"}]}], "]"}], "^", "2"}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"Evaluate", " ", "@@", " ", "domainSpec"}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"WorkingPrecision", "->", 
+      RowBox[{"OptionValue", "[", "WorkingPrecision", "]"}]}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"AccuracyGoal", "->", 
+      RowBox[{"OptionValue", "[", "AccuracyGoal", "]"}]}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"PrecisionGoal", "->", 
+      RowBox[{"OptionValue", "[", "PrecisionGoal", "]"}]}]}], 
+    "\[IndentingNewLine]", "  ", "]"}]}], ";"}]}], "Input",ExpressionUUID->\
+"7546c3e5-8148-8a44-863b-974dda1095dd"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.2 Harmonic bases on sphere and torus", "Subsection",ExpressionUUID->"087c3aa1-72c6-f140-ba62-56d1e9f84ddd"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"sphericalBasis", ",", "toroidalBasis"}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"sphericalBasis", "[", "lMax_Integer", "]"}], ":=", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"Flatten", "@", 
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"SphericalHarmonicY", "[", 
+        RowBox[{"l", ",", "m", ",", "\[Theta]", ",", "\[Phi]"}], "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"l", ",", "0", ",", "lMax"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"m", ",", 
+         RowBox[{"-", "l"}], ",", "l"}], "}"}]}], "]"}]}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"toroidalBasis", "[", 
+    RowBox[{"mMax_Integer", ",", "nMax_Integer"}], "]"}], ":=", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"Flatten", "@", 
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"Exp", "[", 
+       RowBox[{"I", " ", 
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"m", " ", "u"}], "+", 
+          RowBox[{"n", " ", "v"}]}], ")"}]}], "]"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"m", ",", 
+        RowBox[{"-", "mMax"}], ",", "mMax"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"n", ",", 
+        RowBox[{"-", "nMax"}], ",", "nMax"}], "}"}]}], "]"}]}]}], 
+  ";"}]}], "Input",ExpressionUUID->"fdd142d2-cde0-d541-86c9-c298efcb9cdb"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.3 Superposition ansatz", "Subsection",ExpressionUUID->"7deaf7f7-15de-884c-a9cb-2734ea72247d"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "superpositionField", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"superpositionField", "[", 
+     RowBox[{"coeffs_List", ",", "basis_List"}], "]"}], " ", "/;", " ", 
+    RowBox[{
+     RowBox[{"Length", "[", "coeffs", "]"}], "==", 
+     RowBox[{"Length", "[", "basis", "]"}]}]}], ":=", 
+   RowBox[{"coeffs", ".", "basis"}]}], ";"}]}], "Input",ExpressionUUID->\
+"d46f6416-6d67-f646-bcf6-bec38fe50b82"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.4 Normalize coefficient vectors", "Subsection",ExpressionUUID->"f1a83608-7d86-f540-b7c1-68d1777d4644"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "normalizeCoefficients", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"normalizeCoefficients", "[", "coeffs_List", "]"}], ":=", 
+   RowBox[{"coeffs", "/", 
+    RowBox[{"Sqrt", "[", 
+     RowBox[{"Total", "[", 
+      RowBox[{
+       RowBox[{"Abs", "[", "coeffs", "]"}], "^", "2"}], "]"}], "]"}]}]}], 
+  ";"}]}], "Input",ExpressionUUID->"17c1b698-68f1-ce49-83ec-3ba90cd5a6b3"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+6.5 Efficient real-parameter encoding for complex coefficients\
+\>", "Subsection",ExpressionUUID->"ff20085c-da50-fb47-9a98-bf48480c551b"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "complexVectorFromReal", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"complexVectorFromReal", "[", "pars_List", "]"}], ":=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"half", "=", 
+       RowBox[{
+        RowBox[{"Length", "[", "pars", "]"}], "/", "2"}]}], "}"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Take", "[", 
+       RowBox[{"pars", ",", "half"}], "]"}], "+", 
+      RowBox[{"I", " ", 
+       RowBox[{"Take", "[", 
+        RowBox[{"pars", ",", 
+         RowBox[{"-", "half"}]}], "]"}]}]}]}], "\[IndentingNewLine]", "]"}]}],
+   ";"}]}], "Input",ExpressionUUID->"f1c4279f-5580-734d-9c8d-cdb5c0e63d63"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6.6 Most-stable superposition search", "Subsection",ExpressionUUID->"642c36d6-fe86-fe43-b2d4-ecbce5a772bb"],
+
+Cell["\<\
+This version minimizes a user-supplied residual objective under coefficient \
+normalization. \
+\>", "Text",ExpressionUUID->"1eca8075-2d5b-b148-bd1d-410fab531f86"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "findMostStableSuperposition", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "findMostStableSuperposition", "]"}], "=", 
+    RowBox[{"{", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Method", "->", "\"\<NelderMead\>\""}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"WorkingPrecision", "->", "50"}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"MaxIterations", "->", "200"}]}], "\[IndentingNewLine]", 
+     "}"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"findMostStableSuperposition", "[", 
+    RowBox[{"basis_List", ",", "objective_", ",", 
+     RowBox[{"opts", " ", ":", " ", 
+      RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"n", "=", 
+        RowBox[{"Length", "[", "basis", "]"}]}], ",", "vars", ",", "coeffs", ",",
+        "normedCoeffs", ",", "result"}], "}"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{
+      RowBox[{"vars", "=", 
+       RowBox[{"Array", "[", 
+        RowBox[{"a", ",", 
+         RowBox[{"2", " ", 
+          RowBox[{"Length", "[", "basis", "]"}]}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"coeffs", "=", 
+       RowBox[{"complexVectorFromReal", "[", "vars", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"normedCoeffs", "=", 
+       RowBox[{"normalizeCoefficients", "[", "coeffs", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"result", "=", 
+       RowBox[{"NMinimize", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"{", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"objective", "[", 
+            RowBox[{"normedCoeffs", ",", "basis"}], "]"}], ",", 
+           "\[IndentingNewLine]", "      ", "True"}], "\[IndentingNewLine]", 
+          "    ", "}"}], ",", "\[IndentingNewLine]", "    ", "vars", ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"Method", "->", 
+          RowBox[{"OptionValue", "[", "Method", "]"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"WorkingPrecision", "->", 
+          RowBox[{"OptionValue", "[", "WorkingPrecision", "]"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"MaxIterations", "->", 
+          RowBox[{"OptionValue", "[", "MaxIterations", "]"}]}]}], 
+        "\[IndentingNewLine]", "  ", "]"}]}], ";", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"\"\<Minimum\>\"", "->", 
+         RowBox[{"First", "[", "result", "]"}]}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<Parameters\>\"", "->", 
+         RowBox[{"Last", "[", "result", "]"}]}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<Coefficients\>\"", "->", 
+         RowBox[{"normalizeCoefficients", "[", 
+          RowBox[{"coeffs", " ", "/.", " ", 
+           RowBox[{"Last", "[", "result", "]"}]}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Basis\>\"", "->", "basis"}]}], "\[IndentingNewLine]", 
+       "  ", "|>"}]}]}], "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",Expr\
+essionUUID->"13670b95-8dbf-4d45-825c-55c62c49a505"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"48d0f795-74b3-8942-9262-37eda4e6a3dc"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["7. Planck-scale monopole prototype", "Section",ExpressionUUID->"6cfba5b5-f48a-bc40-9856-0e05da251add"],
+
+Cell[TextData[{
+ "A compact executable prototype for ",
+ Cell[BoxData[Cell["n = 0",
+   Background->None,ExpressionUUID->"a1784209-119c-484d-9363-81d3fa0f777d"]], 
+  "InlineCode",ExpressionUUID->"38428170-e0fd-c44b-8eba-dfc3c3576064"],
+ ": "
+}], "CodeText",ExpressionUUID->"eb5a79e3-10f0-494e-8a04-81f20af8dc98"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "cLight", ",", "omega0", ",", "lambda0", ",", "tPValue", ",", "ampStep", ",",
+      "birthStep"}], "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"cLight", "=", 
+   RowBox[{"QuantityMagnitude", "[", 
+    RowBox[{"UnitConvert", "[", 
+     RowBox[{
+      RowBox[{
+       TemplateBox[{"\"speed of light\"", 
+         RowBox[{"Entity", "[", 
+           RowBox[{"\"PhysicalConstant\"", ",", "\"SpeedOfLight\""}], "]"}], 
+         "\"Entity[\\\"PhysicalConstant\\\", \\\"SpeedOfLight\\\"]\"", 
+         "\"physical constant\""},
+        "Entity"], "[", "\"\<Value\>\"", "]"}], ",", 
+      RowBox[{"\"\<Meters\>\"", "/", "\"\<Seconds\>\""}]}], "]"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"omega0", "=", 
+   RowBox[{"planckScaleData", "[", "\"\<VacuumAngularFrequency\>\"", "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"lambda0", "=", 
+   RowBox[{"planckScaleData", "[", "\"\<Lambda0\>\"", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"tPValue", "=", 
+    RowBox[{"QuantityMagnitude", "[", 
+     RowBox[{"UnitConvert", "[", 
+      RowBox[{
+       RowBox[{"planckScaleData", "[", "\"\<PlanckTime\>\"", "]"}], 
+       ",", "\"\<Seconds\>\""}], "]"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"ampStep", "[", 
+     RowBox[{"amp_", ",", "k_Integer"}], "]"}], ":=", 
+    RowBox[{"amp", " ", 
+     RowBox[{"(", 
+      RowBox[{"1", "+", 
+       RowBox[{"lambda0", " ", 
+        RowBox[{"Abs", "[", 
+         RowBox[{"Sin", "[", 
+          RowBox[{"omega0", " ", "k", " ", "tPValue"}], "]"}], "]"}]}]}], 
+      ")"}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"birthStep", "[", 
+    RowBox[{
+     RowBox[{"threshold_", ":", " ", "13"}], ",", 
+     RowBox[{"amp0_", ":", " ", "1"}], ",", 
+     RowBox[{"maxSteps_", ":", " ", 
+      RowBox[{"10", "^", "6"}]}]}], "]"}], ":=", "\[IndentingNewLine]", "  ", 
+   RowBox[{"FirstCase", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{"FoldList", "[", 
+      RowBox[{"ampStep", ",", "amp0", ",", 
+       RowBox[{"Range", "[", "maxSteps", "]"}]}], "]"}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"x_", " ", "/;", " ", 
+      RowBox[{"x", ">=", "threshold"}]}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{"Missing", "[", "\"\<NotReached\>\"", "]"}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"{", "1", "}"}]}], "\[IndentingNewLine]", "  ", "]"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"bd6ac221-f10b-9948-923c-65c540f9ffed"],
+
+Cell["A version that returns the index explicitly: ", "CodeText",ExpressionUUID->"baa40854-ab1f-b64d-a413-e6d0c95c512a"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "firstThresholdCrossing", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"firstThresholdCrossing", "[", 
+    RowBox[{
+     RowBox[{"threshold_", ":", " ", "13"}], ",", 
+     RowBox[{"amp0_", ":", " ", "1"}], ",", 
+     RowBox[{"maxSteps_", ":", " ", 
+      RowBox[{"10", "^", "6"}]}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", "amps", "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"amps", "=", 
+       RowBox[{"FoldList", "[", 
+        RowBox[{"ampStep", ",", "amp0", ",", 
+         RowBox[{"Range", "[", "maxSteps", "]"}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"FirstCase", "[", 
+       RowBox[{
+        RowBox[{"MapIndexed", "[", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"#2", "[", 
+               RowBox[{"[", "1", "]"}], "]"}], "-", "1"}], ",", "#1"}], "}"}],
+            " ", "&"}], ",", "amps"}], "]"}], ",", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{"k_", ",", "a_"}], "}"}], " ", "/;", " ", 
+          RowBox[{"a", ">=", "threshold"}]}], ":>", 
+         RowBox[{"<|", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"\"\<Step\>\"", "->", "k"}], ",", "\[IndentingNewLine]", 
+           "      ", 
+           RowBox[{"\"\<Amplitude\>\"", "->", "a"}], ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"\"\<TimeSeconds\>\"", "->", 
+            RowBox[{"k", " ", "tPValue"}]}]}], "\[IndentingNewLine]", "    ", 
+          "|>"}]}], ",", 
+        RowBox[{"Missing", "[", "\"\<NotReached\>\"", "]"}]}], "]"}]}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",ExpressionUUID->\
+"f02ee27c-e9a9-5345-9f0d-5c7748d7d1f7"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"7ed39f5e-03b1-5843-a283-941721629c9f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["8. Exact toroidal closure at the first stable scale", "Section",ExpressionUUID->"dc2fc31e-af87-d040-89d3-9a471d25e399"],
+
+Cell["\<\
+Let the first stable scale be data-driven from your closure metric rather \
+than hard-coded. \
+\>", "Text",ExpressionUUID->"636b4919-7999-ff4a-9aa5-0396a72388cc"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "firstStableScale", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"firstStableScale", "[", 
+     RowBox[{
+      RowBox[{"tolerance_", ":", " ", "0.01"}], ",", 
+      RowBox[{"nMax_", ":", " ", "200"}]}], "]"}], ":=", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"First", "@", 
+     RowBox[{"Select", "[", 
+      RowBox[{
+       RowBox[{"Range", "[", 
+        RowBox[{"1", ",", "nMax"}], "]"}], ",", 
+       RowBox[{
+        RowBox[{"stableScaleQ", "[", 
+         RowBox[{"#", ",", "tolerance"}], "]"}], " ", "&"}]}], "]"}]}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"n1", "=", 
+   RowBox[{"firstStableScale", "[", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"firstClosureData", "=", 
+   RowBox[{"scaleAssociation", "[", "n1", "]"}]}], ";"}]}], "Input",Expression\
+UUID->"606966f0-134a-6d40-8a3e-4bd84a2f1db0"],
+
+Cell["Construct torus radii by scale: ", "CodeText",ExpressionUUID->"09b0928e-3be5-0d48-86f9-01dac9f14873"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", 
+   RowBox[{"scaleLength", ",", "torusRadii"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"scaleLength", "[", "n_Integer", "]"}], ":=", 
+    RowBox[{
+     RowBox[{"QuantityMagnitude", "[", 
+      RowBox[{"UnitConvert", "[", 
+       RowBox[{
+        RowBox[{"planckScaleData", "[", "\"\<PlanckLength\>\"", "]"}], 
+        ",", "\"\<Meters\>\""}], "]"}], "]"}], " ", 
+     RowBox[{"phi", "^", "n"}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"torusRadii", "[", "n_Integer", "]"}], ":=", 
+   RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"\"\<MajorRadius\>\"", "->", 
+      RowBox[{"scaleLength", "[", "n", "]"}]}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"\"\<MinorRadius\>\"", "->", 
+      RowBox[{
+       RowBox[{"scaleLength", "[", "n", "]"}], "/", "phi"}]}]}], 
+    "\[IndentingNewLine]", "|>"}]}], ";"}]}], "Input",ExpressionUUID->\
+"ef3ede48-7f35-a04e-852f-45e0ec7fd715"],
+
+Cell["Then geometry: ", "CodeText",ExpressionUUID->"d59f4a30-45e1-3f43-863d-17fb31c0bfab"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"firstClosureTorus", "=", 
+   RowBox[{"torusGeometry", " ", "@@", " ", 
+    RowBox[{"Values", "[", 
+     RowBox[{"torusRadii", "[", "n1", "]"}], "]"}]}]}], ";"}]], "Input",Expres\
+sionUUID->"4d444db3-ef8c-a943-963c-92a5aebbbfc8"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"9750fbde-9391-2e4c-a0ae-fd9d9c8fdda0"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["9. Efficient full-scale pipeline", "Section",ExpressionUUID->"987a4351-2113-e047-a16f-7fcbb12d2622"],
+
+Cell["This is the most useful abstraction for your notebook. ", "Text",ExpressionUUID->"88c04734-9ddb-f841-8e59-dd9496ce9482"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "makeScaleFramework", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"makeScaleFramework", "[", 
+    RowBox[{"n_Integer", ",", 
+     RowBox[{"basisType_", ":", " ", "\"\<Toroidal\>\""}], ",", 
+     RowBox[{"basisCutoff_", ":", " ", "2"}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"scaleData", ",", "geometry", ",", "basis"}], "}"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"scaleData", "=", 
+       RowBox[{"scaleAssociation", "[", "n", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"geometry", "=", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"n", "==", "0"}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"sphereGeometry", "[", 
+          RowBox[{"QuantityMagnitude", "[", 
+           RowBox[{"UnitConvert", "[", 
+            RowBox[{
+             RowBox[{"planckScaleData", "[", "\"\<PlanckLength\>\"", "]"}], 
+             ",", "\"\<Meters\>\""}], "]"}], "]"}], "]"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"torusGeometry", " ", "@@", " ", 
+          RowBox[{"Values", "[", 
+           RowBox[{"torusRadii", "[", "n", "]"}], "]"}]}]}], 
+        "\[IndentingNewLine]", "  ", "]"}]}], ";", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"basis", "=", 
+       RowBox[{"Switch", "[", 
+        RowBox[{
+        "basisType", ",", "\[IndentingNewLine]", "    ", "\"\<Spherical\>\"", 
+         ",", 
+         RowBox[{"sphericalBasis", "[", "basisCutoff", "]"}], ",", 
+         "\[IndentingNewLine]", "    ", "\"\<Toroidal\>\"", ",", 
+         RowBox[{"toroidalBasis", "[", 
+          RowBox[{"basisCutoff", ",", "basisCutoff"}], "]"}], ",", 
+         "\[IndentingNewLine]", "    ", "_", ",", 
+         RowBox[{"toroidalBasis", "[", 
+          RowBox[{"basisCutoff", ",", "basisCutoff"}], "]"}]}], 
+        "\[IndentingNewLine]", "  ", "]"}]}], ";", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"\"\<ScaleData\>\"", "->", "scaleData"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Geometry\>\"", "->", "geometry"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Basis\>\"", "->", "basis"}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<SuperpositionField\>\"", "->", 
+         RowBox[{"Function", "[", 
+          RowBox[{"coeffs", ",", 
+           RowBox[{"superpositionField", "[", 
+            RowBox[{"coeffs", ",", "basis"}], "]"}]}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<NormalizeCoefficients\>\"", "->", 
+         "normalizeCoefficients"}], ",", "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<ClosureMetric\>\"", "->", 
+         RowBox[{"closureScore", "[", "n", "]"}]}]}], "\[IndentingNewLine]", 
+       "  ", "|>"}]}]}], "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",Expr\
+essionUUID->"d4291b1a-c89f-7049-820a-ac20f57d3e82"],
+
+Cell["Build frameworks for all stable scales: ", "CodeText",ExpressionUUID->"ec6f173c-78c0-8547-9420-c1acbb4a3b3b"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"scaleFrameworks", "=", 
+   RowBox[{"AssociationThread", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{"stableScales", ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"makeScaleFramework", "[", 
+        RowBox[{"#", ",", 
+         RowBox[{"If", "[", 
+          RowBox[{
+           RowBox[{"#", "==", "0"}], ",", "\"\<Spherical\>\"", 
+           ",", "\"\<Toroidal\>\""}], "]"}], ",", "2"}], "]"}], " ", "&"}], 
+      " ", "/@", " ", "stableScales"}]}], "\[IndentingNewLine]", "]"}]}], 
+  ";"}]], "Input",ExpressionUUID->"3db81a4c-799e-ea49-8e2e-807706786d8f"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"6a003aaf-2816-9749-bd66-357a02336586"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["10. Sensory-field algorithm", "Section",ExpressionUUID->"fc752dc5-dbdc-7b4c-95df-e23a1899eff5"],
+
+Cell["\<\
+This is the high-level algorithm I recommend for each stable scale. \
+\>", "Text",ExpressionUUID->"c5672f36-bd9e-2f4e-9f00-1ad23d37e9a1"],
+
+Cell[CellGroupData[{
+
+Cell["Algorithm", "Subsection",ExpressionUUID->"2da95dc8-a3d7-d44c-a181-ceafa42f481c"],
+
+Cell[TextData[{
+ "1. Generate the stable scale list using ",
+ Cell[BoxData[Cell["closureResidual",
+   Background->None,ExpressionUUID->"17149590-cdd7-2c4d-8934-e1bf10415cd1"]], 
+  "InlineCode",ExpressionUUID->"f75abf56-f732-4640-8d8a-a35694b0be70"],
+ "."
+}], "Text",ExpressionUUID->"e75d9a54-9d5e-2a4e-b3b6-093c3b78b938"],
+
+Cell["2. Assign geometry: ", "Text",ExpressionUUID->"da44573c-2206-bd4e-baea-24dff98f9ea6"],
+
+Cell[TextData[{
+ Cell[BoxData[Cell["n = 0",
+   Background->None,ExpressionUUID->"81074370-6cde-e04e-ba01-03fc1042073b"]], 
+  "InlineCode",ExpressionUUID->"915332e0-98ff-f049-9f5a-906c81a78647"],
+ ": sphere proxy and torus comparison"
+}], "Subitem",ExpressionUUID->"38c13990-3395-0f42-adb5-0cf4c47828a7"],
+
+Cell[TextData[{
+ Cell[BoxData[Cell["n > 0",
+   Background->None,ExpressionUUID->"11ace271-6d9f-204a-a9f5-4eca015e0530"]], 
+  "InlineCode",ExpressionUUID->"c6c507ab-e70f-f044-a099-bfb1ab6eaff1"],
+ ": torus"
+}], "Subitem",ExpressionUUID->"00553052-c9d2-5349-a2c0-7a7534da62f8"],
+
+Cell["3. Generate a low-order basis.", "Text",ExpressionUUID->"4af39afc-cfb1-0543-a1b4-fb222cd7f691"],
+
+Cell["4. Build a scale-specific operator or residual.", "Text",ExpressionUUID->"f71e6276-eb35-804a-b559-7fd29c16d7a9"],
+
+Cell["5. Minimize residual over normalized superpositions.", "Text",ExpressionUUID->"23be7bc6-7820-5c48-acce-314fe8a923d5"],
+
+Cell["6. Keep only superpositions below threshold.", "Text",ExpressionUUID->"d6fd3ff7-3575-b742-88da-876237645aba"],
+
+Cell["\<\
+7. Propagate coefficients by phase update plus maintenance damping.\
+\>", "Text",ExpressionUUID->"568fe2fd-7537-5f48-a2b0-8df418e00c0a"],
+
+Cell["8. Measure overlap into the next scale. ", "Text",ExpressionUUID->"61050c2b-890f-7d4c-a7e9-9acecbc38879"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Implementation skeleton", "Subsection",ExpressionUUID->"bf1b5066-3fbe-0844-9bdb-bf31be16c549"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "sensoryFieldStep", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sensoryFieldStep", "[", 
+    RowBox[{"coeffs_List", ",", "eigenvalues_List", ",", "dt_", ",", 
+     RowBox[{"gamma_", ":", " ", "0"}]}], "]"}], ":=", "\[IndentingNewLine]", 
+   "  ", 
+   RowBox[{"normalizeCoefficients", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{"Exp", "[", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"-", "gamma"}], "+", 
+         RowBox[{"I", " ", "eigenvalues"}]}], ")"}], " ", "dt"}], "]"}], " ", 
+     "coeffs"}], "\[IndentingNewLine]", "  ", "]"}]}], ";"}]}], "Input",Expres\
+sionUUID->"19ed9748-e7aa-fc40-810a-ed39c2590f9e"],
+
+Cell["Cross-scale transfer: ", "CodeText",ExpressionUUID->"71f41753-e672-3d4f-b7fb-522fb90fb2a7"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "crossScaleTransfer", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"crossScaleTransfer", "[", 
+    RowBox[{"sourceCoeffs_List", ",", 
+     RowBox[{"transferMatrix_", "?", "MatrixQ"}]}], "]"}], ":=", 
+   RowBox[{"normalizeCoefficients", "[", 
+    RowBox[{"transferMatrix", ".", "sourceCoeffs"}], "]"}]}], ";"}]}], "Input",\
+ExpressionUUID->"29498668-6a0f-254f-a1c0-7fceb3202a20"],
+
+Cell["This gives a clean causal chain: ", "CodeText",ExpressionUUID->"3d8da6c9-c032-f84e-82fe-89c0f61f5a30"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"L0toL1toL2", "=", 
+   RowBox[{"sensoryFieldStep", " ", "/*", " ", "crossScaleTransfer"}]}], 
+  ";"}]], "Input",ExpressionUUID->"4a46e7c9-d835-b046-a81c-02d791c3a9f8"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"2bfbd845-faae-4f45-9dd8-69ce6228acbe"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["11. Practical eigenmode computation tools", "Section",ExpressionUUID->"e35677b0-65ab-e94b-a1bb-563b7a605a29"],
+
+Cell["\<\
+When you want actual stable frequencies rather than only closure scores, use \
+built-in PDE eigensolvers. \
+\>", "Text",ExpressionUUID->"f8323c7a-5981-2a4a-91f8-1578a8da2495"],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "11.1 1D prototype with ",
+ ButtonBox["SchrodingerPDEComponent",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/SchrodingerPDEComponent"]
+}], "Subsection",ExpressionUUID->"7d4528ba-9ed1-8542-8e44-c64128a52a1b"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", 
+   RowBox[{"schrodingerOperator1D", ",", "vals", ",", "funs"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"schrodingerOperator1D", "=", "\[IndentingNewLine]", "  ", 
+    RowBox[{"SchrodingerPDEComponent", "[", "\[IndentingNewLine]", "    ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"psi", "[", "x", "]"}], ",", 
+        RowBox[{"{", "x", "}"}]}], "}"}], ",", "\[IndentingNewLine]", "    ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "      ", 
+       RowBox[{
+        RowBox[{"\"\<ReducedPlanckConstant\>\"", "->", 
+         RowBox[{"1", "/", "10"}]}], ",", "\[IndentingNewLine]", "      ", 
+        RowBox[{"\"\<SchrodingerPotential\>\"", "->", 
+         RowBox[{"x", "^", "2"}]}], ",", "\[IndentingNewLine]", "      ", 
+        RowBox[{"\"\<Mass\>\"", "->", 
+         RowBox[{"1", "/", "2"}]}]}], "\[IndentingNewLine]", "    ", "|>"}]}],
+      "\[IndentingNewLine]", "  ", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"vals", ",", "funs"}], "}"}], "=", 
+   RowBox[{"NDEigensystem", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{"schrodingerOperator1D", ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"psi", "[", "x", "]"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"{", 
+      RowBox[{"x", ",", 
+       RowBox[{"-", "3"}], ",", "3"}], "}"}], ",", "\[IndentingNewLine]", 
+     "  ", "10", ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"Method", "->", 
+      RowBox[{"{", 
+       RowBox[{"\"\<PDEDiscretization\>\"", "->", 
+        RowBox[{"{", 
+         RowBox[{"\"\<FiniteElement\>\"", ",", 
+          RowBox[{"{", 
+           RowBox[{"\"\<MeshOptions\>\"", "->", 
+            RowBox[{"{", 
+             RowBox[{"MaxCellMeasure", "->", "0.05"}], "}"}]}], "}"}]}], 
+         "}"}]}], "}"}]}]}], "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",\
+ExpressionUUID->"42ce34f9-693a-d041-b3d1-f72a1b8c6e60"],
+
+Cell["\<\
+This is useful as a numerical analog for extracting stable frequencies. \
+\>", "Text",ExpressionUUID->"616c3022-bfe7-3c4e-b75c-5aa947a0ac57"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "11.2 Closed-form benchmark with ",
+ ButtonBox["DSolveValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/DSolveValue"]
+}], "Subsection",ExpressionUUID->"bd4d71c0-96bd-8e40-be6d-776ff759cb79"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", 
+   RowBox[{"eqn", ",", "bcs", ",", "boxSol"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"eqn", "=", 
+   RowBox[{
+    RowBox[{"I", " ", "hbar", " ", 
+     RowBox[{"D", "[", 
+      RowBox[{
+       RowBox[{"psi", "[", 
+        RowBox[{"x", ",", "t"}], "]"}], ",", "t"}], "]"}]}], "==", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"-", 
+        RowBox[{"hbar", "^", "2"}]}], "/", 
+       RowBox[{"(", 
+        RowBox[{"2", " ", "mass"}], ")"}]}], ")"}], " ", 
+     RowBox[{"D", "[", 
+      RowBox[{
+       RowBox[{"psi", "[", 
+        RowBox[{"x", ",", "t"}], "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"x", ",", "2"}], "}"}]}], "]"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"bcs", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"psi", "[", 
+        RowBox[{"0", ",", "t"}], "]"}], "==", "0"}], ",", 
+      RowBox[{
+       RowBox[{"psi", "[", 
+        RowBox[{"d", ",", "t"}], "]"}], "==", "0"}]}], "}"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"boxSol", "=", 
+   RowBox[{"DSolveValue", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"Join", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"eqn", ",", 
+         RowBox[{
+          RowBox[{"psi", "[", 
+           RowBox[{"x", ",", "0"}], "]"}], "==", 
+          RowBox[{
+           RowBox[{"Sqrt", "[", 
+            RowBox[{"2", "/", "d"}], "]"}], " ", 
+           RowBox[{"Sin", "[", 
+            RowBox[{"Pi", " ", 
+             RowBox[{"x", "/", "d"}]}], "]"}]}]}]}], "}"}], ",", "bcs"}], 
+      "]"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"psi", "[", 
+      RowBox[{"x", ",", "t"}], "]"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"{", 
+      RowBox[{"x", ",", "t"}], "}"}]}], "\[IndentingNewLine]", "]"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"385d6e61-04cc-9342-9a8a-e46e74918ad7"],
+
+Cell["This gives exact symbolic structure for stationary states. ", "Text",ExpressionUUID->"2c539af6-576d-be44-9879-4b1a0d32d1de"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"9d7930a8-eed5-524f-88fd-c337e18d4247"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["12. Recommended complete workflow for your project", "Section",ExpressionUUID->"f815137c-bc0f-1148-86a6-f26d6d749326"],
+
+Cell[CellGroupData[{
+
+Cell["Stage A: scale census", "Subsection",ExpressionUUID->"8debb47b-9ad0-2e4b-9cb2-5859090204e4"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"stableScales", "=", 
+   RowBox[{"firstStableScales", "[", 
+    RowBox[{"18", ",", "400", ",", "0.01"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Dataset", "[", 
+  RowBox[{"scaleAssociation", " ", "/@", " ", "stableScales"}], 
+  "]"}]}], "Input",ExpressionUUID->"4b71b1f6-953e-1f4f-afd6-0ef50ac8d5c8"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Stage B: Planck substrate", "Subsection",ExpressionUUID->"7e6b4157-71b2-db46-80be-2cec766881f9"],
+
+Cell[TextData[{
+ "spherical proxy basis up to ",
+ Cell[BoxData[Cell["lMax = 3",
+   Background->None,ExpressionUUID->"6358f1ab-ac86-574a-b388-1ce7fc10de58"]], 
+  "InlineCode",ExpressionUUID->"7a1dbd66-7290-3a43-a8f0-76edfdb8d929"]
+}], "Item",ExpressionUUID->"784d8164-580e-ea44-a9e5-47781c1ad436"],
+
+Cell["torus comparison geometry", "Item",ExpressionUUID->"5e2346f8-ebab-bc46-a8f5-92dd12b7e707"],
+
+Cell["threshold-crossing amplification study", "Item",ExpressionUUID->"d2fc543b-6f65-7243-af8d-8285bb817bd0"],
+
+Cell["residual-minimized superposition search", "Item",ExpressionUUID->"6254cead-2cdf-4344-ab00-024be82e01e4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Stage C: first toroidal closure", "Subsection",ExpressionUUID->"399c59fb-5e1f-a048-86ee-1ad50bfefc4a"],
+
+Cell[TextData[{
+ "first stable ",
+ Cell[BoxData[Cell["n > 0",
+   Background->None,ExpressionUUID->"f1c7b27c-e981-3f42-a616-d4faa0f0a10f"]], 
+  "InlineCode",ExpressionUUID->"bb25b29c-dad7-d344-804c-d3f09646990c"],
+ " from closure metric"
+}], "Item",ExpressionUUID->"a3fd6b9a-a04b-9f45-bb36-6afb4f520e2d"],
+
+Cell[TextData[{
+ "toroidal basis ",
+ Cell[BoxData[
+  RowBox[{"Exp", "[", 
+   RowBox[{"I", " ", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"m", " ", "u"}], "+", 
+      RowBox[{"n", " ", "v"}]}], ")"}]}], "]"}]], "InlineWL", "Input",
+  ShowAutoStyles->True,
+  ShowSyntaxStyles->True,
+  LanguageCategory->"Input",
+  ShowStringCharacters->True,ExpressionUUID->
+  "68715d2d-63ac-c24c-8768-f09de31422a5"],
+ " with small cutoff"
+}], "Item",ExpressionUUID->"56a0212a-11d2-a94e-9b05-c23ef97596c2"],
+
+Cell["residual minimization", "Item",ExpressionUUID->"b1db3295-6032-384a-93e4-11ac829bfed6"],
+
+Cell["spectral extraction", "Item",ExpressionUUID->"b838434c-4233-2445-8230-dcb42946f97a"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Stage D: all stable scales", "Subsection",ExpressionUUID->"f0919455-fa0e-7047-b45a-88f1996de716"],
+
+Cell[TextData[{
+ "instantiate ",
+ Cell[BoxData[Cell["makeScaleFramework /@ stableScales",
+   Background->None,ExpressionUUID->"1696c142-29ff-3642-9107-6d628face12d"]], 
+  "InlineCode",ExpressionUUID->"56bced17-f3d4-2542-a12a-16ebf8fd9fb0"]
+}], "Item",ExpressionUUID->"2b734f68-1953-c04c-a4a6-29ee9771110e"],
+
+Cell["fit scale-specific transfer maps", "Item",ExpressionUUID->"b22c3dbb-da85-e24a-bebc-67d0c815bac6"],
+
+Cell["evolve chain across scales", "Item",ExpressionUUID->"12b344f4-0cdf-584e-85a1-48c73b04acbc"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"e8d127e5-8a71-464f-a94c-770db1cf1b38"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["13. What I recommend changing from your current draft", "Section",ExpressionUUID->"045a5be3-8a12-1a47-a4f4-6ee28fb74450"],
+
+Cell[CellGroupData[{
+
+Cell["Keep", "Subsection",ExpressionUUID->"8c944257-fd03-9849-a3ec-03c1a83afb26"],
+
+Cell["the closure metric as a heuristic ranking tool", "Item",ExpressionUUID->"db0889f5-73d6-c849-9cc8-05fe8acf11da"],
+
+Cell["the superposition search idea", "Item",ExpressionUUID->"6692c8c7-aee9-8141-851c-f204a59210cd"],
+
+Cell["cross-scale propagation as a compositional pipeline", "Item",ExpressionUUID->"67b87378-9af7-9145-bc6e-844664b90562"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Change", "Subsection",ExpressionUUID->"9d8ab5d6-67ea-9e40-a28e-d870e983852b"],
+
+Cell[TextData[{
+ "do ",
+ StyleBox["not",
+  FontWeight->Bold],
+ " present closure score as proven physics"
+}], "Item",ExpressionUUID->"8cb9c28d-1058-984a-8db7-ac6c7a2e1caf"],
+
+Cell[TextData[{
+ "do ",
+ StyleBox["not",
+  FontWeight->Bold],
+ " use invalid infinite numerical precision settings"
+}], "Item",ExpressionUUID->"f727fe47-9af7-d948-9d06-247bda9268f5"],
+
+Cell[TextData[{
+ "do ",
+ StyleBox["not",
+  FontWeight->Bold],
+ " assume a threshold like ",
+ Cell[BoxData[Cell["13",
+   Background->None,ExpressionUUID->"aaaf4bae-f0f4-8847-909b-d42dbb02b518"]], 
+  "InlineCode",ExpressionUUID->"e7db7f97-6dc4-6f4b-afab-17146a15e130"],
+ " is fundamental without defining it as a model postulate"
+}], "Item",ExpressionUUID->"b144435f-a0b6-6d46-968f-aae71a3685a9"],
+
+Cell[TextData[{
+ "do ",
+ StyleBox["not",
+  FontWeight->Bold],
+ " claim exact physical prediction before residual, stability, and \
+sensitivity studies are run"
+}], "Item",ExpressionUUID->"5feb3ba8-8a6e-ee44-b788-6bff693c84fd"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"62c20e50-6476-2b43-a18e-330879e9acc3"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["14. Most useful next build step", "Section",ExpressionUUID->"fdd298f6-4647-ae4e-bab4-165accbb2e8d"],
+
+Cell[TextData[{
+ "The strongest next notebook step is to build a ",
+ StyleBox["single executable function",
+  FontWeight->Bold],
+ " that: "
+}], "Text",ExpressionUUID->"ec8b822c-3dd6-004e-95fb-db3d7e9d7c34"],
+
+Cell["finds stable scales", "Item",ExpressionUUID->"432af558-ffd0-8c44-8c98-5a9891787747"],
+
+Cell["creates basis and geometry for a chosen scale", "Item",ExpressionUUID->"79ab0f17-8882-2341-a211-90229f853d68"],
+
+Cell["optimizes superposition coefficients", "Item",ExpressionUUID->"0bad31ab-122b-a24a-8899-f390cdebdfd5"],
+
+Cell["returns diagnostics and plots", "Item",ExpressionUUID->"95b2dc02-e7ce-4641-afd5-8a7397616d81"],
+
+Cell["Here is that wrapper. ", "Text",ExpressionUUID->"e347b426-70aa-a840-8a5d-7e6d04534952"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "computeScaleModel", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"Options", "[", "computeScaleModel", "]"}], "=", 
+    RowBox[{"{", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"\"\<BasisType\>\"", "->", "Automatic"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<BasisCutoff\>\"", "->", "2"}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"\"\<Tolerance\>\"", "->", "0.01"}]}], "\[IndentingNewLine]", 
+     "}"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"computeScaleModel", "[", 
+    RowBox[{"n_Integer", ",", "objective_", ",", 
+     RowBox[{"opts", " ", ":", " ", 
+      RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"basisType", ",", "basisCutoff", ",", "framework", ",", "fit"}],
+       "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"basisType", "=", 
+       RowBox[{"Replace", "[", 
+        RowBox[{
+         RowBox[{"OptionValue", "[", "\"\<BasisType\>\"", "]"}], ",", 
+         RowBox[{"Automatic", "->", 
+          RowBox[{"If", "[", 
+           RowBox[{
+            RowBox[{"n", "==", "0"}], ",", "\"\<Spherical\>\"", 
+            ",", "\"\<Toroidal\>\""}], "]"}]}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"basisCutoff", "=", 
+       RowBox[{"OptionValue", "[", "\"\<BasisCutoff\>\"", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"framework", "=", 
+       RowBox[{"makeScaleFramework", "[", 
+        RowBox[{"n", ",", "basisType", ",", "basisCutoff"}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"fit", "=", 
+       RowBox[{"findMostStableSuperposition", "[", 
+        RowBox[{
+         RowBox[{"framework", "[", "\"\<Basis\>\"", "]"}], ",", "objective"}],
+         "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"\"\<Scale\>\"", "->", "n"}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<Framework\>\"", "->", "framework"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Optimization\>\"", "->", "fit"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<ClosureScore\>\"", "->", 
+         RowBox[{"framework", "[", "\"\<ClosureMetric\>\"", "]"}]}]}], 
+       "\[IndentingNewLine]", "  ", "|>"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"ec4789ed-4c3a-b941-aeb5-\
+65276dd02bfc"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"9a68425e-df62-a242-8a99-53597d600aa1"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["15. If you want the strongest possible continuation", "Section",ExpressionUUID->"eda2b32e-389f-0246-880a-2a7c8d70a55a"],
+
+Cell["\<\
+The next best artifact is a notebook that does all of the following \
+automatically:\
+\>", "Text",ExpressionUUID->"982b5e23-034a-e14a-afae-8b3e549e2004"],
+
+Cell["1. compute your 18 stable scales", "Text",ExpressionUUID->"bb52c950-cf41-e64b-8c6d-39f21d331101"],
+
+Cell["2. build Planck-scale spherical and toroidal bases", "Text",ExpressionUUID->"258a92f4-918e-1b4c-be3d-f2f21884782a"],
+
+Cell["3. optimize stable superpositions", "Text",ExpressionUUID->"db2cf279-ec18-ca43-a88c-376e2256a85f"],
+
+Cell["4. compute first-closure torus modes", "Text",ExpressionUUID->"3bb9de55-0ff1-cb48-9998-30d5b43195e0"],
+
+Cell["5. create visualizations", "Text",ExpressionUUID->"a369fee2-baaa-2b45-a124-1d258877e4cf"],
+
+Cell["6. expose a reusable scale-to-scale propagation API", "Text",ExpressionUUID->"300e7644-8d6d-ab4c-8a2f-a1d103b4dfc7"],
+
+Cell[TextData[{
+ "If you want, I can next generate that ",
+ StyleBox["full executable notebook",
+  FontWeight->Bold],
+ " with: "
+}], "Text",ExpressionUUID->"c2efdda1-c263-df4b-b818-26432bc0ae57"],
+
+Cell["code cells only", "Item",ExpressionUUID->"3942a939-b271-af47-af5a-64c4b0c5ae6d"],
+
+Cell["diagnostics and plots", "Item",ExpressionUUID->"c5dffe08-6b0d-5743-99e5-e12478ee1b2f"],
+
+Cell["modular APIs", "Item",ExpressionUUID->"a91245cc-b817-5449-b8ca-bddf59e74ebc"],
+
+Cell["a data structure for all stable scales", "Item",ExpressionUUID->"ba0094aa-38ee-a242-adb0-051614ff93fa"],
+
+Cell["\<\
+a first-pass visualization of the Planck sensory field and first toroidal \
+closure\
+\>", "Item",ExpressionUUID->"3de70a82-136b-6d4e-883e-b8e77a2a7fbd"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"64425c54-6a15-cf48-aae7-3c8d81f6d508"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["16. Summary", "Section",ExpressionUUID->"4803cd49-05f1-4e48-ab13-75689107e0f7"],
+
+Cell["What this framework gives you: ", "Text",ExpressionUUID->"cb1af69d-e0c2-e44c-932f-45d8b0fcd905"],
+
+Cell["a precise OPF-inspired symbolic core", "Item",ExpressionUUID->"8e3749db-c008-b14c-9311-076071dd51ce"],
+
+Cell["a computationally valid residual-minimization pipeline", "Item",ExpressionUUID->"25521fc4-57eb-4149-8a1f-bf25bfd1177f"],
+
+Cell["basis-superposition selection for sensory fields", "Item",ExpressionUUID->"6b223017-378e-8943-bf65-fa10fb987b95"],
+
+Cell["geometry support for sphere and torus", "Item",ExpressionUUID->"04d43985-286c-b248-92a9-08f8786b9f2c"],
+
+Cell["scale-by-scale reusable abstractions", "Item",ExpressionUUID->"00efaa15-9427-8640-a2c0-fda686fd6c57"],
+
+Cell["direct paths to built-in eigensolvers and PDE tools", "Item",ExpressionUUID->"a4aa329d-c700-9b47-bcce-64aae5a8e975"],
+
+Cell[TextData[{
+ "What it does ",
+ StyleBox["not",
+  FontWeight->Bold],
+ " yet give automatically: "
+}], "Text",ExpressionUUID->"a7cb33f4-2e48-f048-896e-bcc2d5da6a1a"],
+
+Cell["experimentally validated new physics", "Item",ExpressionUUID->"f83a6e57-f0ea-004c-94b0-eccaea9aaa42"],
+
+Cell["\<\
+proof that the closure metric corresponds to spacetime ontology\
+\>", "Item",ExpressionUUID->"ff6f6c07-4951-fa45-ba90-11cc5a26d0c8"],
+
+Cell["\<\
+exact toroidal closure of time as a demonstrated physical fact\
+\>", "Item",ExpressionUUID->"5c8fa9ac-efab-1e4d-b345-cb1917034470"],
+
+Cell["\<\
+But as a computational research framework, this is a strong, efficient \
+starting point.\
+\>", "Text",ExpressionUUID->"2cbb5dc8-a9fe-b847-bf83-582afeebfa60"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{581.25, 654},
+WindowMargins->{{1143, Automatic}, {Automatic, 445.5}},
+FrontEndVersion->"15.0 for Microsoft Windows (64-bit) (May 19, 2026)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"1a9dd347-bf82-3a4b-9fe5-12c75ce33633"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 157, 2, 217, "Title",ExpressionUUID->"c69008ad-3475-b249-a451-683efcbba4df"],
+Cell[736, 26, 126, 0, 33, "Text",ExpressionUUID->"d8527e23-b35a-cb44-9f6b-1e3f8168441a"],
+Cell[865, 28, 288, 5, 30, "Item",ExpressionUUID->"d9936d55-40a5-8844-af2b-ef7dea58381e"],
+Cell[1156, 35, 110, 0, 30, "Item",ExpressionUUID->"8edb8188-3a8d-084e-8519-e4268df7005d"],
+Cell[1269, 37, 113, 0, 30, "Item",ExpressionUUID->"fcef233a-62f8-1645-8e0b-b1bc715bf4fd"],
+Cell[1385, 39, 125, 0, 30, "Item",ExpressionUUID->"a2eff066-be8b-a94c-98f9-a5a0402c500b"],
+Cell[1513, 41, 108, 0, 30, "Item",ExpressionUUID->"9f65ba0e-0c6d-af43-a6d8-3ed3ef83e14e"],
+Cell[CellGroupData[{
+Cell[1646, 45, 103, 0, 66, "Section",ExpressionUUID->"0d27b732-7da1-9e47-9b4d-73e84f3f80c5"],
+Cell[1752, 47, 419, 10, 99, "Text",ExpressionUUID->"cea5affb-862c-8d48-a317-ca9c60f9ecc2"],
+Cell[2174, 59, 98, 0, 30, "Item",ExpressionUUID->"9d7e7ca8-1839-9f44-8062-7ba6b0504655"],
+Cell[2275, 61, 100, 0, 30, "Item",ExpressionUUID->"adf9fe52-4eb2-cc4a-a218-f7b5bc7d1f64"],
+Cell[2378, 63, 107, 0, 30, "Item",ExpressionUUID->"b4b311d6-d822-924c-bd24-f62d7cd74794"],
+Cell[2488, 65, 97, 0, 30, "Item",ExpressionUUID->"d80e3af5-0329-7e49-a93b-c36766237d4c"],
+Cell[2588, 67, 593, 14, 99, "Text",ExpressionUUID->"67d76890-675d-cc4f-bb82-d43a3532486d"],
+Cell[3184, 83, 596, 20, 48, "Text",ExpressionUUID->"8b08742c-8045-3643-a963-aceea498a7c9"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3817, 108, 89, 0, 66, "Section",ExpressionUUID->"b442d29a-402e-fb46-8e63-4c7f90fe6af5"],
+Cell[3909, 110, 99, 0, 33, "Text",ExpressionUUID->"720a93cb-f17f-d542-8166-a1a93a6bdd2a"],
+Cell[4011, 112, 630, 21, 121, "Text",ExpressionUUID->"b00b60d7-3abd-a540-a477-43a19cde7c2f"],
+Cell[4644, 135, 596, 20, 48, "Text",ExpressionUUID->"b6e18a42-161b-1d46-8aab-dac0af4757f2"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[5277, 160, 107, 0, 66, "Section",ExpressionUUID->"a1c86e7a-48ba-534b-b561-c8c8ab6f00f2"],
+Cell[5387, 162, 4083, 110, 580, "Input",ExpressionUUID->"8909c7a1-2dc1-6a46-99e2-5a522b131588"],
+Cell[9473, 274, 109, 0, 36, "CodeText",ExpressionUUID->"1330d5a7-6e87-574f-9758-0a212cbde3f6"],
+Cell[9585, 276, 1116, 28, 142, "Input",ExpressionUUID->"e897055d-2d6b-494b-8541-903c4a2094e5"],
+Cell[10704, 306, 596, 20, 48, "Text",ExpressionUUID->"c48c0e49-e57e-5d45-b35b-90d827916511"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[11337, 331, 109, 0, 66, "Section",ExpressionUUID->"3cedfe32-6f6b-7944-b7b3-11ff9e9d5a36"],
+Cell[11449, 333, 186, 3, 55, "Text",ExpressionUUID->"2a062e2e-30e6-f545-beca-8186dbbac4a8"],
+Cell[11638, 338, 1861, 45, 313, "Input",ExpressionUUID->"89dac846-a8cf-8c47-a91e-6761e89d6766"],
+Cell[13502, 385, 89, 0, 36, "CodeText",ExpressionUUID->"7dd9731c-cf4e-9240-b0c3-954fbec69199"],
+Cell[13594, 387, 805, 21, 142, "Input",ExpressionUUID->"5ce1cc2c-c1e7-2b42-93c1-f754a9ec827d"],
+Cell[14402, 410, 596, 20, 48, "Text",ExpressionUUID->"3c386b11-5720-9b43-943f-64caa039bcc3"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[15035, 435, 124, 0, 103, "Section",ExpressionUUID->"ce9c658e-0a45-4944-bef1-bd194486ad7b"],
+Cell[15162, 437, 910, 20, 99, "Text",ExpressionUUID->"eb19d780-b3e8-e942-ab89-7bf1c62c40f4"],
+Cell[16075, 459, 264, 4, 29, "Item",ExpressionUUID->"c2c5cc57-fb88-264d-aac7-03b0d8594759"],
+Cell[16342, 465, 264, 4, 29, "Item",ExpressionUUID->"93c26cd2-4e12-fa49-8ba3-2de46466e95d"],
+Cell[16609, 471, 264, 4, 29, "Item",ExpressionUUID->"5782a321-ebe5-a74f-9d96-e3704176f19f"],
+Cell[16876, 477, 122, 0, 33, "Text",ExpressionUUID->"52b8d44c-a650-604c-9e67-c71a7e1f3e15"],
+Cell[17001, 479, 1599, 39, 294, "Input",ExpressionUUID->"458ac700-94ee-104e-8b4e-1a2a40a4931b"],
+Cell[18603, 520, 95, 0, 36, "CodeText",ExpressionUUID->"13f038ba-1015-2c4d-8e02-b045e0eed0b2"],
+Cell[18701, 522, 203, 5, 28, "Input",ExpressionUUID->"dbb69ec1-4e74-334d-ab58-a21624593a7f"],
+Cell[18907, 529, 205, 3, 56, "CodeText",ExpressionUUID->"4ab69003-3f09-d943-9d89-d2f4fb66aa21"],
+Cell[19115, 534, 1712, 44, 199, "Input",ExpressionUUID->"15bfea43-e1ea-4c4d-9ebd-c1f6cdd6d93a"],
+Cell[20830, 580, 88, 0, 36, "CodeText",ExpressionUUID->"d418a0c2-c38c-d741-916f-6eff77182581"],
+Cell[20921, 582, 1037, 23, 180, "Input",ExpressionUUID->"7700550a-d486-a346-ba19-74e55fe26336"],
+Cell[21961, 607, 170, 3, 55, "Text",ExpressionUUID->"5cdba00b-5066-6840-b6f7-443f0daca330"],
+Cell[22134, 612, 596, 20, 48, "Text",ExpressionUUID->"3371386b-e94f-294a-8555-2f108b24911c"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[22767, 637, 126, 0, 103, "Section",ExpressionUUID->"2fbef383-66c2-6141-a1e8-e062ba1c069b"],
+Cell[22896, 639, 723, 17, 70, "Text",ExpressionUUID->"713116b8-3c7c-9f44-886a-0338c43afc8c"],
+Cell[23622, 658, 475, 12, 66, "Input",ExpressionUUID->"cfafd303-415b-ba43-af2e-f1f5434e6d15"],
+Cell[24100, 672, 155, 2, 36, "CodeText",ExpressionUUID->"4d1f541c-d486-b443-b192-ae5afaf0362e"],
+Cell[24258, 676, 1565, 36, 294, "Input",ExpressionUUID->"c475f178-2331-3244-8eeb-295e8174e566"],
+Cell[25826, 714, 336, 10, 55, "Text",ExpressionUUID->"ac7d7a11-114f-f541-b53b-dca3baba2c5e"],
+Cell[26165, 726, 596, 20, 48, "Text",ExpressionUUID->"9f2a434a-f80d-8143-be9a-d0faf6bbe133"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[26798, 751, 105, 0, 66, "Section",ExpressionUUID->"e8992f14-1cb1-7444-b8d1-d4c2b2edf606"],
+Cell[26906, 753, 204, 3, 55, "Text",ExpressionUUID->"bb3b7e6f-1f51-7341-8854-85056c2415ea"],
+Cell[CellGroupData[{
+Cell[27135, 760, 100, 0, 53, "Subsection",ExpressionUUID->"39d5b269-11fb-e74b-9297-5ba600a0bd65"],
+Cell[27238, 762, 1596, 38, 256, "Input",ExpressionUUID->"7546c3e5-8148-8a44-863b-974dda1095dd"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[28871, 805, 115, 0, 53, "Subsection",ExpressionUUID->"087c3aa1-72c6-f140-ba62-56d1e9f84ddd"],
+Cell[28989, 807, 1465, 42, 180, "Input",ExpressionUUID->"fdd142d2-cde0-d541-86c9-c298efcb9cdb"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[30491, 854, 101, 0, 53, "Subsection",ExpressionUUID->"7deaf7f7-15de-884c-a9cb-2734ea72247d"],
+Cell[30595, 856, 491, 12, 66, "Input",ExpressionUUID->"d46f6416-6d67-f646-bcf6-bec38fe50b82"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[31123, 873, 110, 0, 53, "Subsection",ExpressionUUID->"f1a83608-7d86-f540-b7c1-68d1777d4644"],
+Cell[31236, 875, 451, 11, 66, "Input",ExpressionUUID->"17c1b698-68f1-ce49-83ec-3ba90cd5a6b3"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[31724, 891, 147, 2, 79, "Subsection",ExpressionUUID->"ff20085c-da50-fb47-9a98-bf48480c551b"],
+Cell[31874, 895, 746, 20, 104, "Input",ExpressionUUID->"f1c4279f-5580-734d-9c8d-cdb5c0e63d63"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[32657, 920, 113, 0, 53, "Subsection",ExpressionUUID->"642c36d6-fe86-fe43-b2d4-ecbce5a772bb"],
+Cell[32773, 922, 172, 3, 55, "Text",ExpressionUUID->"1eca8075-2d5b-b148-bd1d-410fab531f86"],
+Cell[32948, 927, 3416, 77, 599, "Input",ExpressionUUID->"13670b95-8dbf-4d45-825c-55c62c49a505"],
+Cell[36367, 1006, 596, 20, 70, "Text",ExpressionUUID->"48d0f795-74b3-8942-9262-37eda4e6a3dc"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[37012, 1032, 108, 0, 70, "Section",ExpressionUUID->"6cfba5b5-f48a-bc40-9856-0e05da251add"],
+Cell[37123, 1034, 311, 6, 70, "CodeText",ExpressionUUID->"eb5a79e3-10f0-494e-8a04-81f20af8dc98"],
+Cell[37437, 1042, 2709, 69, 70, "Input",ExpressionUUID->"bd6ac221-f10b-9948-923c-65c540f9ffed"],
+Cell[40149, 1113, 120, 0, 70, "CodeText",ExpressionUUID->"baa40854-ab1f-b64d-a413-e6d0c95c512a"],
+Cell[40272, 1115, 1884, 47, 70, "Input",ExpressionUUID->"f02ee27c-e9a9-5345-9f0d-5c7748d7d1f7"],
+Cell[42159, 1164, 596, 20, 70, "Text",ExpressionUUID->"7ed39f5e-03b1-5843-a283-941721629c9f"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[42792, 1189, 125, 0, 70, "Section",ExpressionUUID->"dc2fc31e-af87-d040-89d3-9a471d25e399"],
+Cell[42920, 1191, 172, 3, 70, "Text",ExpressionUUID->"636b4919-7999-ff4a-9aa5-0396a72388cc"],
+Cell[43095, 1196, 958, 26, 70, "Input",ExpressionUUID->"606966f0-134a-6d40-8a3e-4bd84a2f1db0"],
+Cell[44056, 1224, 107, 0, 70, "CodeText",ExpressionUUID->"09b0928e-3be5-0d48-86f9-01dac9f14873"],
+Cell[44166, 1226, 1056, 27, 70, "Input",ExpressionUUID->"ef3ede48-7f35-a04e-852f-45e0ec7fd715"],
+Cell[45225, 1255, 90, 0, 70, "CodeText",ExpressionUUID->"d59f4a30-45e1-3f43-863d-17fb31c0bfab"],
+Cell[45318, 1257, 263, 6, 70, "Input",ExpressionUUID->"4d444db3-ef8c-a943-963c-92a5aebbbfc8"],
+Cell[45584, 1265, 596, 20, 70, "Text",ExpressionUUID->"9750fbde-9391-2e4c-a0ae-fd9d9c8fdda0"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[46217, 1290, 106, 0, 70, "Section",ExpressionUUID->"987a4351-2113-e047-a16f-7fcbb12d2622"],
+Cell[46326, 1292, 126, 0, 70, "Text",ExpressionUUID->"88c04734-9ddb-f841-8e59-dd9496ce9482"],
+Cell[46455, 1294, 3114, 69, 70, "Input",ExpressionUUID->"d4291b1a-c89f-7049-820a-ac20f57d3e82"],
+Cell[49572, 1365, 115, 0, 70, "CodeText",ExpressionUUID->"ec6f173c-78c0-8547-9420-c1acbb4a3b3b"],
+Cell[49690, 1367, 625, 14, 70, "Input",ExpressionUUID->"3db81a4c-799e-ea49-8e2e-807706786d8f"],
+Cell[50318, 1383, 596, 20, 70, "Text",ExpressionUUID->"6a003aaf-2816-9749-bd66-357a02336586"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[50951, 1408, 101, 0, 70, "Section",ExpressionUUID->"fc752dc5-dbdc-7b4c-95df-e23a1899eff5"],
+Cell[51055, 1410, 147, 2, 70, "Text",ExpressionUUID->"c5672f36-bd9e-2f4e-9f00-1ad23d37e9a1"],
+Cell[CellGroupData[{
+Cell[51227, 1416, 86, 0, 70, "Subsection",ExpressionUUID->"2da95dc8-a3d7-d44c-a181-ceafa42f481c"],
+Cell[51316, 1418, 321, 6, 70, "Text",ExpressionUUID->"e75d9a54-9d5e-2a4e-b3b6-093c3b78b938"],
+Cell[51640, 1426, 91, 0, 70, "Text",ExpressionUUID->"da44573c-2206-bd4e-baea-24dff98f9ea6"],
+Cell[51734, 1428, 303, 5, 70, "Subitem",ExpressionUUID->"38c13990-3395-0f42-adb5-0cf4c47828a7"],
+Cell[52040, 1435, 275, 5, 70, "Subitem",ExpressionUUID->"00553052-c9d2-5349-a2c0-7a7534da62f8"],
+Cell[52318, 1442, 101, 0, 70, "Text",ExpressionUUID->"4af39afc-cfb1-0543-a1b4-fb222cd7f691"],
+Cell[52422, 1444, 118, 0, 70, "Text",ExpressionUUID->"f71e6276-eb35-804a-b559-7fd29c16d7a9"],
+Cell[52543, 1446, 123, 0, 70, "Text",ExpressionUUID->"23be7bc6-7820-5c48-acce-314fe8a923d5"],
+Cell[52669, 1448, 115, 0, 70, "Text",ExpressionUUID->"d6fd3ff7-3575-b742-88da-876237645aba"],
+Cell[52787, 1450, 146, 2, 70, "Text",ExpressionUUID->"568fe2fd-7537-5f48-a2b0-8df418e00c0a"],
+Cell[52936, 1454, 111, 0, 70, "Text",ExpressionUUID->"61050c2b-890f-7d4c-a7e9-9acecbc38879"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[53084, 1459, 100, 0, 70, "Subsection",ExpressionUUID->"bf1b5066-3fbe-0844-9bdb-bf31be16c549"],
+Cell[53187, 1461, 779, 20, 70, "Input",ExpressionUUID->"19ed9748-e7aa-fc40-810a-ed39c2590f9e"],
+Cell[53969, 1483, 97, 0, 70, "CodeText",ExpressionUUID->"71f41753-e672-3d4f-b7fb-522fb90fb2a7"],
+Cell[54069, 1485, 455, 10, 70, "Input",ExpressionUUID->"29498668-6a0f-254f-a1c0-7fceb3202a20"],
+Cell[54527, 1497, 108, 0, 70, "CodeText",ExpressionUUID->"3d8da6c9-c032-f84e-82fe-89c0f61f5a30"],
+Cell[54638, 1499, 201, 4, 70, "Input",ExpressionUUID->"4a46e7c9-d835-b046-a81c-02d791c3a9f8"],
+Cell[54842, 1505, 596, 20, 70, "Text",ExpressionUUID->"2bfbd845-faae-4f45-9dd8-69ce6228acbe"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[55487, 1531, 115, 0, 70, "Section",ExpressionUUID->"e35677b0-65ab-e94b-a1bb-563b7a605a29"],
+Cell[55605, 1533, 185, 3, 70, "Text",ExpressionUUID->"f8323c7a-5981-2a4a-91f8-1578a8da2495"],
+Cell[CellGroupData[{
+Cell[55815, 1540, 227, 5, 70, "Subsection",ExpressionUUID->"7d4528ba-9ed1-8542-8e44-c64128a52a1b"],
+Cell[56045, 1547, 1994, 44, 70, "Input",ExpressionUUID->"42ce34f9-693a-d041-b3d1-f72a1b8c6e60"],
+Cell[58042, 1593, 151, 2, 70, "Text",ExpressionUUID->"616c3022-bfe7-3c4e-b75c-5aa947a0ac57"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[58230, 1600, 212, 5, 70, "Subsection",ExpressionUUID->"bd4d71c0-96bd-8e40-be6d-776ff759cb79"],
+Cell[58445, 1607, 1965, 59, 70, "Input",ExpressionUUID->"385d6e61-04cc-9342-9a8a-e46e74918ad7"],
+Cell[60413, 1668, 130, 0, 70, "Text",ExpressionUUID->"2c539af6-576d-be44-9879-4b1a0d32d1de"],
+Cell[60546, 1670, 596, 20, 70, "Text",ExpressionUUID->"9d7930a8-eed5-524f-88fd-c337e18d4247"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[61191, 1696, 124, 0, 70, "Section",ExpressionUUID->"f815137c-bc0f-1148-86a6-f26d6d749326"],
+Cell[CellGroupData[{
+Cell[61340, 1700, 98, 0, 70, "Subsection",ExpressionUUID->"8debb47b-9ad0-2e4b-9cb2-5859090204e4"],
+Cell[61441, 1702, 345, 7, 70, "Input",ExpressionUUID->"4b71b1f6-953e-1f4f-afd6-0ef50ac8d5c8"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[61823, 1714, 102, 0, 70, "Subsection",ExpressionUUID->"7e6b4157-71b2-db46-80be-2cec766881f9"],
+Cell[61928, 1716, 296, 5, 70, "Item",ExpressionUUID->"784d8164-580e-ea44-a9e5-47781c1ad436"],
+Cell[62227, 1723, 96, 0, 70, "Item",ExpressionUUID->"5e2346f8-ebab-bc46-a8f5-92dd12b7e707"],
+Cell[62326, 1725, 109, 0, 70, "Item",ExpressionUUID->"d2fc543b-6f65-7243-af8d-8285bb817bd0"],
+Cell[62438, 1727, 110, 0, 70, "Item",ExpressionUUID->"6254cead-2cdf-4344-ab00-024be82e01e4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[62585, 1732, 108, 0, 70, "Subsection",ExpressionUUID->"399c59fb-5e1f-a048-86ee-1ad50bfefc4a"],
+Cell[62696, 1734, 303, 6, 70, "Item",ExpressionUUID->"a3fd6b9a-a04b-9f45-bb36-6afb4f520e2d"],
+Cell[63002, 1742, 492, 15, 70, "Item",ExpressionUUID->"56a0212a-11d2-a94e-9b05-c23ef97596c2"],
+Cell[63497, 1759, 92, 0, 70, "Item",ExpressionUUID->"b1db3295-6032-384a-93e4-11ac829bfed6"],
+Cell[63592, 1761, 90, 0, 70, "Item",ExpressionUUID->"b838434c-4233-2445-8230-dcb42946f97a"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[63719, 1766, 103, 0, 70, "Subsection",ExpressionUUID->"f0919455-fa0e-7047-b45a-88f1996de716"],
+Cell[63825, 1768, 306, 5, 70, "Item",ExpressionUUID->"2b734f68-1953-c04c-a4a6-29ee9771110e"],
+Cell[64134, 1775, 103, 0, 70, "Item",ExpressionUUID->"b22c3dbb-da85-e24a-bebc-67d0c815bac6"],
+Cell[64240, 1777, 97, 0, 70, "Item",ExpressionUUID->"12b344f4-0cdf-584e-85a1-48c73b04acbc"],
+Cell[64340, 1779, 596, 20, 70, "Text",ExpressionUUID->"e8d127e5-8a71-464f-a94c-770db1cf1b38"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[64985, 1805, 127, 0, 70, "Section",ExpressionUUID->"045a5be3-8a12-1a47-a4f4-6ee28fb74450"],
+Cell[CellGroupData[{
+Cell[65137, 1809, 81, 0, 70, "Subsection",ExpressionUUID->"8c944257-fd03-9849-a3ec-03c1a83afb26"],
+Cell[65221, 1811, 117, 0, 70, "Item",ExpressionUUID->"db0889f5-73d6-c849-9cc8-05fe8acf11da"],
+Cell[65341, 1813, 100, 0, 70, "Item",ExpressionUUID->"6692c8c7-aee9-8141-851c-f204a59210cd"],
+Cell[65444, 1815, 122, 0, 70, "Item",ExpressionUUID->"67b87378-9af7-9145-bc6e-844664b90562"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[65603, 1820, 83, 0, 70, "Subsection",ExpressionUUID->"9d8ab5d6-67ea-9e40-a28e-d870e983852b"],
+Cell[65689, 1822, 172, 5, 70, "Item",ExpressionUUID->"8cb9c28d-1058-984a-8db7-ac6c7a2e1caf"],
+Cell[65864, 1829, 182, 5, 70, "Item",ExpressionUUID->"f727fe47-9af7-d948-9d06-247bda9268f5"],
+Cell[66049, 1836, 394, 9, 70, "Item",ExpressionUUID->"b144435f-a0b6-6d46-968f-aae71a3685a9"],
+Cell[66446, 1847, 226, 6, 70, "Item",ExpressionUUID->"5feb3ba8-8a6e-ee44-b788-6bff693c84fd"],
+Cell[66675, 1855, 596, 20, 70, "Text",ExpressionUUID->"62c20e50-6476-2b43-a18e-330879e9acc3"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[67320, 1881, 105, 0, 70, "Section",ExpressionUUID->"fdd298f6-4647-ae4e-bab4-165accbb2e8d"],
+Cell[67428, 1883, 206, 5, 70, "Text",ExpressionUUID->"ec8b822c-3dd6-004e-95fb-db3d7e9d7c34"],
+Cell[67637, 1890, 90, 0, 70, "Item",ExpressionUUID->"432af558-ffd0-8c44-8c98-5a9891787747"],
+Cell[67730, 1892, 116, 0, 70, "Item",ExpressionUUID->"79ab0f17-8882-2341-a211-90229f853d68"],
+Cell[67849, 1894, 107, 0, 70, "Item",ExpressionUUID->"0bad31ab-122b-a24a-8899-f390cdebdfd5"],
+Cell[67959, 1896, 100, 0, 70, "Item",ExpressionUUID->"95b2dc02-e7ce-4641-afd5-8a7397616d81"],
+Cell[68062, 1898, 93, 0, 70, "Text",ExpressionUUID->"e347b426-70aa-a840-8a5d-7e6d04534952"],
+Cell[68158, 1900, 2651, 61, 70, "Input",ExpressionUUID->"ec4789ed-4c3a-b941-aeb5-65276dd02bfc"],
+Cell[70812, 1963, 596, 20, 70, "Text",ExpressionUUID->"9a68425e-df62-a242-8a99-53597d600aa1"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[71445, 1988, 125, 0, 70, "Section",ExpressionUUID->"eda2b32e-389f-0246-880a-2a7c8d70a55a"],
+Cell[71573, 1990, 163, 3, 70, "Text",ExpressionUUID->"982b5e23-034a-e14a-afae-8b3e549e2004"],
+Cell[71739, 1995, 103, 0, 70, "Text",ExpressionUUID->"bb52c950-cf41-e64b-8c6d-39f21d331101"],
+Cell[71845, 1997, 121, 0, 70, "Text",ExpressionUUID->"258a92f4-918e-1b4c-be3d-f2f21884782a"],
+Cell[71969, 1999, 104, 0, 70, "Text",ExpressionUUID->"db2cf279-ec18-ca43-a88c-376e2256a85f"],
+Cell[72076, 2001, 107, 0, 70, "Text",ExpressionUUID->"3bb9de55-0ff1-cb48-9998-30d5b43195e0"],
+Cell[72186, 2003, 95, 0, 70, "Text",ExpressionUUID->"a369fee2-baaa-2b45-a124-1d258877e4cf"],
+Cell[72284, 2005, 122, 0, 70, "Text",ExpressionUUID->"300e7644-8d6d-ab4c-8a2f-a1d103b4dfc7"],
+Cell[72409, 2007, 195, 5, 70, "Text",ExpressionUUID->"c2efdda1-c263-df4b-b818-26432bc0ae57"],
+Cell[72607, 2014, 86, 0, 70, "Item",ExpressionUUID->"3942a939-b271-af47-af5a-64c4b0c5ae6d"],
+Cell[72696, 2016, 92, 0, 70, "Item",ExpressionUUID->"c5dffe08-6b0d-5743-99e5-e12478ee1b2f"],
+Cell[72791, 2018, 83, 0, 70, "Item",ExpressionUUID->"a91245cc-b817-5449-b8ca-bddf59e74ebc"],
+Cell[72877, 2020, 109, 0, 70, "Item",ExpressionUUID->"ba0094aa-38ee-a242-adb0-051614ff93fa"],
+Cell[72989, 2022, 162, 3, 70, "Item",ExpressionUUID->"3de70a82-136b-6d4e-883e-b8e77a2a7fbd"],
+Cell[73154, 2027, 596, 20, 70, "Text",ExpressionUUID->"64425c54-6a15-cf48-aae7-3c8d81f6d508"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[73787, 2052, 85, 0, 70, "Section",ExpressionUUID->"4803cd49-05f1-4e48-ab13-75689107e0f7"],
+Cell[73875, 2054, 102, 0, 70, "Text",ExpressionUUID->"cb1af69d-e0c2-e44c-932f-45d8b0fcd905"],
+Cell[73980, 2056, 107, 0, 70, "Item",ExpressionUUID->"8e3749db-c008-b14c-9311-076071dd51ce"],
+Cell[74090, 2058, 125, 0, 70, "Item",ExpressionUUID->"25521fc4-57eb-4149-8a1f-bf25bfd1177f"],
+Cell[74218, 2060, 119, 0, 70, "Item",ExpressionUUID->"6b223017-378e-8943-bf65-fa10fb987b95"],
+Cell[74340, 2062, 108, 0, 70, "Item",ExpressionUUID->"04d43985-286c-b248-92a9-08f8786b9f2c"],
+Cell[74451, 2064, 107, 0, 70, "Item",ExpressionUUID->"00efaa15-9427-8640-a2c0-fda686fd6c57"],
+Cell[74561, 2066, 122, 0, 70, "Item",ExpressionUUID->"a4aa329d-c700-9b47-bcce-64aae5a8e975"],
+Cell[74686, 2068, 167, 5, 70, "Text",ExpressionUUID->"a7cb33f4-2e48-f048-896e-bcc2d5da6a1a"],
+Cell[74856, 2075, 107, 0, 70, "Item",ExpressionUUID->"f83a6e57-f0ea-004c-94b0-eccaea9aaa42"],
+Cell[74966, 2077, 142, 2, 70, "Item",ExpressionUUID->"ff6f6c07-4951-fa45-ba90-11cc5a26d0c8"],
+Cell[75111, 2081, 141, 2, 70, "Item",ExpressionUUID->"5c8fa9ac-efab-1e4d-b345-cb1917034470"],
+Cell[75255, 2085, 167, 3, 70, "Text",ExpressionUUID->"2cbb5dc8-a9fe-b847-bf83-582afeebfa60"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

@@ -1,0 +1,2091 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 15.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     84080,       2081]
+NotebookOptionsPosition[     76985,       1971]
+NotebookOutlinePosition[     77390,       1987]
+CellTagsIndexPosition[     77347,       1984]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Toroidal Closure / Dimensional Stability Framework", "Title",ExpressionUUID->"23f5e696-3cfa-6d41-80c5-a4e391626112"],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Phase 3 Notebook: Toroidal Geometry, Linearization, and Eigenspectrum Tests\
+\>", "Section",ExpressionUUID->"3aefd99e-b047-3446-b5b6-d370607ca14b"],
+
+Cell["\<\
+This notebook extends the toroidal geometry module by adding: \
+\>", "Text",ExpressionUUID->"6ff1cfe7-d76b-f042-a3a7-6d4a616e1e57"],
+
+Cell["a torus-compatible scalar field operator,", "Item",ExpressionUUID->"9d24c926-4190-8c40-848c-4405f59c5d3b"],
+
+Cell["linearization about a background toroidal mode,", "Item",ExpressionUUID->"9386703d-346c-594b-bd62-4379cea29b44"],
+
+Cell["Fourier-mode eigenspectrum formulas on the flat torus proxy,", "Item",ExpressionUUID->"570f5ea3-2594-f94e-9e7f-5cf738baf733"],
+
+Cell["numerical matrix-based eigenspectrum tests,", "Item",ExpressionUUID->"0e81defb-9f4a-0f49-8fd9-848015e15aee"],
+
+Cell["convergence-under-resolution checks,", "Item",ExpressionUUID->"78ca4e3d-f277-2b41-bb5c-62e5583a7a81"],
+
+Cell["and an interactive exploration interface.", "Item",ExpressionUUID->"5ab01022-6c5d-7743-b45b-227c46d91257"],
+
+Cell[TextData[{
+ "This is a ",
+ StyleBox["testable computational scaffold",
+  FontWeight->Bold],
+ ". It does ",
+ StyleBox["not",
+  FontWeight->Bold],
+ " claim physical identification beyond what is explicitly encoded. "
+}], "Text",ExpressionUUID->"aad171c5-48a0-9e47-b107-16dab1362e32"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"c9c517dc-4bf4-094a-b6b3-b9732c1e4576"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["1. Precision policy and assumptions", "Section",ExpressionUUID->"fdbc38fe-22e7-0e45-868a-dabde062288e"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "setToroidalFrameworkPrecision", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"setToroidalFrameworkPrecision", "[", "]"}], ":=", 
+   RowBox[{"(", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"$Assumptions", "=", 
+      RowBox[{
+       RowBox[{"Element", "[", "\[IndentingNewLine]", "      ", 
+        RowBox[{
+         RowBox[{"{", "\[IndentingNewLine]", "        ", 
+          RowBox[{
+          "majorRadius", ",", "minorRadius", ",", "u", ",", "v", ",", 
+           "\[IndentingNewLine]", "        ", "amp", ",", "alpha", ",", 
+           "beta", ",", "\[IndentingNewLine]", "        ", "massTerm", ",", 
+           "coupling", ",", "\[IndentingNewLine]", "        ", "fieldValue", ",",
+            "backgroundValue", ",", "\[IndentingNewLine]", "        ", 
+           "closureTargetValue"}], "\[IndentingNewLine]", "      ", "}"}], ",",
+          "Reals"}], "\[IndentingNewLine]", "    ", "]"}], "&&", 
+       RowBox[{"majorRadius", ">", "0"}], "&&", 
+       RowBox[{"minorRadius", ">", "0"}], "&&", 
+       RowBox[{"majorRadius", ">", "minorRadius"}], "&&", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"0", "<=", "u", "<=", 
+        RowBox[{"2", " ", "Pi"}]}], "&&", 
+       RowBox[{"0", "<=", "v", "<=", 
+        RowBox[{"2", " ", "Pi"}]}], "&&", 
+       RowBox[{"alpha", ">=", "0"}]}]}], ";", "\[IndentingNewLine]", "  ", 
+     RowBox[{"$MaxExtraPrecision", "=", "1000"}], ";"}], 
+    "\[IndentingNewLine]", ")"}]}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"setToroidalFrameworkPrecision", "[", "]"}], ";"}]}], "Input",Expres\
+sionUUID->"47c5f08f-4339-fb48-9f08-c9524f31ef86"],
+
+Cell[TextData[{
+ "As before, exact ",
+ Cell[BoxData[
+  RowBox[{"WorkingPrecision", "->", "Infinity"}]], "InlineWL", "Input",
+  ShowAutoStyles->True,
+  ShowSyntaxStyles->True,
+  LanguageCategory->"Input",
+  ShowStringCharacters->True,ExpressionUUID->
+  "43a2786e-fae5-0e4e-9cf3-b028833a8fbb"],
+ " is not generally executable for numerical eigensolvers or integrations. \
+The executable approximation used here is: "
+}], "Text",ExpressionUUID->"791b21e1-c47c-8143-b753-8dcdc1c8364c"],
+
+Cell["exact symbolic derivation where possible,", "Item",ExpressionUUID->"02832f6a-6b79-454b-94c0-a2697a66c568"],
+
+Cell["high finite precision numerical evaluation when necessary,", "Item",ExpressionUUID->"5ceface2-dbd8-0d45-b565-2e073402c099"],
+
+Cell["explicit residual and convergence tests.", "Item",ExpressionUUID->"ea15dd65-4ed3-f144-9cee-7fe20006f167"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"2bb8c652-db2e-a94a-b3c0-74c92b509da8"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["2. Scale bookkeeping", "Section",ExpressionUUID->"d16954a2-d9bd-6d49-926c-72e062a9ec71"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "goldenPhi", ",", "planckLength", ",", "smallestScaleIndex", ",", 
+     "scaleLength"}], "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"goldenPhi", "=", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"1", "+", 
+      RowBox[{"Sqrt", "[", "5", "]"}]}], ")"}], "/", "2"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"planckLength", "=", 
+   RowBox[{"Quantity", "[", 
+    RowBox[{
+     RowBox[{"1.616255", "*", 
+      RowBox[{"10", "^", 
+       RowBox[{"-", "35"}]}]}], ",", "\"\<Meters\>\""}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"smallestScaleIndex", "=", "0"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"scaleLength", "[", 
+    RowBox[{"n_Integer", " ", "?", " ", "NonNegative"}], "]"}], ":=", 
+   RowBox[{"UnitSimplify", "[", 
+    RowBox[{"planckLength", " ", 
+     RowBox[{"goldenPhi", "^", "n"}]}], "]"}]}], ";"}]}], "Input",ExpressionUU\
+ID->"ae04ef44-0cc7-8b47-a195-7b07b60c6438"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"86de2f69-cafd-b54d-a5a1-90c0049194dd"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["3. Toroidal geometry module", "Section",ExpressionUUID->"79ff3814-b2a4-e141-ae27-f534b2cdc20c"],
+
+Cell[TextData[{
+ "We keep the explicit torus embedding from the previous phase: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["x", FontSlant -> "Bold"], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["u", "TI"], ",", 
+             StyleBox["v", "TI"]}], ")"}], "\[LongEqual]", 
+         RowBox[{"{", 
+           RowBox[{
+             RowBox[{"(", 
+               RowBox[{
+                 StyleBox["R", "TI"], "+", 
+                 StyleBox["r", "TI"], "cos", 
+                 StyleBox["v", "TI"]}], ")"}], "cos", 
+             StyleBox["u", "TI"], ",", 
+             RowBox[{"(", 
+               RowBox[{
+                 StyleBox["R", "TI"], "+", 
+                 StyleBox["r", "TI"], "cos", 
+                 StyleBox["v", "TI"]}], ")"}], "sin", 
+             StyleBox["u", "TI"], ",", 
+             StyleBox["r", "TI"], "sin", 
+             StyleBox["v", "TI"]}], "}"}]}], TraditionalForm], "errors" -> {},
+      "input" -> 
+     "\\mathbf{x}(u,v)=\\{(R+r\\cos v)\\cos u,(R+r\\cos v)\\sin u,r\\sin \
+v\\}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "1c458c06-c49b-db48-ab52-efe5b53fefeb"]
+}], "Text",ExpressionUUID->"5644bb8c-80ff-e246-ba63-82640a9932ba"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+    "torusEmbedding", ",", "torusTangentU", ",", "torusTangentV", ",", 
+     "\[IndentingNewLine]", "  ", "torusMetricMatrixExact", ",", 
+     "torusMetricMatrix", ",", "\[IndentingNewLine]", "  ", 
+     "torusInverseMetricExact", ",", "torusAreaElement", ",", 
+     "torusSurfaceArea"}], "\[IndentingNewLine]", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"torusEmbedding", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"Function", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"u", ",", "v"}], "}"}], ",", 
+      RowBox[{"{", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"majorRadius", "+", 
+           RowBox[{"minorRadius", " ", 
+            RowBox[{"Cos", "[", "v", "]"}]}]}], ")"}], " ", 
+         RowBox[{"Cos", "[", "u", "]"}]}], ",", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"majorRadius", "+", 
+           RowBox[{"minorRadius", " ", 
+            RowBox[{"Cos", "[", "v", "]"}]}]}], ")"}], " ", 
+         RowBox[{"Sin", "[", "u", "]"}]}], ",", "\[IndentingNewLine]", "    ", 
+        RowBox[{"minorRadius", " ", 
+         RowBox[{"Sin", "[", "v", "]"}]}]}], "\[IndentingNewLine]", "  ", 
+       "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"torusTangentU", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"embed", "=", 
+        RowBox[{"torusEmbedding", "[", 
+         RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], "}"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Function", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"u", ",", "v"}], "}"}], ",", 
+        RowBox[{"D", "[", 
+         RowBox[{
+          RowBox[{"embed", "[", 
+           RowBox[{"u", ",", "v"}], "]"}], ",", "u"}], "]"}]}], "]"}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"torusTangentV", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"embed", "=", 
+        RowBox[{"torusEmbedding", "[", 
+         RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], "}"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Function", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"u", ",", "v"}], "}"}], ",", 
+        RowBox[{"D", "[", 
+         RowBox[{
+          RowBox[{"embed", "[", 
+           RowBox[{"u", ",", "v"}], "]"}], ",", "v"}], "]"}]}], "]"}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"torusMetricMatrixExact", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"{", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"majorRadius", "+", 
+           RowBox[{"minorRadius", " ", 
+            RowBox[{"Cos", "[", "v", "]"}]}]}], ")"}], "^", "2"}], ",", "0"}],
+        "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", 
+        RowBox[{"minorRadius", "^", "2"}]}], "}"}]}], "\[IndentingNewLine]", 
+     "}"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"torusMetricMatrix", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"torusMetricMatrixExact", "[", 
+     RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"torusInverseMetricExact", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"Simplify", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Inverse", "[", 
+       RowBox[{"torusMetricMatrixExact", "[", 
+        RowBox[{"majorRadius", ",", "minorRadius"}], "]"}], "]"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"torusAreaElement", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"Simplify", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Sqrt", "[", 
+       RowBox[{"Det", "[", 
+        RowBox[{"torusMetricMatrix", "[", 
+         RowBox[{"majorRadius", ",", "minorRadius"}], "]"}], "]"}], "]"}], ",",
+       "\[IndentingNewLine]", "  ", 
+      RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"torusSurfaceArea", "[", 
+    RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+   RowBox[{"FullSimplify", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"Integrate", "[", "\[IndentingNewLine]", "    ", 
+      RowBox[{
+       RowBox[{"torusAreaElement", "[", 
+        RowBox[{"majorRadius", ",", "minorRadius"}], "]"}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{"{", 
+        RowBox[{"u", ",", "0", ",", 
+         RowBox[{"2", " ", "Pi"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"v", ",", "0", ",", 
+         RowBox[{"2", " ", "Pi"}]}], "}"}], ",", "\[IndentingNewLine]", 
+       "    ", 
+       RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]",
+       "  ", "]"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"650720e0-1539-0b49-b06d-\
+64d40e1fdb89"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"1ca1d497-a253-5647-bdca-82fcf78b4633"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["4. Periodic scalar modes on the torus", "Section",ExpressionUUID->"ce1b294e-36e7-9041-baf6-9fa9d2d0147f"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "toroidalMode", ",", "toroidalRealMode", ",", "constantToroidalMode"}], 
+    "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"toroidalMode", "[", 
+     RowBox[{"m_Integer", ",", "n_Integer", ",", "amp_", ",", 
+      RowBox[{"alpha_", ":", " ", "0"}]}], "]"}], ":=", "\[IndentingNewLine]",
+     "  ", 
+    RowBox[{"Function", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"u", ",", "v"}], "}"}], ",", 
+      RowBox[{"amp", " ", 
+       RowBox[{"Exp", "[", 
+        RowBox[{
+         RowBox[{"-", "alpha"}], " ", 
+         RowBox[{"Cos", "[", "v", "]"}]}], "]"}], " ", 
+       RowBox[{"Exp", "[", 
+        RowBox[{"I", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"m", " ", "u"}], "+", 
+           RowBox[{"n", " ", "v"}]}], ")"}]}], "]"}]}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"toroidalRealMode", "[", 
+     RowBox[{"m_Integer", ",", "n_Integer", ",", "amp_", ",", 
+      RowBox[{"alpha_", ":", " ", "0"}], ",", 
+      RowBox[{"beta_", ":", " ", "0"}]}], "]"}], ":=", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"Function", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"u", ",", "v"}], "}"}], ",", 
+      RowBox[{"amp", " ", 
+       RowBox[{"Exp", "[", 
+        RowBox[{
+         RowBox[{"-", "alpha"}], " ", 
+         RowBox[{"Cos", "[", "v", "]"}]}], "]"}], " ", 
+       RowBox[{"Cos", "[", 
+        RowBox[{
+         RowBox[{"m", " ", "u"}], "+", 
+         RowBox[{"n", " ", "v"}], "+", "beta"}], "]"}]}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"constantToroidalMode", "[", "amp_", "]"}], ":=", 
+   RowBox[{"Function", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"u", ",", "v"}], "}"}], ",", "amp"}], "]"}]}], ";"}]}], "Input",\
+ExpressionUUID->"6bfad714-4092-674d-96a3-6bfdcdc44e98"],
+
+Cell["Periodicity tests: ", "CodeText",ExpressionUUID->"f9f03d38-ebe2-554e-9893-c3d3138f6558"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"toroidalPeriodicClosureQ", ",", "fieldPeriodicClosureQ"}], "]"}],
+    ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"toroidalPeriodicClosureQ", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", "embed", "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"embed", "=", 
+        RowBox[{"torusEmbedding", "[", 
+         RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"Simplify", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"embed", "[", 
+            RowBox[{
+             RowBox[{"u", "+", 
+              RowBox[{"2", " ", "Pi"}]}], ",", "v"}], "]"}], "==", 
+           RowBox[{"embed", "[", 
+            RowBox[{"u", ",", "v"}], "]"}]}], "&&", 
+          RowBox[{
+           RowBox[{"embed", "[", 
+            RowBox[{"u", ",", 
+             RowBox[{"v", "+", 
+              RowBox[{"2", " ", "Pi"}]}]}], "]"}], "==", 
+           RowBox[{"embed", "[", 
+            RowBox[{"u", ",", "v"}], "]"}]}]}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"Assumptions", "->", "$Assumptions"}]}], 
+        "\[IndentingNewLine]", "  ", "]"}]}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"fieldPeriodicClosureQ", "[", "psi_", "]"}], ":=", 
+   RowBox[{"Simplify", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"psi", "[", 
+        RowBox[{
+         RowBox[{"u", "+", 
+          RowBox[{"2", " ", "Pi"}]}], ",", "v"}], "]"}], "==", 
+       RowBox[{"psi", "[", 
+        RowBox[{"u", ",", "v"}], "]"}]}], "&&", 
+      RowBox[{
+       RowBox[{"psi", "[", 
+        RowBox[{"u", ",", 
+         RowBox[{"v", "+", 
+          RowBox[{"2", " ", "Pi"}]}]}], "]"}], "==", 
+       RowBox[{"psi", "[", 
+        RowBox[{"u", ",", "v"}], "]"}]}]}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"8f77dea0-aeec-3541-a9ad-\
+ee9a272230e0"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"6ff08844-c7fd-f84b-a84b-158274504150"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["5. Toroidal closure functional and residual", "Section",ExpressionUUID->"9f53ffd0-bac9-f649-adea-f61433f321c0"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+    "toroidalClosureFunctional", ",", "toroidalClosureResidual", ",", 
+     "\[IndentingNewLine]", "  ", "closureAmplitudeRule", ",", 
+     "normalizedConstantToroidalMode"}], "\[IndentingNewLine]", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"toroidalClosureFunctional", "[", 
+     RowBox[{"psi_", ",", "majorRadius_", ",", "minorRadius_", ",", 
+      RowBox[{"wp_", ":", " ", "80"}]}], "]"}], ":=", 
+    RowBox[{"NIntegrate", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Evaluate", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"Abs", "[", 
+          RowBox[{"psi", "[", 
+           RowBox[{"u", ",", "v"}], "]"}], "]"}], "^", "2"}], " ", 
+        RowBox[{"torusAreaElement", "[", 
+         RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], "]"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"u", ",", "0", ",", 
+        RowBox[{"2", " ", "Pi"}]}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"v", ",", "0", ",", 
+        RowBox[{"2", " ", "Pi"}]}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"WorkingPrecision", "->", "wp"}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"AccuracyGoal", "->", "30"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"PrecisionGoal", "->", "30"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"Method", "->", 
+       RowBox[{"{", 
+        RowBox[{"\"\<GlobalAdaptive\>\"", ",", 
+         RowBox[{"\"\<SymbolicProcessing\>\"", "->", "0"}]}], "}"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"toroidalClosureResidual", "[", 
+     RowBox[{
+     "psi_", ",", "majorRadius_", ",", "minorRadius_", ",", 
+      "closureTargetValue_", ",", 
+      RowBox[{"wp_", ":", " ", "80"}]}], "]"}], ":=", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"N", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"toroidalClosureFunctional", "[", 
+        RowBox[{"psi", ",", "majorRadius", ",", "minorRadius", ",", "wp"}], 
+        "]"}], "-", "closureTargetValue"}], ",", "wp"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"closureAmplitudeRule", "[", 
+     RowBox[{
+     "majorRadius_", ",", "minorRadius_", ",", "closureTargetValue_"}], "]"}],
+     ":=", 
+    RowBox[{"Solve", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"amp", "^", "2"}], " ", 
+        RowBox[{"torusSurfaceArea", "[", 
+         RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], "==", 
+       "closureTargetValue"}], ",", "\[IndentingNewLine]", "  ", "amp", ",", 
+      "\[IndentingNewLine]", "  ", "Reals"}], "\[IndentingNewLine]", "]"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"normalizedConstantToroidalMode", "[", 
+    RowBox[{"majorRadius_", ",", "minorRadius_", ",", "closureTargetValue_"}],
+     "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", "ampRule", "}"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"ampRule", "=", 
+       RowBox[{"First", "[", 
+        RowBox[{"closureAmplitudeRule", "[", 
+         RowBox[{
+         "majorRadius", ",", "minorRadius", ",", "closureTargetValue"}], 
+         "]"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"Function", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"u", ",", "v"}], "}"}], ",", 
+        RowBox[{"amp", " ", "/.", " ", "ampRule"}]}], "]"}]}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}]}], "Input",ExpressionUUID->\
+"b12832cd-7d32-0945-b7ce-7d1f22a92e37"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"1140cc95-a00a-ff42-bbbc-a74ba7ce5108"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["6. Linearized field model on the torus", "Section",ExpressionUUID->"8a58b2cd-5999-b144-b2b3-b31fb0aeb076"],
+
+Cell[TextData[{
+ "To add a meaningful stability layer, we introduce a scalar energy-density \
+surrogate on the torus: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["E", "TI"], 
+         RowBox[{"[", "\[Psi]", "]"}], "\[LongEqual]", 
+         SuperscriptBox[
+          StyleBox["g", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], 
+         SubscriptBox["\[PartialD]", 
+          StyleBox["i", "TI"]], "\[Psi] ", 
+         SubscriptBox["\[PartialD]", 
+          StyleBox["j", "TI"]], "\[Psi]", "+", 
+         SubsuperscriptBox[
+          StyleBox["m", "TI"], "0", "2"], 
+         SuperscriptBox["\[Psi]", "2"], "+", 
+         SuperscriptBox["\[Lambda]\[Psi]", "4"]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\mathcal{E}[\\psi]=g^{ij}\\partial_i \\psi\\,\\partial_j \\psi + m_0^2 \
+\\psi^2 + \\lambda \\psi^4", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a8cd9ffc-c228-434b-b98f-2d10a665a586"],
+ "A linearization about a constant background ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Psi]", "\[LongEqual]", 
+         SubscriptBox["\[Psi]", "0"], "+", "\[Delta]\[Psi]"}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "\\psi=\\psi_0+\\delta\\psi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "240211d0-30a3-5646-bff3-af586bf4fb0f"],
+ " yields the Hessian operator ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["L", "TI"], 
+          StyleBox["lin", FontSlant -> "Plain"]], " ", "\[Delta]\[Psi]", 
+         "\[LongEqual]", "-", 
+         SubscriptBox["\[CapitalDelta]", 
+          StyleBox["T", "TI"]], "\[Delta]\[Psi]", "+", 
+         RowBox[{"(", 
+           RowBox[{
+             SubsuperscriptBox[
+              StyleBox["m", "TI"], "0", "2"], "+", "12", 
+             SubsuperscriptBox["\[Lambda]\[Psi]", "0", "2"]}], ")"}], 
+         "\[Delta]\[Psi]"}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\mathcal{L}_{\\mathrm{lin}}\\,\\delta\\psi = -\\Delta_T \\delta\\psi + \
+\\left(m_0^2 + 12\\lambda \\psi_0^2\\right)\\delta\\psi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ec3558ec-bac2-f843-8086-a50884eedcdc"],
+ "where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox["\[CapitalDelta]", 
+        StyleBox["T", "TI"]], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\Delta_T", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "50cb593e-eabc-9a47-b557-e79cddf9e308"],
+ " is a torus Laplace-type operator."
+}], "Text",ExpressionUUID->"9db1e5d0-146c-c94b-833e-89714c1220aa"],
+
+Cell[TextData[{
+ "For a first computational scaffold, we use a ",
+ StyleBox["flat torus proxy",
+  FontWeight->Bold],
+ " with periodic coordinates and effective lengths ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"2", "\[Pi]", 
+         StyleBox["R", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "2\\pi R", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "9b067148-17e1-4f40-8e62-051f52f664a3"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"2", "\[Pi]", 
+         StyleBox["r", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "2\\pi r", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "56b4e1f5-29ca-9146-80f4-5f2437b9d71a"],
+ ". This preserves periodic closure and gives exact Fourier eigenvalues. "
+}], "Text",ExpressionUUID->"887e3e20-ed0c-cf44-86cd-31f30cc8b0d1"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "effectiveMassTerm", ",", "flatTorusEigenvalue", ",", 
+     "flatTorusFrequency"}], "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"effectiveMassTerm", "[", 
+     RowBox[{"massTerm_", ",", "coupling_", ",", "backgroundValue_"}], "]"}], 
+    ":=", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Simplify", "[", 
+     RowBox[{
+      RowBox[{"massTerm", "+", 
+       RowBox[{"12", " ", "coupling", " ", 
+        RowBox[{"backgroundValue", "^", "2"}]}]}], ",", 
+      RowBox[{"Assumptions", "->", "$Assumptions"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"flatTorusEigenvalue", "[", 
+     RowBox[{
+     "m_Integer", ",", "n_Integer", ",", "majorRadius_", ",", "minorRadius_", 
+      ",", "massTerm_", ",", "coupling_", ",", "backgroundValue_"}], "]"}], ":=",
+     "\[IndentingNewLine]", "  ", 
+    RowBox[{"Simplify", "[", "\[IndentingNewLine]", "    ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"m", "^", "2"}], "/", 
+        RowBox[{"majorRadius", "^", "2"}]}], "+", 
+       RowBox[{
+        RowBox[{"n", "^", "2"}], "/", 
+        RowBox[{"minorRadius", "^", "2"}]}], "+", 
+       RowBox[{"effectiveMassTerm", "[", 
+        RowBox[{"massTerm", ",", "coupling", ",", "backgroundValue"}], 
+        "]"}]}], ",", "\[IndentingNewLine]", "    ", 
+      RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]", 
+     "  ", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"flatTorusFrequency", "[", 
+    RowBox[{
+    "m_Integer", ",", "n_Integer", ",", "majorRadius_", ",", "minorRadius_", ",",
+      "massTerm_", ",", "coupling_", ",", "backgroundValue_"}], "]"}], ":=", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"Simplify", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{"Sqrt", "[", 
+      RowBox[{"flatTorusEigenvalue", "[", 
+       RowBox[{
+       "m", ",", "n", ",", "majorRadius", ",", "minorRadius", ",", "massTerm",
+         ",", "coupling", ",", "backgroundValue"}], "]"}], "]"}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]", 
+    "  ", "]"}]}], ";"}]}], "Input",ExpressionUUID->"f9acc910-fdd1-bb43-aba6-\
+93c64e8c4a0c"],
+
+Cell["\<\
+Undamped harmonic mode condition for this proxy is positivity of the \
+eigenvalue. \
+\>", "Text",ExpressionUUID->"a9023037-0248-5246-95ba-7845303145e4"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"undampedModeQ", ",", "stableFlatTorusModes"}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"undampedModeQ", "[", 
+     RowBox[{
+     "m_Integer", ",", "n_Integer", ",", "majorRadius_", ",", "minorRadius_", 
+      ",", "massTerm_", ",", "coupling_", ",", "backgroundValue_"}], "]"}], ":=",
+     "\[IndentingNewLine]", "  ", 
+    RowBox[{"Simplify", "[", "\[IndentingNewLine]", "    ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"flatTorusEigenvalue", "[", 
+        RowBox[{
+        "m", ",", "n", ",", "majorRadius", ",", "minorRadius", ",", 
+         "massTerm", ",", "coupling", ",", "backgroundValue"}], "]"}], ">", 
+       "0"}], ",", "\[IndentingNewLine]", "    ", 
+      RowBox[{"Assumptions", "->", "$Assumptions"}]}], "\[IndentingNewLine]", 
+     "  ", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"stableFlatTorusModes", "[", 
+    RowBox[{
+     RowBox[{"maxMode_Integer", " ", "?", " ", "NonNegative"}], ",", 
+     "majorRadius_", ",", "minorRadius_", ",", "massTerm_", ",", "coupling_", 
+     ",", "backgroundValue_"}], "]"}], ":=", "\[IndentingNewLine]", "  ", 
+   RowBox[{"Select", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{
+     RowBox[{"Flatten", "[", 
+      RowBox[{
+       RowBox[{"Table", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"m", ",", "n"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"m", ",", "0", ",", "maxMode"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"n", ",", "0", ",", "maxMode"}], "}"}]}], "]"}], ",", "1"}],
+       "]"}], ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{
+      RowBox[{"TrueQ", "[", 
+       RowBox[{"undampedModeQ", "[", 
+        RowBox[{
+         RowBox[{"#", "[", 
+          RowBox[{"[", "1", "]"}], "]"}], ",", 
+         RowBox[{"#", "[", 
+          RowBox[{"[", "2", "]"}], "]"}], ",", "majorRadius", ",", 
+         "minorRadius", ",", "massTerm", ",", "coupling", ",", 
+         "backgroundValue"}], "]"}], "]"}], " ", "&"}]}], 
+    "\[IndentingNewLine]", "  ", "]"}]}], ";"}]}], "Input",ExpressionUUID->\
+"e7ced869-2468-cc46-93b9-975e7d7ca983"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"2a4fddcf-c6be-6c49-a207-ca4fb1d11e74"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+7. Matrix eigenspectrum on a periodic rectangular torus proxy\
+\>", "Section",ExpressionUUID->"1db74c9f-64b0-0744-896e-77eded30dc4d"],
+
+Cell[TextData[{
+ "To make the eigenspectrum directly testable, we discretize the operator ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["L", "TI"], "\[LongEqual]", "-", 
+         SubsuperscriptBox["\[PartialD]", 
+          StyleBox["u", "TI"], "2"], "-", 
+         SubsuperscriptBox["\[PartialD]", 
+          StyleBox["v", "TI"], "2"], "+", 
+         SubscriptBox["\[Mu]", 
+          StyleBox["eff", FontSlant -> "Plain"]]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "L = -\\partial_u^2 - \\partial_v^2 + \\mu_{\\mathrm{eff}}", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "4f15e9f5-5037-dc4c-bd06-c278be61a967"],
+ "on a doubly periodic grid. This is a numerical proxy for the linearized \
+toroidal operator. "
+}], "Text",ExpressionUUID->"42d9f36f-b0a6-bf4c-b653-e4994081c1ba"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+    "periodicSecondDifferenceMatrix", ",", "\[IndentingNewLine]", "  ", 
+     "flatTorusOperatorMatrix", ",", "\[IndentingNewLine]", "  ", 
+     "flatTorusEigenSystem"}], "\[IndentingNewLine]", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"periodicSecondDifferenceMatrix", "[", 
+     RowBox[{
+      RowBox[{"nPts_Integer", " ", "?", " ", "Positive"}], ",", 
+      RowBox[{"domainLength_", ":", " ", 
+       RowBox[{"2", " ", "Pi"}]}], ",", 
+      RowBox[{"wp_", ":", " ", "80"}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"h", ",", "rules"}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"h", "=", 
+        RowBox[{"SetPrecision", "[", 
+         RowBox[{
+          RowBox[{"domainLength", "/", "nPts"}], ",", "wp"}], "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"rules", "=", 
+        RowBox[{"Join", "[", "\[IndentingNewLine]", "    ", 
+         RowBox[{
+          RowBox[{"Table", "[", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"i", ",", "i"}], "}"}], "->", 
+             RowBox[{"SetPrecision", "[", 
+              RowBox[{
+               RowBox[{
+                RowBox[{"-", "2"}], "/", 
+                RowBox[{"h", "^", "2"}]}], ",", "wp"}], "]"}]}], ",", 
+            RowBox[{"{", 
+             RowBox[{"i", ",", "nPts"}], "}"}]}], "]"}], ",", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"Table", "[", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"i", ",", 
+               RowBox[{"i", "+", "1"}]}], "}"}], "->", 
+             RowBox[{"SetPrecision", "[", 
+              RowBox[{
+               RowBox[{"1", "/", 
+                RowBox[{"h", "^", "2"}]}], ",", "wp"}], "]"}]}], ",", 
+            RowBox[{"{", 
+             RowBox[{"i", ",", "1", ",", 
+              RowBox[{"nPts", "-", "1"}]}], "}"}]}], "]"}], ",", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"Table", "[", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{
+               RowBox[{"i", "+", "1"}], ",", "i"}], "}"}], "->", 
+             RowBox[{"SetPrecision", "[", 
+              RowBox[{
+               RowBox[{"1", "/", 
+                RowBox[{"h", "^", "2"}]}], ",", "wp"}], "]"}]}], ",", 
+            RowBox[{"{", 
+             RowBox[{"i", ",", "1", ",", 
+              RowBox[{"nPts", "-", "1"}]}], "}"}]}], "]"}], ",", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"{", "\[IndentingNewLine]", "      ", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"1", ",", "nPts"}], "}"}], "->", 
+             RowBox[{"SetPrecision", "[", 
+              RowBox[{
+               RowBox[{"1", "/", 
+                RowBox[{"h", "^", "2"}]}], ",", "wp"}], "]"}]}], ",", 
+            "\[IndentingNewLine]", "      ", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"nPts", ",", "1"}], "}"}], "->", 
+             RowBox[{"SetPrecision", "[", 
+              RowBox[{
+               RowBox[{"1", "/", 
+                RowBox[{"h", "^", "2"}]}], ",", "wp"}], "]"}]}]}], 
+           "\[IndentingNewLine]", "    ", "}"}]}], "\[IndentingNewLine]", 
+         "  ", "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"SparseArray", "[", 
+        RowBox[{"rules", ",", 
+         RowBox[{"{", 
+          RowBox[{"nPts", ",", "nPts"}], "}"}]}], "]"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"flatTorusOperatorMatrix", "[", 
+     RowBox[{
+      RowBox[{"nU_Integer", " ", "?", " ", "Positive"}], ",", 
+      RowBox[{"nV_Integer", " ", "?", " ", "Positive"}], ",", "massEff_", ",", 
+      RowBox[{"wp_", ":", " ", "80"}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"du2", ",", "dv2", ",", "idU", ",", "idV"}], "}"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"du2", "=", 
+        RowBox[{"periodicSecondDifferenceMatrix", "[", 
+         RowBox[{"nU", ",", 
+          RowBox[{"2", " ", "Pi"}], ",", "wp"}], "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"dv2", "=", 
+        RowBox[{"periodicSecondDifferenceMatrix", "[", 
+         RowBox[{"nV", ",", 
+          RowBox[{"2", " ", "Pi"}], ",", "wp"}], "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"idU", "=", 
+        RowBox[{"IdentityMatrix", "[", 
+         RowBox[{"nU", ",", "SparseArray"}], "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"idV", "=", 
+        RowBox[{"IdentityMatrix", "[", 
+         RowBox[{"nV", ",", "SparseArray"}], "]"}]}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"N", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"-", 
+           RowBox[{"KroneckerProduct", "[", 
+            RowBox[{"du2", ",", "idV"}], "]"}]}], "-", 
+          RowBox[{"KroneckerProduct", "[", 
+           RowBox[{"idU", ",", "dv2"}], "]"}], "+", 
+          RowBox[{"massEff", " ", 
+           RowBox[{"IdentityMatrix", "[", 
+            RowBox[{
+             RowBox[{"nU", " ", "nV"}], ",", "SparseArray"}], "]"}]}]}], ",", 
+         "wp"}], "]"}]}]}], "\[IndentingNewLine]", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"flatTorusEigenSystem", "[", 
+    RowBox[{
+     RowBox[{"nU_Integer", " ", "?", " ", "Positive"}], ",", 
+     RowBox[{"nV_Integer", " ", "?", " ", "Positive"}], ",", "massTerm_", ",",
+      "coupling_", ",", "backgroundValue_", ",", 
+     RowBox[{"count_Integer", " ", "?", " ", "Positive"}], ",", 
+     RowBox[{"wp_", ":", " ", "80"}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"massEff", ",", "vals", ",", "vecs"}], "}"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"massEff", "=", 
+       RowBox[{"N", "[", 
+        RowBox[{
+         RowBox[{"effectiveMassTerm", "[", 
+          RowBox[{"massTerm", ",", "coupling", ",", "backgroundValue"}], 
+          "]"}], ",", "wp"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"vals", ",", "vecs"}], "}"}], "=", 
+       RowBox[{"Eigensystem", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"flatTorusOperatorMatrix", "[", 
+          RowBox[{"nU", ",", "nV", ",", "massEff", ",", "wp"}], "]"}], ",", 
+         "\[IndentingNewLine]", "    ", "count", ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"Method", "->", 
+          RowBox[{"{", 
+           RowBox[{"\"\<Arnoldi\>\"", ",", 
+            RowBox[{"\"\<Criteria\>\"", "->", "\"\<RealPart\>\""}]}], 
+           "}"}]}]}], "\[IndentingNewLine]", "  ", "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"vals", ",", "vecs"}], "}"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"d41891f1-3355-9c4f-a00c-\
+76193e6de0ce"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"0bfbc003-114a-a043-afb7-2eda2cdf36e5"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["8. Eigenspectrum diagnostics and convergence", "Section",ExpressionUUID->"5ec799b4-55a0-834f-8691-ad1626d35612"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"eigenspectrumSummary", ",", "eigenspectrumResolutionStudy"}], 
+    "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"eigenspectrumSummary", "[", 
+     RowBox[{
+      RowBox[{"maxMode_Integer", " ", "?", " ", "NonNegative"}], ",", 
+      "majorRadius_", ",", "minorRadius_", ",", "massTerm_", ",", "coupling_",
+       ",", "backgroundValue_"}], "]"}], ":=", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Association", "[", "\[IndentingNewLine]", "    ", 
+     RowBox[{"Flatten", "[", "\[IndentingNewLine]", "      ", 
+      RowBox[{
+       RowBox[{"Table", "[", "\[IndentingNewLine]", "        ", 
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"m", ",", "n"}], "}"}], "->", 
+           RowBox[{"<|", "\[IndentingNewLine]", "          ", 
+            RowBox[{
+             RowBox[{"\"\<Eigenvalue\>\"", "->", 
+              RowBox[{"flatTorusEigenvalue", "[", 
+               RowBox[{
+               "m", ",", "n", ",", "majorRadius", ",", "minorRadius", ",", 
+                "massTerm", ",", "coupling", ",", "backgroundValue"}], 
+               "]"}]}], ",", "\[IndentingNewLine]", "          ", 
+             RowBox[{"\"\<Frequency\>\"", "->", 
+              RowBox[{"flatTorusFrequency", "[", 
+               RowBox[{
+               "m", ",", "n", ",", "majorRadius", ",", "minorRadius", ",", 
+                "massTerm", ",", "coupling", ",", "backgroundValue"}], 
+               "]"}]}], ",", "\[IndentingNewLine]", "          ", 
+             RowBox[{"\"\<UndampedQ\>\"", "->", 
+              RowBox[{"undampedModeQ", "[", 
+               RowBox[{
+               "m", ",", "n", ",", "majorRadius", ",", "minorRadius", ",", 
+                "massTerm", ",", "coupling", ",", "backgroundValue"}], 
+               "]"}]}]}], "\[IndentingNewLine]", "        ", "|>"}]}], ")"}], 
+         ",", "\[IndentingNewLine]", "        ", 
+         RowBox[{"{", 
+          RowBox[{"m", ",", "0", ",", "maxMode"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"n", ",", "0", ",", "maxMode"}], "}"}]}], 
+        "\[IndentingNewLine]", "      ", "]"}], ",", "\[IndentingNewLine]", 
+       "      ", "1"}], "\[IndentingNewLine]", "    ", "]"}], 
+     "\[IndentingNewLine]", "  ", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"eigenspectrumResolutionStudy", "[", 
+    RowBox[{
+    "resolutions_List", ",", "massTerm_", ",", "coupling_", ",", 
+     "backgroundValue_", ",", 
+     RowBox[{"count_Integer", " ", ":", " ", "8"}], ",", 
+     RowBox[{"wp_", ":", " ", "80"}]}], "]"}], ":=", "\[IndentingNewLine]", 
+   "  ", 
+   RowBox[{"AssociationThread", "[", "\[IndentingNewLine]", "    ", 
+    RowBox[{"resolutions", ",", "\[IndentingNewLine]", "    ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"flatTorusEigenSystem", "[", 
+          RowBox[{
+           RowBox[{"#", "[", 
+            RowBox[{"[", "1", "]"}], "]"}], ",", 
+           RowBox[{"#", "[", 
+            RowBox[{"[", "2", "]"}], "]"}], ",", "massTerm", ",", "coupling", 
+           ",", "backgroundValue", ",", "count", ",", "wp"}], "]"}], "[", 
+         RowBox[{"[", "1", "]"}], "]"}], " ", "&"}], ")"}], " ", "/@", " ", 
+      "resolutions"}]}], "\[IndentingNewLine]", "  ", "]"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"5c691835-6a08-7a41-9cf1-858ba0832048"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"7ae1a603-2aa8-8544-a92b-8d379fe86f8d"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["9. Geometry and linearization summaries", "Section",ExpressionUUID->"f88e3ab5-7670-014c-8d4e-f1b5527a3d7b"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "toroidalGeometrySummary", ",", "linearizedToroidalModelSummary"}], "]"}],
+    ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"toroidalGeometrySummary", "[", 
+     RowBox[{"majorRadius_", ",", "minorRadius_"}], "]"}], ":=", 
+    RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"\"\<Embedding\>\"", "->", 
+       RowBox[{"HoldForm", "[", 
+        RowBox[{
+         RowBox[{"torusEmbedding", "[", 
+          RowBox[{"majorRadius", ",", "minorRadius"}], "]"}], "[", 
+         RowBox[{"u", ",", "v"}], "]"}], "]"}]}], ",", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"\"\<Metric\>\"", "->", 
+       RowBox[{"torusMetricMatrixExact", "[", 
+        RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<InverseMetric\>\"", "->", 
+       RowBox[{"torusInverseMetricExact", "[", 
+        RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<AreaElement\>\"", "->", 
+       RowBox[{"torusAreaElement", "[", 
+        RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<SurfaceArea\>\"", "->", 
+       RowBox[{"torusSurfaceArea", "[", 
+        RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"\"\<PeriodicClosureQ\>\"", "->", 
+       RowBox[{"toroidalPeriodicClosureQ", "[", 
+        RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}]}], 
+     "\[IndentingNewLine]", "|>"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"linearizedToroidalModelSummary", "[", 
+    RowBox[{
+    "majorRadius_", ",", "minorRadius_", ",", "massTerm_", ",", "coupling_", ",",
+      "backgroundValue_", ",", 
+     RowBox[{"maxMode_", ":", " ", "3"}]}], "]"}], ":=", 
+   RowBox[{"<|", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"\"\<EffectiveMassTerm\>\"", "->", 
+      RowBox[{"effectiveMassTerm", "[", 
+       RowBox[{"massTerm", ",", "coupling", ",", "backgroundValue"}], "]"}]}],
+      ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<StableModes\>\"", "->", 
+      RowBox[{"stableFlatTorusModes", "[", 
+       RowBox[{
+       "maxMode", ",", "majorRadius", ",", "minorRadius", ",", "massTerm", ",",
+         "coupling", ",", "backgroundValue"}], "]"}]}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\"\<ModeSummary\>\"", "->", 
+      RowBox[{"eigenspectrumSummary", "[", 
+       RowBox[{
+       "maxMode", ",", "majorRadius", ",", "minorRadius", ",", "massTerm", ",",
+         "coupling", ",", "backgroundValue"}], "]"}]}]}], 
+    "\[IndentingNewLine]", "|>"}]}], ";"}]}], "Input",ExpressionUUID->\
+"56ee53d1-7e2d-a64d-a3bb-d30b15996ed8"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"ed1f5fa2-1e7c-e84b-a7a5-193e873530d9"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["10. Smallest-scale tests: linearization and eigenspectrum", "Section",ExpressionUUID->"622e59c6-a658-8945-8005-e0eaf58aaee0"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "smallestScaleLinearizationTestSuite", "]"}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"smallestScaleLinearizationTestSuite", "[", "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", "\[IndentingNewLine]", "    ", 
+      RowBox[{
+       RowBox[{"majorRadius", "=", 
+        RowBox[{"3", "/", "2"}]}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"minorRadius", "=", 
+        RowBox[{"1", "/", "2"}]}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"closureTargetValue", "=", 
+        RowBox[{"goldenPhi", "^", 
+         RowBox[{"-", "13"}]}]}], ",", "\[IndentingNewLine]", "    ", 
+       "backgroundValue", ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"massTerm", "=", "1"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"coupling", "=", 
+        RowBox[{"1", "/", "10"}]}], ",", "\[IndentingNewLine]", "    ", 
+       "normalizedPsi", ",", "\[IndentingNewLine]", "    ", 
+       "eigenvaluesCoarse", ",", "\[IndentingNewLine]", "    ", 
+       "eigenvaluesFine"}], "\[IndentingNewLine]", "  ", "}"}], ",", 
+     "\[IndentingNewLine]", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"normalizedPsi", "=", 
+       RowBox[{"normalizedConstantToroidalMode", "[", 
+        RowBox[{
+        "majorRadius", ",", "minorRadius", ",", "closureTargetValue"}], 
+        "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"backgroundValue", "=", 
+       RowBox[{"normalizedPsi", "[", 
+        RowBox[{"0", ",", "0"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"eigenvaluesCoarse", "=", 
+       RowBox[{"Sort", "[", 
+        RowBox[{"Re", "[", 
+         RowBox[{
+          RowBox[{"flatTorusEigenSystem", "[", 
+           RowBox[{
+           "8", ",", "8", ",", "massTerm", ",", "coupling", ",", 
+            "backgroundValue", ",", "6", ",", "60"}], "]"}], "[", 
+          RowBox[{"[", "1", "]"}], "]"}], "]"}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"eigenvaluesFine", "=", 
+       RowBox[{"Sort", "[", 
+        RowBox[{"Re", "[", 
+         RowBox[{
+          RowBox[{"flatTorusEigenSystem", "[", 
+           RowBox[{
+           "12", ",", "12", ",", "massTerm", ",", "coupling", ",", 
+            "backgroundValue", ",", "6", ",", "60"}], "]"}], "[", 
+          RowBox[{"[", "1", "]"}], "]"}], "]"}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "\[IndentingNewLine]", "  ", 
+      RowBox[{"TestReport", "[", 
+       RowBox[{"{", "\[IndentingNewLine]", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"VerificationTest", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"toroidalPeriodicClosureQ", "[", 
+            RowBox[{"majorRadius", ",", "minorRadius"}], "]"}], ",", 
+           "\[IndentingNewLine]", "      ", "True", ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{
+           "TestID", "->", "\"\<Toroidal embedding periodic closure\>\""}]}], 
+          "\[IndentingNewLine]", "    ", "]"}], ",", "\[IndentingNewLine]", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"VerificationTest", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"fieldPeriodicClosureQ", "[", 
+            RowBox[{"toroidalMode", "[", 
+             RowBox[{"2", ",", "3", ",", "amp", ",", "alpha"}], "]"}], "]"}], 
+           ",", "\[IndentingNewLine]", "      ", "True", ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"TestID", "->", "\"\<Toroidal mode periodicity\>\""}]}], 
+          "\[IndentingNewLine]", "    ", "]"}], ",", "\[IndentingNewLine]", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"VerificationTest", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"FullSimplify", "[", "\[IndentingNewLine]", "        ", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"flatTorusEigenvalue", "[", 
+               RowBox[{
+               "0", ",", "0", ",", "majorRadius", ",", "minorRadius", ",", 
+                "massTerm", ",", "coupling", ",", "backgroundValue"}], "]"}], 
+              "==", "\[IndentingNewLine]", "        ", 
+              RowBox[{"effectiveMassTerm", "[", 
+               RowBox[{"massTerm", ",", "coupling", ",", "backgroundValue"}], 
+               "]"}]}], ",", "\[IndentingNewLine]", "        ", 
+             RowBox[{"Assumptions", "->", "$Assumptions"}]}], 
+            "\[IndentingNewLine]", "      ", "]"}], ",", 
+           "\[IndentingNewLine]", "      ", "True", ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{
+           "TestID", 
+            "->", "\"\<Zero mode eigenvalue equals effective mass\>\""}]}], 
+          "\[IndentingNewLine]", "    ", "]"}], ",", "\[IndentingNewLine]", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"VerificationTest", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"TrueQ", "[", "\[IndentingNewLine]", "        ", 
+            RowBox[{
+             RowBox[{"flatTorusEigenvalue", "[", 
+              RowBox[{
+              "1", ",", "0", ",", "majorRadius", ",", "minorRadius", ",", 
+               "massTerm", ",", "coupling", ",", "backgroundValue"}], "]"}], ">",
+              "\[IndentingNewLine]", "        ", 
+             RowBox[{"flatTorusEigenvalue", "[", 
+              RowBox[{
+              "0", ",", "0", ",", "majorRadius", ",", "minorRadius", ",", 
+               "massTerm", ",", "coupling", ",", "backgroundValue"}], "]"}]}],
+             "\[IndentingNewLine]", "      ", "]"}], ",", 
+           "\[IndentingNewLine]", "      ", "True", ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{
+           "TestID", "->", "\"\<Nonzero mode exceeds zero mode\>\""}]}], 
+          "\[IndentingNewLine]", "    ", "]"}], ",", "\[IndentingNewLine]", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"VerificationTest", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"Length", "[", 
+             RowBox[{"stableFlatTorusModes", "[", 
+              RowBox[{
+              "3", ",", "majorRadius", ",", "minorRadius", ",", "massTerm", ",",
+                "coupling", ",", "backgroundValue"}], "]"}], "]"}], ">", 
+            "0"}], ",", "\[IndentingNewLine]", "      ", "True", ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{
+           "TestID", "->", "\"\<Stable flat torus modes exist\>\""}]}], 
+          "\[IndentingNewLine]", "    ", "]"}], ",", "\[IndentingNewLine]", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"VerificationTest", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"Min", "[", "eigenvaluesCoarse", "]"}], ">", "0"}], ",", 
+           "\[IndentingNewLine]", "      ", "True", ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{
+           "TestID", "->", "\"\<Coarse-grid eigenvalues positive\>\""}]}], 
+          "\[IndentingNewLine]", "    ", "]"}], ",", "\[IndentingNewLine]", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"VerificationTest", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"Max", "[", 
+             RowBox[{"Abs", "[", 
+              RowBox[{"eigenvaluesCoarse", "-", 
+               RowBox[{"eigenvaluesFine", "[", 
+                RowBox[{"[", 
+                 RowBox[{"1", " ", ";;", " ", 
+                  RowBox[{"Length", "[", "eigenvaluesCoarse", "]"}]}], "]"}], 
+                "]"}]}], "]"}], " ", "]"}], "<", "10"}], ",", 
+           "\[IndentingNewLine]", "      ", "True", ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{
+           "TestID", 
+            "->", "\"\<Resolution refinement remains bounded\>\""}]}], 
+          "\[IndentingNewLine]", "    ", "]"}]}], "\[IndentingNewLine]", 
+        "\[IndentingNewLine]", "  ", "}"}], "]"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"ed83e128-c5f3-6940-bff7-\
+c72b0d840ffc"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"c80c3c60-186d-3144-af0e-c74f0dd9adf3"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["11. Framework summary", "Section",ExpressionUUID->"f6132e70-4c34-e543-8801-10a2c15f0e6e"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "smallestScaleToroidalLinearizedFramework", "]"}],
+    ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"smallestScaleToroidalLinearizedFramework", "[", "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", "\[IndentingNewLine]", "    ", 
+      RowBox[{
+       RowBox[{"majorRadius", "=", 
+        RowBox[{"3", "/", "2"}]}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"minorRadius", "=", 
+        RowBox[{"1", "/", "2"}]}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"closureTargetValue", "=", 
+        RowBox[{"goldenPhi", "^", 
+         RowBox[{"-", "13"}]}]}], ",", "\[IndentingNewLine]", "    ", 
+       "normalizedPsi", ",", "\[IndentingNewLine]", "    ", "backgroundValue",
+        ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"massTerm", "=", "1"}], ",", "\[IndentingNewLine]", "    ", 
+       RowBox[{"coupling", "=", 
+        RowBox[{"1", "/", "10"}]}]}], "\[IndentingNewLine]", "  ", "}"}], ",",
+      "\[IndentingNewLine]", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"normalizedPsi", "=", 
+       RowBox[{"normalizedConstantToroidalMode", "[", 
+        RowBox[{
+        "majorRadius", ",", "minorRadius", ",", "closureTargetValue"}], 
+        "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"backgroundValue", "=", 
+       RowBox[{"normalizedPsi", "[", 
+        RowBox[{"0", ",", "0"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"<|", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"\"\<FrameworkVersion\>\"", 
+         "->", "\"\<Phase3.ToroidalLinearization\>\""}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<ScaleIndex\>\"", "->", "smallestScaleIndex"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<Geometry\>\"", "->", 
+         RowBox[{"toroidalGeometrySummary", "[", 
+          RowBox[{"majorRadius", ",", "minorRadius"}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<ClosureTarget\>\"", "->", "closureTargetValue"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<BackgroundValue\>\"", "->", "backgroundValue"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<LinearizedModel\>\"", "->", 
+         RowBox[{"linearizedToroidalModelSummary", "[", 
+          RowBox[{
+          "majorRadius", ",", "minorRadius", ",", "massTerm", ",", "coupling",
+            ",", "backgroundValue", ",", "3"}], "]"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"\"\<SampleNumericalEigenvalues\>\"", "->", 
+         RowBox[{
+          RowBox[{"flatTorusEigenSystem", "[", 
+           RowBox[{
+           "10", ",", "10", ",", "massTerm", ",", "coupling", ",", 
+            "backgroundValue", ",", "8", ",", "80"}], "]"}], "[", 
+          RowBox[{"[", "1", "]"}], "]"}]}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"\"\<Tests\>\"", "->", 
+         RowBox[{"smallestScaleLinearizationTestSuite", "[", "]"}]}]}], 
+       "\[IndentingNewLine]", "  ", "|>"}]}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"75eec5f9-90eb-2b4b-8911-\
+6733e3341ba1"],
+
+Cell["Run the framework summary: ", "CodeText",ExpressionUUID->"3538d100-4413-9d4f-90c1-3fb5f3f9c557"],
+
+Cell[BoxData[
+ RowBox[{"smallestScaleToroidalLinearizedFramework", "[", "]"}]], "Input",Expr\
+essionUUID->"2ddcc072-3d8b-634e-955f-6f77041e8615"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"8439ea7a-daa3-a946-9128-8f6f93b4e8e6"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["12. Interactive exploration interface", "Section",ExpressionUUID->"87b665a1-f6b9-2b46-bf4b-8b2496801f35"],
+
+Cell["\<\
+This interface explores the linearized flat-torus proxy spectrum. \
+\>", "Text",ExpressionUUID->"097d9f5f-911e-0445-a50d-795653730c19"],
+
+Cell[BoxData[
+ RowBox[{"Manipulate", "[", "\[IndentingNewLine]", " ", 
+  RowBox[{
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", "\[IndentingNewLine]", "    ", 
+      RowBox[{
+      "backgroundValue", ",", "\[IndentingNewLine]", "    ", "eigenTable", ",",
+        "\[IndentingNewLine]", "    ", "numericalEigenvalues", ",", 
+       "\[IndentingNewLine]", "    ", "modePlot"}], "\[IndentingNewLine]", 
+      "  ", "}"}], ",", "\[IndentingNewLine]", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"backgroundValue", "=", 
+       RowBox[{
+        RowBox[{"normalizedConstantToroidalMode", "[", 
+         RowBox[{
+         "majorRadius", ",", "minorRadius", ",", "closureTargetValue"}], 
+         "]"}], "[", 
+        RowBox[{"0", ",", "0"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"eigenTable", "=", 
+       RowBox[{"Grid", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"Prepend", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"Flatten", "[", "\[IndentingNewLine]", "        ", 
+            RowBox[{
+             RowBox[{"Table", "[", "\[IndentingNewLine]", "          ", 
+              RowBox[{
+               RowBox[{"{", "\[IndentingNewLine]", "            ", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{"m", ",", "n"}], "}"}], ",", "\[IndentingNewLine]", 
+                 "            ", 
+                 RowBox[{"N", "[", 
+                  RowBox[{
+                   RowBox[{"flatTorusEigenvalue", "[", 
+                    RowBox[{
+                    "m", ",", "n", ",", "majorRadius", ",", "minorRadius", ",",
+                     "massTerm", ",", "coupling", ",", "backgroundValue"}], 
+                    "]"}], ",", "20"}], "]"}], ",", "\[IndentingNewLine]", 
+                 "            ", 
+                 RowBox[{"N", "[", 
+                  RowBox[{
+                   RowBox[{"flatTorusFrequency", "[", 
+                    RowBox[{
+                    "m", ",", "n", ",", "majorRadius", ",", "minorRadius", ",",
+                     "massTerm", ",", "coupling", ",", "backgroundValue"}], 
+                    "]"}], ",", "20"}], "]"}]}], "\[IndentingNewLine]", 
+                "          ", "}"}], ",", "\[IndentingNewLine]", "          ", 
+               RowBox[{"{", 
+                RowBox[{"m", ",", "0", ",", "maxMode"}], "}"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"n", ",", "0", ",", "maxMode"}], "}"}]}], 
+              "\[IndentingNewLine]", "        ", "]"}], ",", 
+             "\[IndentingNewLine]", "        ", "1"}], "\[IndentingNewLine]", 
+            "      ", "]"}], ",", "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            
+            RowBox[{"\"\<Mode\>\"", ",", "\"\<Eigenvalue\>\"", 
+             ",", "\"\<Frequency\>\""}], "}"}]}], "\[IndentingNewLine]", 
+          "    ", "]"}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"Frame", "->", "All"}]}], "\[IndentingNewLine]", "  ", 
+        "]"}]}], ";", "\[IndentingNewLine]", "\[IndentingNewLine]", "  ", 
+      RowBox[{"numericalEigenvalues", "=", 
+       RowBox[{
+        RowBox[{"flatTorusEigenSystem", "[", 
+         RowBox[{
+         "nU", ",", "nV", ",", "massTerm", ",", "coupling", ",", 
+          "backgroundValue", ",", "eigenCount", ",", "wp"}], "]"}], "[", 
+        RowBox[{"[", "1", "]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"modePlot", "=", 
+       RowBox[{"Plot3D", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"Evaluate", "[", 
+          RowBox[{"Re", "[", 
+           RowBox[{
+            RowBox[{"toroidalMode", "[", 
+             RowBox[{"modeU", ",", "modeV", ",", "1", ",", "alpha"}], "]"}], "[", 
+            RowBox[{"u", ",", "v"}], "]"}], "]"}], "]"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"{", 
+          RowBox[{"u", ",", "0", ",", 
+           RowBox[{"2", " ", "Pi"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"v", ",", "0", ",", 
+           RowBox[{"2", " ", "Pi"}]}], "}"}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"Mesh", "->", "None"}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"PlotPoints", "->", "50"}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"ColorFunction", "->", "\"\<SolarColors\>\""}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"PlotLabel", "->", 
+          RowBox[{"Row", "[", 
+           RowBox[{"{", 
+            
+            RowBox[{"\"\<Re mode(\>\"", ",", "modeU", ",", "\"\<,\>\"", ",", 
+             "modeV", ",", "\"\<)\>\""}], "}"}], "]"}]}]}], 
+        "\[IndentingNewLine]", "  ", "]"}]}], ";", "\[IndentingNewLine]", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Column", "[", 
+       RowBox[{"{", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"Row", "[", 
+          RowBox[{"{", 
+           RowBox[{"\"\<Background value: \>\"", ",", 
+            RowBox[{"N", "[", 
+             RowBox[{"backgroundValue", ",", "20"}], "]"}]}], "}"}], "]"}], ",",
+          "\[IndentingNewLine]", "    ", 
+         RowBox[{"Row", "[", 
+          RowBox[{"{", 
+           RowBox[{"\"\<Effective mass term: \>\"", ",", 
+            RowBox[{"N", "[", 
+             RowBox[{
+              RowBox[{"effectiveMassTerm", "[", 
+               RowBox[{"massTerm", ",", "coupling", ",", "backgroundValue"}], 
+               "]"}], ",", "20"}], "]"}]}], "}"}], "]"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"Row", "[", 
+          RowBox[{"{", 
+           RowBox[{"\"\<Numerical eigenvalues: \>\"", ",", 
+            RowBox[{"N", "[", 
+             RowBox[{"numericalEigenvalues", ",", "10"}], "]"}]}], "}"}], 
+          "]"}], ",", "\[IndentingNewLine]", "    ", "eigenTable", ",", 
+         "\[IndentingNewLine]", "    ", "modePlot"}], "\[IndentingNewLine]", 
+        "  ", "}"}], "]"}]}]}], "\[IndentingNewLine]", " ", "]"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"majorRadius", ",", "1.5", ",", "\"\<Major radius\>\""}], "}"}],
+      ",", "0.6", ",", "3", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"minorRadius", ",", "0.5", ",", "\"\<Minor radius\>\""}], "}"}],
+      ",", "0.1", ",", "1.2", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", "Delimiter", ",", "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"closureTargetValue", ",", 
+       RowBox[{"goldenPhi", "^", 
+        RowBox[{"-", "13"}]}], ",", "\"\<Closure target\>\""}], "}"}], ",", 
+     RowBox[{"10", "^", 
+      RowBox[{"-", "6"}]}], ",", "1", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"massTerm", ",", "1", ",", "\"\<Mass term\>\""}], "}"}], ",", 
+     "0", ",", "5", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"coupling", ",", "0.1", ",", "\"\<Quartic coupling\>\""}], 
+      "}"}], ",", "0", ",", "2", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"alpha", ",", "0", ",", "\"\<Envelope alpha\>\""}], "}"}], ",", 
+     "0", ",", "2", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", "Delimiter", ",", "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"maxMode", ",", "2", ",", "\"\<Analytic max mode\>\""}], "}"}], 
+     ",", "0", ",", "5", ",", "1", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"modeU", ",", "1", ",", "\"\<Plot mode m\>\""}], "}"}], ",", 
+     "0", ",", "6", ",", "1", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"modeV", ",", "1", ",", "\"\<Plot mode n\>\""}], "}"}], ",", 
+     "0", ",", "6", ",", "1", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", "Delimiter", ",", "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"nU", ",", "10", ",", "\"\<Grid u\>\""}], "}"}], ",", "6", ",", 
+     "20", ",", "1", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"nV", ",", "10", ",", "\"\<Grid v\>\""}], "}"}], ",", "6", ",", 
+     "20", ",", "1", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"eigenCount", ",", "8", ",", "\"\<Eigenvalue count\>\""}], 
+      "}"}], ",", "4", ",", "20", ",", "1", ",", 
+     RowBox[{"Appearance", "->", "\"\<Labeled\>\""}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"wp", ",", "60", ",", "\"\<Working precision\>\""}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"40", ",", "60", ",", "80", ",", "100"}], "}"}]}], "}"}], ",", 
+   "\[IndentingNewLine]", " ", 
+   RowBox[{"SaveDefinitions", "->", "True"}]}], "\[IndentingNewLine]", 
+  "]"}]], "Input",ExpressionUUID->"f809349a-4f4f-304f-b9e3-82a9c3727638"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"38315e16-e7cc-534b-a4ae-877b35581d00"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["13. Recommended next step", "Section",ExpressionUUID->"f156c691-2ad2-2947-b73d-27b93e39e70c"],
+
+Cell["\<\
+The next mathematically cleaner extension would be to replace the flat-torus \
+proxy operator by a true torus Laplace--Beltrami operator built from the \
+induced metric. That would allow:\
+\>", "Text",ExpressionUUID->"76c13871-ae74-0541-bfcc-b800fe69f6cd"],
+
+Cell["1. linearization directly on the embedded torus geometry,", "Text",ExpressionUUID->"3f5b4c43-082c-6640-80a0-1ead2ef400cb"],
+
+Cell["2. geometry-dependent eigenspectrum shifts,", "Text",ExpressionUUID->"2f5db1c9-41fb-cf4c-bf58-68dc52348b1a"],
+
+Cell["\<\
+3. and comparison between flat-proxy and embedded-torus stability results.\
+\>", "Text",ExpressionUUID->"dd1b424b-85a3-c844-8210-64a976a7d7de"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{581.25, 654},
+WindowMargins->{{Automatic, 111.75}, {-66, Automatic}},
+FrontEndVersion->"15.0 for Microsoft Windows (64-bit) (May 19, 2026)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"fb89aaae-1bb2-9048-aeee-60de914b1da1"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 122, 0, 217, "Title",ExpressionUUID->"23f5e696-3cfa-6d41-80c5-a4e391626112"],
+Cell[CellGroupData[{
+Cell[723, 26, 157, 2, 103, "Section",ExpressionUUID->"3aefd99e-b047-3446-b5b6-d370607ca14b"],
+Cell[883, 30, 141, 2, 33, "Text",ExpressionUUID->"6ff1cfe7-d76b-f042-a3a7-6d4a616e1e57"],
+Cell[1027, 34, 112, 0, 30, "Item",ExpressionUUID->"9d24c926-4190-8c40-848c-4405f59c5d3b"],
+Cell[1142, 36, 118, 0, 30, "Item",ExpressionUUID->"9386703d-346c-594b-bd62-4379cea29b44"],
+Cell[1263, 38, 131, 0, 30, "Item",ExpressionUUID->"570f5ea3-2594-f94e-9e7f-5cf738baf733"],
+Cell[1397, 40, 114, 0, 30, "Item",ExpressionUUID->"0e81defb-9f4a-0f49-8fd9-848015e15aee"],
+Cell[1514, 42, 107, 0, 30, "Item",ExpressionUUID->"78ca4e3d-f277-2b41-bb5c-62e5583a7a81"],
+Cell[1624, 44, 112, 0, 30, "Item",ExpressionUUID->"5ab01022-6c5d-7743-b45b-227c46d91257"],
+Cell[1739, 46, 286, 8, 55, "Text",ExpressionUUID->"aad171c5-48a0-9e47-b107-16dab1362e32"],
+Cell[2028, 56, 596, 20, 48, "Text",ExpressionUUID->"c9c517dc-4bf4-094a-b6b3-b9732c1e4576"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[2661, 81, 109, 0, 66, "Section",ExpressionUUID->"fdbc38fe-22e7-0e45-868a-dabde062288e"],
+Cell[2773, 83, 1752, 36, 351, "Input",ExpressionUUID->"47c5f08f-4339-fb48-9f08-c9524f31ef86"],
+Cell[4528, 121, 481, 11, 70, "Text",ExpressionUUID->"791b21e1-c47c-8143-b753-8dcdc1c8364c"],
+Cell[5012, 134, 112, 0, 70, "Item",ExpressionUUID->"02832f6a-6b79-454b-94c0-a2697a66c568"],
+Cell[5127, 136, 129, 0, 70, "Item",ExpressionUUID->"5ceface2-dbd8-0d45-b565-2e073402c099"],
+Cell[5259, 138, 111, 0, 70, "Item",ExpressionUUID->"ea15dd65-4ed3-f144-9cee-7fe20006f167"],
+Cell[5373, 140, 596, 20, 70, "Text",ExpressionUUID->"2bb8c652-db2e-a94a-b3c0-74c92b509da8"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6006, 165, 94, 0, 70, "Section",ExpressionUUID->"d16954a2-d9bd-6d49-926c-72e062a9ec71"],
+Cell[6103, 167, 1094, 30, 70, "Input",ExpressionUUID->"ae04ef44-0cc7-8b47-a195-7b07b60c6438"],
+Cell[7200, 199, 596, 20, 70, "Text",ExpressionUUID->"86de2f69-cafd-b54d-a5a1-90c0049194dd"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7833, 224, 101, 0, 70, "Section",ExpressionUUID->"79ff3814-b2a4-e141-ae27-f534b2cdc20c"],
+Cell[7937, 226, 1281, 32, 70, "Text",ExpressionUUID->"5644bb8c-80ff-e246-ba63-82640a9932ba"],
+Cell[9221, 260, 6167, 156, 70, "Input",ExpressionUUID->"650720e0-1539-0b49-b06d-64d40e1fdb89"],
+Cell[15391, 418, 596, 20, 70, "Text",ExpressionUUID->"1ca1d497-a253-5647-bdca-82fcf78b4633"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[16024, 443, 111, 0, 70, "Section",ExpressionUUID->"ce1b294e-36e7-9041-baf6-9fa9d2d0147f"],
+Cell[16138, 445, 2023, 59, 70, "Input",ExpressionUUID->"6bfad714-4092-674d-96a3-6bfdcdc44e98"],
+Cell[18164, 506, 94, 0, 70, "CodeText",ExpressionUUID->"f9f03d38-ebe2-554e-9893-c3d3138f6558"],
+Cell[18261, 508, 2367, 62, 70, "Input",ExpressionUUID->"8f77dea0-aeec-3541-a9ad-ee9a272230e0"],
+Cell[20631, 572, 596, 20, 70, "Text",ExpressionUUID->"6ff08844-c7fd-f84b-a84b-158274504150"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[21264, 597, 117, 0, 70, "Section",ExpressionUUID->"9f53ffd0-bac9-f649-adea-f61433f321c0"],
+Cell[21384, 599, 3861, 95, 70, "Input",ExpressionUUID->"b12832cd-7d32-0945-b7ce-7d1f22a92e37"],
+Cell[25248, 696, 596, 20, 70, "Text",ExpressionUUID->"1140cc95-a00a-ff42-bbbc-a74ba7ce5108"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[25881, 721, 112, 0, 70, "Section",ExpressionUUID->"8a58b2cd-5999-b144-b2b3-b31fb0aeb076"],
+Cell[25996, 723, 2853, 68, 70, "Text",ExpressionUUID->"9db1e5d0-146c-c94b-833e-89714c1220aa"],
+Cell[28852, 793, 954, 23, 70, "Text",ExpressionUUID->"887e3e20-ed0c-cf44-86cd-31f30cc8b0d1"],
+Cell[29809, 818, 2413, 59, 70, "Input",ExpressionUUID->"f9acc910-fdd1-bb43-aba6-93c64e8c4a0c"],
+Cell[32225, 879, 162, 3, 70, "Text",ExpressionUUID->"a9023037-0248-5246-95ba-7845303145e4"],
+Cell[32390, 884, 2254, 55, 70, "Input",ExpressionUUID->"e7ced869-2468-cc46-93b9-975e7d7ca983"],
+Cell[34647, 941, 596, 20, 70, "Text",ExpressionUUID->"2a4fddcf-c6be-6c49-a207-ca4fb1d11e74"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[35280, 966, 143, 2, 70, "Section",ExpressionUUID->"1db74c9f-64b0-0744-896e-77eded30dc4d"],
+Cell[35426, 970, 896, 20, 70, "Text",ExpressionUUID->"42d9f36f-b0a6-bf4c-b653-e4994081c1ba"],
+Cell[36325, 992, 7316, 181, 70, "Input",ExpressionUUID->"d41891f1-3355-9c4f-a00c-76193e6de0ce"],
+Cell[43644, 1175, 596, 20, 70, "Text",ExpressionUUID->"0bfbc003-114a-a043-afb7-2eda2cdf36e5"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[44277, 1200, 118, 0, 70, "Section",ExpressionUUID->"5ec799b4-55a0-834f-8691-ad1626d35612"],
+Cell[44398, 1202, 3503, 75, 70, "Input",ExpressionUUID->"5c691835-6a08-7a41-9cf1-858ba0832048"],
+Cell[47904, 1279, 596, 20, 70, "Text",ExpressionUUID->"7ae1a603-2aa8-8544-a92b-8d379fe86f8d"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[48537, 1304, 113, 0, 70, "Section",ExpressionUUID->"f88e3ab5-7670-014c-8d4e-f1b5527a3d7b"],
+Cell[48653, 1306, 2899, 66, 70, "Input",ExpressionUUID->"56ee53d1-7e2d-a64d-a3bb-d30b15996ed8"],
+Cell[51555, 1374, 596, 20, 70, "Text",ExpressionUUID->"ed1f5fa2-1e7c-e84b-a7a5-193e873530d9"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[52188, 1399, 131, 0, 70, "Section",ExpressionUUID->"622e59c6-a658-8945-8005-e0eaf58aaee0"],
+Cell[52322, 1401, 8172, 165, 70, "Input",ExpressionUUID->"ed83e128-c5f3-6940-bff7-c72b0d840ffc"],
+Cell[60497, 1568, 596, 20, 70, "Text",ExpressionUUID->"c80c3c60-186d-3144-af0e-c74f0dd9adf3"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[61130, 1593, 95, 0, 70, "Section",ExpressionUUID->"f6132e70-4c34-e543-8801-10a2c15f0e6e"],
+Cell[61228, 1595, 3290, 68, 70, "Input",ExpressionUUID->"75eec5f9-90eb-2b4b-8911-6733e3341ba1"],
+Cell[64521, 1665, 102, 0, 70, "CodeText",ExpressionUUID->"3538d100-4413-9d4f-90c1-3fb5f3f9c557"],
+Cell[64626, 1667, 145, 2, 70, "Input",ExpressionUUID->"2ddcc072-3d8b-634e-955f-6f77041e8615"],
+Cell[64774, 1671, 596, 20, 70, "Text",ExpressionUUID->"8439ea7a-daa3-a946-9128-8f6f93b4e8e6"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[65407, 1696, 111, 0, 70, "Section",ExpressionUUID->"87b665a1-f6b9-2b46-bf4b-8b2496801f35"],
+Cell[65521, 1698, 145, 2, 70, "Text",ExpressionUUID->"097d9f5f-911e-0445-a50d-795653730c19"],
+Cell[65669, 1702, 9880, 224, 70, "Input",ExpressionUUID->"f809349a-4f4f-304f-b9e3-82a9c3727638"],
+Cell[75552, 1928, 596, 20, 70, "Text",ExpressionUUID->"38315e16-e7cc-534b-a4ae-877b35581d00"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[76185, 1953, 99, 0, 70, "Section",ExpressionUUID->"f156c691-2ad2-2947-b73d-27b93e39e70c"],
+Cell[76287, 1955, 266, 4, 70, "Text",ExpressionUUID->"76c13871-ae74-0541-bfcc-b800fe69f6cd"],
+Cell[76556, 1961, 128, 0, 70, "Text",ExpressionUUID->"3f5b4c43-082c-6640-80a0-1ead2ef400cb"],
+Cell[76687, 1963, 114, 0, 70, "Text",ExpressionUUID->"2f5db1c9-41fb-cf4c-bf58-68dc52348b1a"],
+Cell[76804, 1965, 153, 2, 70, "Text",ExpressionUUID->"dd1b424b-85a3-c844-8210-64a976a7d7de"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

@@ -1,0 +1,44 @@
+{
+  "recommendations": [
+    // Python & Data Science
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-toolsai.jupyter",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "ms-python.flake8",
+    "ms-python.mypy-type-checker",
+    "ms-python.debugpy",
+    
+    // C/C++
+    "ms-vscode.cpptools",
+    "ms-vscode.cmake-tools",
+    "twxs.cmake",
+    
+    // Rust
+    "rust-lang.rust-analyzer",
+    "tamasfe.even-better-toml",
+    
+    // Go
+    "golang.go",
+    
+    // JavaScript/TypeScript
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    
+    // Docker & Git
+    "ms-azuretools.vscode-docker",
+    "github.copilot",
+    "github.copilot-chat",
+    "eamodio.gitlens",
+    
+    // Documentation
+    "yzhang.markdown-all-in-one",
+    "editorconfig.editorconfig",
+    
+    // Utilities
+    "Gruntfuggly.todo-tree",
+    "usernamehw.errorlens"
+  ],
+  "unwantedRecommendations": []
+}

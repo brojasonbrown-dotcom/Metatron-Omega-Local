@@ -1,0 +1,1920 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 15.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     73245,       1910]
+NotebookOptionsPosition[     57064,       1658]
+NotebookOutlinePosition[     57469,       1674]
+CellTagsIndexPosition[     57426,       1671]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["RHUFT/MRCE Complete Review Laboratory Notebook", "Title",ExpressionUUID->"e05a8f19-410f-3e4b-95f3-d1cd1e41f1c5"],
+
+Cell[CellGroupData[{
+
+Cell["Clean Unified Review Plan", "Section",ExpressionUUID->"7ca54ee5-2e77-b244-86fd-d493407acf57"],
+
+Cell[TextData[{
+ "This notebook compiles a ",
+ StyleBox["clean, review-style RHUFT framework",
+  FontWeight->Bold],
+ " centered on the strongest mathematically coherent candidates for a unified \
+continuum formulation, with emphasis on transport, reaction, coupling, and \
+boundary logic in Wolfram Language. "
+}], "Text",ExpressionUUID->"8b12e37c-5ecd-434e-947e-f6dbf3c096e7"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"1dfa70a7-2992-9c4e-9a9a-0c8b0b87c7a6"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Review Principles", "Section",ExpressionUUID->"b0969ffd-e850-f843-8d6b-de5103ac7aa1"],
+
+Cell[TextData[{
+ "Keep only ",
+ StyleBox["frameworks with clear governing equations, boundary logic, and \
+implementation pathways",
+  FontWeight->Bold],
+ "."
+}], "Item",ExpressionUUID->"2bca1b9e-5948-9845-8e88-ba168f716b63"],
+
+Cell[TextData[{
+ "Prefer ",
+ StyleBox["conservative formulations",
+  FontWeight->Bold],
+ " when conservation is central."
+}], "Item",ExpressionUUID->"2de6ade4-c751-2b43-bc02-f6c4326a08bb"],
+
+Cell[TextData[{
+ "Distinguish carefully between ",
+ StyleBox["bulk dynamics",
+  FontWeight->Bold],
+ ", ",
+ StyleBox["flux laws",
+  FontWeight->Bold],
+ ", ",
+ StyleBox["source terms",
+  FontWeight->Bold],
+ ", and ",
+ StyleBox["boundary operators",
+  FontWeight->Bold],
+ "."
+}], "Item",ExpressionUUID->"968243ba-08a1-0f4e-a192-86ab6b123698"],
+
+Cell[TextData[{
+ "Use ",
+ StyleBox["built-in Wolfram Language PDE functionality",
+  FontWeight->Bold],
+ " wherever possible."
+}], "Item",ExpressionUUID->"b08b74a8-d2c6-2d41-abfd-1b455774190f"],
+
+Cell[TextData[{
+ "Organize all candidates by ",
+ StyleBox["generality",
+  FontWeight->Bold],
+ ", ",
+ StyleBox["interpretability",
+  FontWeight->Bold],
+ ", ",
+ StyleBox["extensibility",
+  FontWeight->Bold],
+ ", and ",
+ StyleBox["computational realizability",
+  FontWeight->Bold],
+ "."
+}], "Item",ExpressionUUID->"f4ca401c-4157-474c-81ec-eeeef0b608c3"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"31a4f0fe-c583-584f-a1c3-4e0c983787da"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["I. Strongest RHUFT Candidate Classes", "Section",ExpressionUUID->"48233f40-73fc-1045-8ad0-1759cea3fb92"],
+
+Cell[CellGroupData[{
+
+Cell["Candidate A. Abstract conservation-law framework", "Subsection",ExpressionUUID->"c62d76bc-7096-e848-982a-be64aeb93b99"],
+
+Cell[TextData[{
+ "The most general candidate is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            StyleBox["q", FontSlant -> "Bold"]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "+", "\[Del]", "\[CenterDot]", 
+         StyleBox["F", FontSlant -> "Bold"], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["q", FontSlant -> "Bold"], ",", "\[Del]", 
+             StyleBox["q", FontSlant -> "Bold"], ",", 
+             StyleBox["x", FontSlant -> "Bold"], ",", 
+             StyleBox["t", "TI"]}], ")"}], "\[LongEqual]", 
+         StyleBox["S", FontSlant -> "Bold"], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["q", FontSlant -> "Bold"], ",", "\[Del]", 
+             StyleBox["q", FontSlant -> "Bold"], ",", 
+             StyleBox["x", FontSlant -> "Bold"], ",", 
+             StyleBox["t", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> 
+     "\\frac{\\partial \\mathbf{q}}{\\partial t} + \\nabla \\cdot \
+\\mathbf{F}(\\mathbf{q},\\nabla \\mathbf{q},\\mathbf{x},t) = \
+\\mathbf{S}(\\mathbf{q},\\nabla \\mathbf{q},\\mathbf{x},t)", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2e56aad2-88e0-284e-a4e6-ead80f82e029"],
+ "where: "
+}], "Text",ExpressionUUID->"1e758f84-b42f-244b-af96-373a284cbe2c"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["q", FontSlant -> "Bold"], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\mathbf{q}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a81eb166-7f7e-7546-b29b-27333e56692e"],
+ " is the state vector"
+}], "Item",ExpressionUUID->"b5bd7fa6-7471-364a-8cf5-b7f8e2c16022"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["F", FontSlant -> "Bold"], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\mathbf{F}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "dd14467a-83af-b740-854f-025067ab4cd4"],
+ " is the total flux"
+}], "Item",ExpressionUUID->"15aeaed8-f35f-a644-9fb5-4d2d4db1587f"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["S", FontSlant -> "Bold"], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\mathbf{S}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2ba1d72e-4a97-0f4d-9dd6-95218e8a4e9c"],
+ " is the source or reaction structure"
+}], "Item",ExpressionUUID->"04f3997a-a46b-f84c-b330-bbbfc779d2b4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Logic", "Subsection",ExpressionUUID->"be0acb31-22e9-c440-9275-2642efdd005d"],
+
+Cell["\<\
+This is the strongest top-level umbrella because it includes: \
+\>", "Text",ExpressionUUID->"b44d2e37-7c63-c747-bc2d-0390df3b1293"],
+
+Cell["diffusion", "Item",ExpressionUUID->"e8c4aeee-b40b-3347-a13c-14f02c3e4d9b"],
+
+Cell["advection", "Item",ExpressionUUID->"b7f2cf52-4145-d649-ab96-fff8f2e6c244"],
+
+Cell["drift", "Item",ExpressionUUID->"f348b790-1a2c-e648-a079-9e9d8e7e999e"],
+
+Cell["reaction networks", "Item",ExpressionUUID->"53af7387-03fe-6043-bde2-457988e3965f"],
+
+Cell["nonlocal closures", "Item",ExpressionUUID->"d8ad4f06-f452-ea49-b200-4cbca92562a3"],
+
+Cell["coupled auxiliary fields", "Item",ExpressionUUID->"71cfe0e1-aaec-7c47-8cd9-233974ff906d"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Review status", "Subsection",ExpressionUUID->"b93eac3c-fcd4-0d42-a368-3132a61bc6be"],
+
+Cell[TextData[StyleBox["Essential master form",
+ FontWeight->Bold]], "Item",ExpressionUUID->"517eefa0-3463-4749-8071-7a7e50ae9be1"],
+
+Cell["Best for theoretical unification", "Item",ExpressionUUID->"d30c87c6-2b00-3246-a291-2000ca4e03c6"],
+
+Cell["Too abstract by itself for direct model closure", "Item",ExpressionUUID->"78252b21-da0f-b843-a5b7-ef9772e73d1f"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"42923f01-b7d6-8244-8048-0728b8c94607"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Candidate B. Conservative reaction-transport framework", "Subsection",ExpressionUUID->"dc34e6ca-bde3-184d-8927-2d1a11197cf9"],
+
+Cell[TextData[{
+ "A stronger applied candidate is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            SubscriptBox[
+             StyleBox["q", "TI"], 
+             StyleBox["i", "TI"]]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "+", "\[Del]", "\[CenterDot]", 
+         SubscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["R", "TI"], 
+          StyleBox["i", "TI"]], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["q", FontSlant -> "Bold"], ",", "\[Psi]", ",", 
+             StyleBox["x", FontSlant -> "Bold"], ",", 
+             StyleBox["t", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> 
+     "\\frac{\\partial q_i}{\\partial t} + \\nabla\\cdot \\mathbf{J}_i = R_i(\
+\\mathbf{q},\\boldsymbol{\\psi},\\mathbf{x},t)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ecacc01a-daa7-504c-b301-3bbaa501285a"],
+ "with flux decomposition ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", "-", 
+         UnderscriptBox["\[Sum]", 
+          StyleBox["j", "TI"], LimitsPositioning -> True], 
+         SubscriptBox[
+          StyleBox["D", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], "\[Del]", 
+         SubscriptBox[
+          StyleBox["q", "TI"], 
+          StyleBox["j", "TI"]], "+", 
+         SubscriptBox[
+          StyleBox["v", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["q", "TI"], 
+          StyleBox["i", "TI"]], "-", 
+         SubscriptBox["\[Chi]", 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["q", "TI"], 
+          StyleBox["i", "TI"]], "\[Del]", "\[Phi]", "+", 
+         SubsuperscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"], 
+          StyleBox["cross", FontSlant -> "Plain"]]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\mathbf{J}_i = -\\sum_j D_{ij}\\nabla q_j + \\mathbf{v}_i q_i - \
+\\chi_i q_i\\nabla \\phi + \\mathbf{J}^{\\mathrm{cross}}_i", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e094586c-28e4-f342-9328-db827f117bdc"],
+ "for ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["i", "TI"], "\[LongEqual]", "1", ",", "\[Ellipsis]", ",", 
+         StyleBox["m", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "i=1,\\dots,m", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "703bc2ed-b612-4a41-acaf-02ef2c4639a1"],
+ ". "
+}], "Text",ExpressionUUID->"9db6e52f-71e7-fa4a-8787-fdc6ada6407a"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Logic", "Subsection",ExpressionUUID->"e3a83f3c-9e89-0a4e-848e-916f1f7a6d72"],
+
+Cell["\<\
+This is the strongest practical RHUFT candidate because it cleanly separates: \
+\>", "Text",ExpressionUUID->"5acb2f2d-31f8-3e42-bb92-8f820e25bb73"],
+
+Cell["diffusion or cross-diffusion", "Item",ExpressionUUID->"da329816-9837-6842-a46f-46795687d56c"],
+
+Cell["convection", "Item",ExpressionUUID->"61c5ff35-b4b9-c445-8ae0-3d3729e2dd2a"],
+
+Cell["field-driven drift", "Item",ExpressionUUID->"75abc401-13b5-eb47-9ba9-076d3fb759d5"],
+
+Cell["cross-coupled fluxes", "Item",ExpressionUUID->"253e2cba-4dde-634a-b2dc-53f0ed81109e"],
+
+Cell["reaction or conversion terms", "Item",ExpressionUUID->"6f1935d8-c813-8f43-a8fe-cc686a2c33f2"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Review status", "Subsection",ExpressionUUID->"4870f853-a79f-5d4c-ac9c-16df51d9eedd"],
+
+Cell[TextData[StyleBox["Primary recommended RHUFT core",
+ FontWeight->Bold]], "Item",ExpressionUUID->"304673a7-d71f-1f48-a807-\
+eeb7a296097a"],
+
+Cell["\<\
+Broad enough for most continuum multiphysics transport models\
+\>", "Item",ExpressionUUID->"0e3e6c9c-e09b-bb41-abdd-48157bc9dcc6"],
+
+Cell["Compatible with finite-element workflows", "Item",ExpressionUUID->"d8fe04c5-9d9b-a645-9994-e9912611e2af"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"2c62c1ea-d008-e747-8fb3-38c110e85813"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Candidate C. Mass transport PDE framework", "Subsection",ExpressionUUID->"e07371a7-309a-0944-b897-4e822259e29d"],
+
+Cell[TextData[{
+ "For a scalar concentration ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["c", "TI"], TraditionalForm], "errors" -> {}, "input" -> "c", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "be0b5b6c-264f-8842-ab52-c428db113f9f"],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            StyleBox["c", "TI"]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "+", "\[Del]", "\[CenterDot]", 
+         RowBox[{"(", 
+           RowBox[{"-", 
+             StyleBox["d", "TI"], "\[Del]", 
+             StyleBox["c", "TI"], "+", 
+             StyleBox["v", FontSlant -> "Bold"], 
+             StyleBox["c", "TI"]}], ")"}], "\[LongEqual]", 
+         StyleBox["s", "TI"], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["c", "TI"], ",", 
+             StyleBox["x", FontSlant -> "Bold"], ",", 
+             StyleBox["t", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> 
+     "\\frac{\\partial c}{\\partial t} + \\nabla\\cdot\\left(-d\\nabla c + \
+\\mathbf{v}c\\right) = s(c,\\mathbf{x},t)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "87b9fadf-7333-3b44-a446-cbd56872ab3c"],
+ "This is directly aligned with ",
+ ButtonBox["MassTransportPDEComponent",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/MassTransportPDEComponent"],
+ ". "
+}], "Text",ExpressionUUID->"d823eddf-218d-c440-b5da-15e393dc251e"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Logic", "Subsection",ExpressionUUID->"aa9ddf57-d0b0-2149-a0af-1a53365ccaa3"],
+
+Cell["\<\
+This is the strongest built-in implementation candidate for \
+transport-centered RHUFT variants. \
+\>", "Text",ExpressionUUID->"568322d2-3364-b04a-a0d4-a346781dfd1a"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Review status", "Subsection",ExpressionUUID->"17bd87e0-39ae-6643-bf11-5c3059bb44eb"],
+
+Cell[TextData[StyleBox["Implementation-critical",
+ FontWeight->Bold]], "Item",ExpressionUUID->"555d1f0b-9147-7a40-920a-dc630bbda618"],
+
+Cell["Excellent for clean Wolfram Language realization", "Item",ExpressionUUID->"e5078bef-760a-894d-a43d-1f023f87c9de"],
+
+Cell["\<\
+Should be treated as a canonical computational specialization\
+\>", "Item",ExpressionUUID->"7e91a75d-bc52-0841-aa6d-ed659b6924e2"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"e57f3f0c-10c2-1946-ae59-b913338741e3"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Candidate D. Coupled reaction-diffusion systems", "Subsection",ExpressionUUID->"3643bbe8-c372-d146-860e-407d23b7ca08"],
+
+Cell[TextData[{
+ "For example: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            StyleBox["u", "TI"]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "\[LongEqual]", "\[Del]", "\[CenterDot]", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["d", "TI"], 
+              StyleBox["u", "TI"]], "\[Del]", 
+             StyleBox["u", "TI"]}], ")"}], "+", 
+         SubscriptBox[
+          StyleBox["f", "TI"], 
+          StyleBox["u", "TI"]], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["u", "TI"], ",", 
+             StyleBox["v", "TI"], ",", "\[Ellipsis]"}], ")"}]}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "\\frac{\\partial u}{\\partial t} = \\nabla\\cdot(d_u\\nabla u) + \
+f_u(u,v,\\dots)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f83c13f3-017a-5a48-b8d2-f398c8370c62"],
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            StyleBox["v", "TI"]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "\[LongEqual]", "\[Del]", "\[CenterDot]", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["d", "TI"], 
+              StyleBox["v", "TI"]], "\[Del]", 
+             StyleBox["v", "TI"]}], ")"}], "+", 
+         SubscriptBox[
+          StyleBox["f", "TI"], 
+          StyleBox["v", "TI"]], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["u", "TI"], ",", 
+             StyleBox["v", "TI"], ",", "\[Ellipsis]"}], ")"}]}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "\\frac{\\partial v}{\\partial t} = \\nabla\\cdot(d_v\\nabla v) + \
+f_v(u,v,\\dots)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "29fa5941-80aa-1d49-b4ef-851e29e3e4e2"]
+}], "Text",ExpressionUUID->"13ebcd6e-b271-054e-a57b-48ccef9cdbd4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Logic", "Subsection",ExpressionUUID->"db9611d7-d777-e94b-a54d-7aaa507b0823"],
+
+Cell["\<\
+These are strong candidates when RHUFT is interpreted as a unifying framework \
+for pattern formation, kinetics, and field evolution. \
+\>", "Text",ExpressionUUID->"1b243292-e883-b043-bb79-465e3de3cbcf"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Review status", "Subsection",ExpressionUUID->"876fabf2-6c17-7641-8dbb-63ed1c8546a1"],
+
+Cell["Strong subclass", "Item",ExpressionUUID->"a5685db1-f4bf-434e-af6d-8e1172f4a787"],
+
+Cell["\<\
+Important but not broad enough to be the sole RHUFT definition\
+\>", "Item",ExpressionUUID->"8e481a0c-8c69-da42-bf2a-2aa132e721b0"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"c69ae76f-9828-a64a-b56d-3a2ae99da6cb"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Candidate E. Drift-diffusion plus electrostatic coupling", "Subsection",ExpressionUUID->"4d6b108f-4cc2-114d-a275-ac9629797823"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            SubscriptBox[
+             StyleBox["c", "TI"], 
+             StyleBox["i", "TI"]]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "+", "\[Del]", "\[CenterDot]", 
+         SubscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["R", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\frac{\\partial c_i}{\\partial t} + \\nabla\\cdot\\mathbf{J}_i = R_i", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "84d9f13a-39eb-734e-ac0b-d519e32a3b6d"],
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", "-", 
+         SubscriptBox[
+          StyleBox["D", "TI"], 
+          StyleBox["i", "TI"]], "\[Del]", 
+         SubscriptBox[
+          StyleBox["c", "TI"], 
+          StyleBox["i", "TI"]], "-", 
+         SubscriptBox["\[Mu]", 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["z", "TI"], 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["c", "TI"], 
+          StyleBox["i", "TI"]], "\[Del]", "\[Phi]", "+", 
+         StyleBox["v", FontSlant -> "Bold"], 
+         SubscriptBox[
+          StyleBox["c", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\mathbf{J}_i = -D_i\\nabla c_i - \\mu_i z_i c_i\\nabla \\phi + \
+\\mathbf{v}c_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "28965221-980e-5549-b3ad-00aea8bc9967"],
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"-", "\[Del]", "\[CenterDot]", 
+         RowBox[{"(", 
+           RowBox[{"\[Epsilon]", "\[Del]", "\[Phi]"}], ")"}], "\[LongEqual]", 
+         "\[Rho]"}], TraditionalForm], "errors" -> {}, "input" -> 
+     "-\\nabla\\cdot(\\varepsilon\\nabla\\phi)=\\rho", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7543824b-0cae-f04a-9d72-6038daf2019c"]
+}], "Text",ExpressionUUID->"4b2c8bbb-0edd-6447-afc9-ec616b71fe9d"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Logic", "Subsection",ExpressionUUID->"cdc25de5-a86c-284e-9586-0073f1e0e331"],
+
+Cell["\<\
+This is one of the strongest extensions if RHUFT is meant to cover charged \
+transport or field-mediated migration. \
+\>", "Text",ExpressionUUID->"a97f3df6-6749-3c42-859f-2dde28cf1b7b"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Review status", "Subsection",ExpressionUUID->"099eec41-3a0e-6b4a-9df5-1a4e9b7c4cb9"],
+
+Cell["Strong multiphysics extension", "Item",ExpressionUUID->"e1755a22-7263-4a4b-a080-75a20401ed30"],
+
+Cell["Recommended as a second-tier core module", "Item",ExpressionUUID->"ac7e05bd-6f2e-a54e-aa58-dd65a35fc9a2"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"594fb2a9-6118-cb40-ad0a-b50b04494330"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["II. Best Unified RHUFT Recommendation", "Section",ExpressionUUID->"cfca28d4-c2b3-5d4c-b86b-ec1691d6fdf7"],
+
+Cell["The strongest complete RHUFT framework candidate is: ", "Text",ExpressionUUID->"272502f9-2b18-3243-bb98-bd51dc93241a"],
+
+Cell[BoxData[GridBox[{
+   {
+    PaneBox[Cell[TextData[{
+      "Let ",
+      Cell[BoxData[
+       FormBox[
+        TemplateBox[<|"boxes" -> FormBox[
+            RowBox[{
+              StyleBox["q", FontSlant -> "Bold"], "\[LongEqual]", 
+              RowBox[{"(", 
+                RowBox[{
+                  SubscriptBox[
+                   StyleBox["q", "TI"], "1"], ",", "\[Ellipsis]", ",", 
+                  SubscriptBox[
+                   StyleBox["q", "TI"], 
+                   StyleBox["m", "TI"]]}], ")"}]}], TraditionalForm], 
+          "errors" -> {}, "input" -> "\\mathbf{q}=(q_1,\\dots,q_m)", "state" -> 
+          "Boxes"|>,
+         "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+       "30140903-e30b-7243-8f29-7eb23e36580b"],
+      " denote the primary fields and ",
+      Cell[BoxData[
+       FormBox[
+        TemplateBox[<|"boxes" -> FormBox[
+            RowBox[{"\[Psi]", "\[LongEqual]", 
+              RowBox[{"(", 
+                RowBox[{
+                  SubscriptBox["\[Psi]", "1"], ",", "\[Ellipsis]", ",", 
+                  SubscriptBox["\[Psi]", 
+                   StyleBox["p", "TI"]]}], ")"}]}], TraditionalForm], 
+          "errors" -> {}, "input" -> 
+          "\\boldsymbol{\\psi}=(\\psi_1,\\dots,\\psi_p)", "state" -> "Boxes"|>,
+         "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+       "cfb33698-55b3-b54e-a93d-40504c6fab15"],
+      " denote auxiliary coupled fields. Then on ",
+      Cell[BoxData[
+       FormBox[
+        TemplateBox[<|"boxes" -> FormBox[
+            RowBox[{"\[CapitalOmega]", "\[Subset]", 
+              SuperscriptBox[
+               StyleBox["R", FontSlant -> "Plain"], 
+               StyleBox["n", "TI"]]}], TraditionalForm], "errors" -> {}, 
+          "input" -> "\\Omega\\subset\\mathbb{R}^n", "state" -> "Boxes"|>,
+         "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+       "12ca090b-15e2-3341-9016-9c1b905aaad8"],
+      ",\n\n",
+      Cell[BoxData[
+       FormBox[
+        TemplateBox[<|"boxes" -> FormBox[
+            RowBox[{
+              FractionBox[
+               RowBox[{"\[PartialD]", 
+                 SubscriptBox[
+                  StyleBox["q", "TI"], 
+                  StyleBox["i", "TI"]]}], 
+               RowBox[{"\[PartialD]", 
+                 StyleBox["t", "TI"]}]], "+", "\[Del]", "\[CenterDot]", 
+              RowBox[{"(", 
+                RowBox[{"-", 
+                  UnderoverscriptBox["\[Sum]", 
+                   RowBox[{
+                    StyleBox["j", "TI"], "\[LongEqual]", "1"}], 
+                   StyleBox["m", "TI"], LimitsPositioning -> True], 
+                  SubscriptBox[
+                   StyleBox["D", "TI"], 
+                   RowBox[{
+                    StyleBox["i", "TI"], 
+                    StyleBox["j", "TI"]}]], "\[Del]", 
+                  SubscriptBox[
+                   StyleBox["q", "TI"], 
+                   StyleBox["j", "TI"]], "+", 
+                  SubscriptBox[
+                   StyleBox["v", FontSlant -> "Bold"], 
+                   StyleBox["i", "TI"]], 
+                  SubscriptBox[
+                   StyleBox["q", "TI"], 
+                   StyleBox["i", "TI"]], "-", 
+                  SubscriptBox["\[Chi]", 
+                   StyleBox["i", "TI"]], 
+                  SubscriptBox[
+                   StyleBox["q", "TI"], 
+                   StyleBox["i", "TI"]], "\[Del]", "\[Phi]", "+", 
+                  SubsuperscriptBox[
+                   StyleBox["J", FontSlant -> "Bold"], 
+                   StyleBox["i", "TI"], 
+                   StyleBox["cross", FontSlant -> "Plain"]]}], ")"}], 
+              "\[LongEqual]", 
+              SubscriptBox[
+               StyleBox["R", "TI"], 
+               StyleBox["i", "TI"]], 
+              RowBox[{"(", 
+                RowBox[{
+                  StyleBox["q", FontSlant -> "Bold"], ",", "\[Psi]", ",", 
+                  StyleBox["x", FontSlant -> "Bold"], ",", 
+                  StyleBox["t", "TI"]}], ")"}], ",    ", 
+              StyleBox["i", "TI"], "\[LongEqual]", "1", ",", "\[Ellipsis]", 
+              ",", 
+              StyleBox["m", "TI"], ","}], TraditionalForm], "errors" -> {}, 
+          "input" -> 
+          "\\frac{\\partial q_i}{\\partial t} + \
+\\nabla\\cdot\\left(-\\sum_{j=1}^{m} D_{ij}\\nabla q_j + \\mathbf{v}_i q_i - \
+\\chi_i q_i\\nabla\\phi + \\mathbf{J}_i^{\\mathrm{cross}}\\right) = \
+R_i(\\mathbf{q},\\boldsymbol{\\psi},\\mathbf{x},t), \\qquad i=1,\\dots,m,", 
+          "state" -> "Boxes"|>,
+         "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+       "822315bf-6d50-4544-8395-1583888c11b9"],
+      "\n\ntogether with auxiliary equations\n\n",
+      Cell[BoxData[
+       FormBox[
+        TemplateBox[<|"boxes" -> FormBox[
+            RowBox[{
+              SubscriptBox[
+               StyleBox["L", "TI"], "\[Alpha]"], 
+              RowBox[{"(", 
+                RowBox[{"\[Psi]", ",", 
+                  StyleBox["q", FontSlant -> "Bold"], ",", 
+                  StyleBox["x", FontSlant -> "Bold"], ",", 
+                  StyleBox["t", "TI"]}], ")"}], "\[LongEqual]", "0", ",    ", 
+              "\[Alpha]", "\[LongEqual]", "1", ",", "\[Ellipsis]", ",", 
+              StyleBox["p", "TI"], "."}], TraditionalForm], "errors" -> {}, 
+          "input" -> 
+          "\\mathcal{L}_\\alpha(\\boldsymbol{\\psi},\\mathbf{q},\\mathbf{x},t)\
+=0, \\qquad \\alpha=1,\\dots,p.", "state" -> "Boxes"|>,
+         "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+       "3ce111b6-35b4-b542-a8ee-7d5766462000"]
+     }],
+      Background->None,ExpressionUUID->"50fd11a7-f4dd-2d49-a01f-760cd440da3d"],
+     BaseStyle->{"Text", FontColor -> LightDarkSwitched[
+         GrayLevel[0.35], 
+         GrayLevel[0.8602474]]},
+     ImageMargins->5,
+     ImageSize->{Full, Automatic}]}
+  },
+  AutoDelete->False,
+  GridBoxBackground->{"Columns" -> {{
+       LightDarkSwitched[
+        GrayLevel[1], 
+        GrayLevel[0.278317]]}}},
+  GridBoxDividers->{"ColumnsIndexed" -> {1 -> Directive[
+        LightDarkSwitched[
+         RGBColor[0.87, 0.94, 1], 
+         RGBColor[0.2491127, 0.3295188, 0.4231198]], 
+        AbsoluteThickness[4]]}, "Rows" -> {{False}}},
+  GridBoxItemSize->{
+   "Columns" -> {{Automatic}}, "Rows" -> {{Automatic}}}]], "Text", \
+"BlockQuote",
+ Background->None,ExpressionUUID->"9f636914-729b-b44c-9b4b-41ff7034418d"],
+
+Cell[CellGroupData[{
+
+Cell["Why this is strongest", "Subsection",ExpressionUUID->"b39b8d41-6a9d-1e40-acc4-72bca6be601a"],
+
+Cell["preserves conservation structure", "Item",ExpressionUUID->"69e8c094-210b-7644-8606-8b13c3904f8b"],
+
+Cell["accommodates multiple transport mechanisms", "Item",ExpressionUUID->"3cd3023f-0b2b-5e45-acd5-86e2deced062"],
+
+Cell["allows field coupling", "Item",ExpressionUUID->"f24e217e-5497-284e-b0ce-69d6e42191aa"],
+
+Cell["subsumes reaction-diffusion and mass-transport models", "Item",ExpressionUUID->"36451be1-26b9-bf46-8296-63c9d6e75d64"],
+
+Cell["supports clean boundary classification", "Item",ExpressionUUID->"ac66d0cb-d783-6b4d-976b-e1c77569e38e"],
+
+Cell[TextData[{
+ "maps well to ",
+ ButtonBox["NDSolveValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/NDSolveValue"],
+ " and PDE component workflows"
+}], "Item",ExpressionUUID->"f9cf3d1d-d5bf-5844-817b-760f686e5a9d"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"7cf55914-22eb-4f4f-86a9-ae13c0cbf8f0"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["III. Boundary Logic Review", "Section",ExpressionUUID->"98e6acf9-566e-0f42-b286-7880128f62e4"],
+
+Cell["\<\
+From the mass transport framework, the main boundary classes are: \
+\>", "Text",ExpressionUUID->"cc4c94e3-a983-e948-aad3-5ec139b3ace3"],
+
+Cell[TextData[ButtonBox["DirichletCondition",
+ BaseStyle->"Link",
+ ButtonData->"paclet:ref/DirichletCondition"]], "Item",ExpressionUUID->\
+"01152c4d-2290-9a4b-81fb-626c701b7d51"],
+
+Cell[TextData[ButtonBox["NeumannValue",
+ BaseStyle->"Link",
+ ButtonData->"paclet:ref/NeumannValue"]], "Item",ExpressionUUID->"47ced413-\
+efbd-0e41-88fd-f3a812b20728"],
+
+Cell[TextData[ButtonBox["PeriodicBoundaryCondition",
+ BaseStyle->"Link",
+ ButtonData->"paclet:ref/PeriodicBoundaryCondition"]], "Item",ExpressionUUID->\
+"a53e054c-1d53-d04f-a5a5-eb3780573b58"],
+
+Cell["\<\
+The mass transport tutorial identifies four major boundary classes:\
+\>", "Text",ExpressionUUID->"7ede5fe4-7751-9b4c-aab0-e7245d485981"],
+
+Cell["1. concentration or value type", "Text",ExpressionUUID->"6b70f493-c92a-f74b-919c-36f63b7dc648"],
+
+Cell["2. flux type", "Text",ExpressionUUID->"bf5dd3b0-9ad9-ab4b-be0f-ca2965eac9b3"],
+
+Cell["3. Robin or transfer type", "Text",ExpressionUUID->"b2e5f764-49d4-b74e-8140-59bb45e208cf"],
+
+Cell["4. periodic type", "Text",ExpressionUUID->"a7a79f48-e5f9-a74f-bbc5-937c3997b686"],
+
+Cell[TextData[{
+ "See ",
+ ButtonBox["Mass Transport tutorial",
+  BaseStyle->"Link",
+  ButtonData->"paclet:PDEModels/tutorial/MassTransport/MassTransport"],
+ ". "
+}], "Text",ExpressionUUID->"3aed5347-2ced-484a-ab46-5a896f526970"],
+
+Cell[CellGroupData[{
+
+Cell["Clean RHUFT boundary taxonomy", "Subsection",ExpressionUUID->"d84bb4ee-30f7-704a-b329-41f5be971b33"],
+
+Cell[CellGroupData[{
+
+Cell["Value condition", "Subsubsection",ExpressionUUID->"0f2bf1ed-d8db-c047-a1a6-803015e004d6"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["q", "TI"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["i", "TI"]], "  ", "on ", 
+         SubscriptBox["\[CapitalGamma]", 
+          StyleBox["D", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "q_i = g_i \\quad \\text{on } \\Gamma_D", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f0801e3a-b903-7048-8cab-745c73727efe"],
+ "Use ",
+ ButtonBox["DirichletCondition",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/DirichletCondition"],
+ ", or for transport concentrations, ",
+ ButtonBox["MassConcentrationCondition",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/MassConcentrationCondition"],
+ ". "
+}], "Text",ExpressionUUID->"0dbc85cf-e1e1-eb47-a426-0da45ecf5ceb"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Flux condition", "Subsubsection",ExpressionUUID->"044ac3c2-e39d-104c-9273-65982e8e6601"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["n", FontSlant -> "Bold"], "\[CenterDot]", 
+         SubscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]], "  ", "on ", 
+         SubscriptBox["\[CapitalGamma]", 
+          StyleBox["N", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\mathbf{n}\\cdot\\mathbf{J}_i = h_i \\quad \\text{on } \\Gamma_N", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "99420988-1757-8740-a006-3280de5daa3c"],
+ "Use ",
+ ButtonBox["NeumannValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/NeumannValue"],
+ ", or transport-specific wrappers such as ",
+ ButtonBox["MassFluxValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/MassFluxValue"],
+ ". "
+}], "Text",ExpressionUUID->"73c71d66-af92-024c-8cc2-55c5ef73f18f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Impermeable condition", "Subsubsection",ExpressionUUID->"98bcf304-0298-cf41-8351-553764270dec"],
+
+Cell[TextData[{
+ "For the conservative transport model: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["n", FontSlant -> "Bold"], "\[CenterDot]", 
+         StyleBox["J", FontSlant -> "Bold"], "\[LongEqual]", "0"}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "\\mathbf{n}\\cdot\\mathbf{J}=0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "282f5223-b4ae-a044-a412-5362b930966d"],
+ "The transport tutorial notes that for the conservative form, this is \
+effectively a zero Neumann condition and can be implicit. "
+}], "Text",ExpressionUUID->"68587683-b89f-5643-b8a5-163c89bdad47"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Transfer or Robin condition", "Subsubsection",ExpressionUUID->"40419c87-afc6-9f4e-b749-66e447bbd906"],
+
+Cell[TextData[{
+ "A standard surrounding-flux form is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["n", FontSlant -> "Bold"], "\[CenterDot]", 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["d", "TI"], "\[Del]", 
+             StyleBox["c", "TI"]}], ")"}], "\[LongEqual]", 
+         StyleBox["k", "TI"], 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["c", "TI"], 
+              StyleBox["ext", FontSlant -> "Plain"]], "-", 
+             StyleBox["c", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> "\\mathbf{n}\\cdot(d\\nabla c)=k(c_{\\mathrm{ext}}-c)", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c6d5a2e0-877a-424d-9840-60dc266ee2b4"],
+ "This can be represented by ",
+ ButtonBox["MassTransferValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/MassTransferValue"],
+ ". "
+}], "Text",ExpressionUUID->"0b58aa69-dac2-1d46-8fa6-3e841961bcc4"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Outflow condition", "Subsubsection",ExpressionUUID->"74a17e8d-ff91-7548-8b4f-fe00b7c1d0ab"],
+
+Cell["\<\
+Outflow handling depends on the model form. The distinction between \
+conservative and nonconservative formulations is important in transport \
+models. \
+\>", "Text",ExpressionUUID->"098245f9-3068-0740-a1e3-7387ba032af6"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"a693ca70-92c0-c241-b790-2f2a49b5fde1"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["IV. Conservative vs Nonconservative Logic", "Section",ExpressionUUID->"50c4ca80-f14b-0d4c-b2ec-e4450d37972a"],
+
+Cell["\<\
+This distinction is critical and should remain explicit in the RHUFT review.\
+\>", "Text",ExpressionUUID->"25beeae0-005c-594a-b5f6-773ac4379e83"],
+
+Cell["For mass transport, the documentation states: ", "Text",ExpressionUUID->"34837adc-bd7d-df4b-9470-7d5b1e9638fb"],
+
+Cell[TextData[{
+ "in the ",
+ StyleBox["conservative formulation",
+  FontWeight->Bold],
+ ", ",
+ ButtonBox["NeumannValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/NeumannValue"],
+ " specifies the boundary value of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["n", FontSlant -> "Bold"], "\[CenterDot]", 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["d", "TI"], "\[Del]", 
+             StyleBox["c", "TI"], "-", 
+             StyleBox["v", FontSlant -> "Bold"], 
+             StyleBox["c", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> "\\mathbf{n}\\cdot(d\\nabla c - \\mathbf{v}c)", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5fa6a4d2-8511-2d42-8834-cf222d2640f8"]
+}], "Item",ExpressionUUID->"3f9e9a05-9ad9-4a48-a164-ad2ad330df8a"],
+
+Cell[TextData[{
+ "in the ",
+ StyleBox["nonconservative formulation",
+  FontWeight->Bold],
+ ", ",
+ ButtonBox["NeumannValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/NeumannValue"],
+ " specifies the boundary value of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["n", FontSlant -> "Bold"], "\[CenterDot]", 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["d", "TI"], "\[Del]", 
+             StyleBox["c", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> "\\mathbf{n}\\cdot(d\\nabla c)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "9d2ea771-0576-5f4c-b557-7da3edf48eb9"]
+}], "Item",ExpressionUUID->"b0f56c6e-d7a9-9c4c-94aa-11ce1b4cd698"],
+
+Cell["\<\
+This is one of the most important review points for keeping the notebook \
+logically correct. \
+\>", "Text",ExpressionUUID->"774263a5-6fdc-3341-930b-f60030d524a8"],
+
+Cell[CellGroupData[{
+
+Cell["Practical rule", "Subsection",ExpressionUUID->"6fd6b8b9-a780-724d-b9e9-643a2e658553"],
+
+Cell[TextData[{
+ "use the ",
+ StyleBox["conservative form",
+  FontWeight->Bold],
+ " when conservation and true total flux accounting are central"
+}], "Item",ExpressionUUID->"1727ffdb-4c42-2746-9890-bbb0bbdfc394"],
+
+Cell[TextData[{
+ "use the ",
+ StyleBox["nonconservative form",
+  FontWeight->Bold],
+ " only with explicit awareness of how convective boundary contributions are \
+handled"
+}], "Item",ExpressionUUID->"c87f6d6e-3b72-314f-8332-ccc65d5459dc"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"cb4fb367-8511-fc41-93e8-3a962344355e"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["V. Strongest Framework Ranking", "Section",ExpressionUUID->"d606faf3-3b6d-ab49-930b-263be7728e02"],
+
+Cell[CellGroupData[{
+
+Cell["Tier 1: Core RHUFT candidates", "Subsection",ExpressionUUID->"88a56412-9a66-5b4a-9d72-ac045188fffe"],
+
+Cell[TextData[{
+ "1. ",
+ StyleBox["Conservative multi-field reaction-transport system",
+  FontWeight->Bold],
+ "2. ",
+ StyleBox["Abstract conservation-law master equation",
+  FontWeight->Bold],
+ "3. ",
+ StyleBox["Mass transport PDE specialization",
+  FontWeight->Bold]
+}], "Text",ExpressionUUID->"7b206102-b8c4-3b44-a8f0-d1c4a6b3fb7a"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Tier 2: Major extension modules", "Subsection",ExpressionUUID->"90bf6b00-7ddd-3b4d-8ca6-05cf3e6c5696"],
+
+Cell[TextData[{
+ "4. ",
+ StyleBox["Electrostatic drift-diffusion coupling",
+  FontWeight->Bold],
+ "5. ",
+ StyleBox["Coupled reaction-diffusion systems",
+  FontWeight->Bold],
+ "6. ",
+ StyleBox["Interface-reaction or boundary-reaction transport systems",
+  FontWeight->Bold]
+}], "Text",ExpressionUUID->"26366714-9b02-9f4c-9c41-e59ca5a6bcb6"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Tier 3: Special geometries and reduced forms", "Subsection",ExpressionUUID->"8fc6e064-dd53-fb42-9126-f85b8453b7f6"],
+
+Cell["7. axisymmetric transport forms", "Text",ExpressionUUID->"8361da8c-5998-9743-a61f-bffd13715a27"],
+
+Cell["8. radial transport models", "Text",ExpressionUUID->"71933559-1a22-3347-944e-80c8bedc14a0"],
+
+Cell["9. application-specific reduced closures ", "Text",ExpressionUUID->"73842f01-f684-e84e-a576-2082c96a9a0b"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"cf3b3d5b-cade-cf43-b55a-c1a1d1176b20"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["VI. Clean Wolfram Language Framework Templates", "Section",ExpressionUUID->"08570e0a-3c99-3f4b-a3b6-be0a984edb5f"],
+
+Cell[CellGroupData[{
+
+Cell["1. Abstract conservative PDE template", "Subsection",ExpressionUUID->"1931afb8-e94b-9b48-973c-5cfe4dea17ca"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"q", ",", "x", ",", "y", ",", "t", ",", "flux", ",", "source"}], 
+    "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pde", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"D", "[", 
+      RowBox[{
+       RowBox[{"q", "[", 
+        RowBox[{"t", ",", "x", ",", "y"}], "]"}], ",", "t"}], "]"}], "+", 
+     RowBox[{"Div", "[", 
+      RowBox[{
+       RowBox[{"flux", "[", 
+        RowBox[{"t", ",", "x", ",", "y"}], "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"x", ",", "y"}], "}"}]}], "]"}]}], "==", 
+    RowBox[{"source", "[", 
+     RowBox[{"t", ",", "x", ",", "y"}], "]"}]}]}], ";"}]}], "Input",Expression\
+UUID->"0e715a6f-ecb8-5f46-8c5e-773e7997383b"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["2. Transport specialization", "Subsection",ExpressionUUID->"39835cf4-e72d-f74b-a009-41616901fe75"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "c", ",", "x", ",", "y", ",", "t", ",", "d", ",", "vx", ",", "vy", ",", 
+     "reaction"}], "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pde", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"D", "[", 
+      RowBox[{
+       RowBox[{"c", "[", 
+        RowBox[{"t", ",", "x", ",", "y"}], "]"}], ",", "t"}], "]"}], "+", 
+     "\[IndentingNewLine]", "   ", 
+     RowBox[{"Div", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"-", "d"}], " ", 
+         RowBox[{"Grad", "[", 
+          RowBox[{
+           RowBox[{"c", "[", 
+            RowBox[{"t", ",", "x", ",", "y"}], "]"}], ",", 
+           RowBox[{"{", 
+            RowBox[{"x", ",", "y"}], "}"}]}], "]"}]}], "+", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"vx", "[", 
+            RowBox[{"t", ",", "x", ",", "y"}], "]"}], ",", 
+           RowBox[{"vy", "[", 
+            RowBox[{"t", ",", "x", ",", "y"}], "]"}]}], "}"}], " ", 
+         RowBox[{"c", "[", 
+          RowBox[{"t", ",", "x", ",", "y"}], "]"}]}]}], ",", 
+       RowBox[{"{", 
+        RowBox[{"x", ",", "y"}], "}"}]}], "]"}]}], "==", 
+    "\[IndentingNewLine]", "   ", 
+    RowBox[{"reaction", "[", 
+     RowBox[{
+      RowBox[{"c", "[", 
+       RowBox[{"t", ",", "x", ",", "y"}], "]"}], ",", "x", ",", "y", ",", 
+      "t"}], "]"}]}]}], ";"}]}], "Input",ExpressionUUID->"366e6531-4f4d-b448-\
+a52e-53d05a3256ad"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["3. Built-in mass transport component", "Subsection",ExpressionUUID->"b280ed83-9584-c147-9f34-6c27f5095c9c"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"vars", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"c", "[", 
+       RowBox[{"t", ",", "x"}], "]"}], ",", "t", ",", 
+      RowBox[{"{", "x", "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"pars", "=", 
+    RowBox[{"<|", "\[IndentingNewLine]", "   ", 
+     RowBox[{
+      RowBox[{"\"\<DiffusionCoefficient\>\"", "->", "0.026"}], ",", 
+      "\[IndentingNewLine]", "   ", 
+      RowBox[{"\"\<MassConvectionVelocity\>\"", "->", 
+       RowBox[{"{", "0.1", "}"}]}], ",", "\[IndentingNewLine]", "   ", 
+      RowBox[{"\"\<ModelForm\>\"", "->", "\"\<Conservative\>\""}]}], 
+     "\[IndentingNewLine]", "|>"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"fluxBc", "=", 
+   RowBox[{"MassFluxValue", "[", 
+    RowBox[{
+     RowBox[{"x", "==", "0"}], ",", "vars", ",", "pars", ",", 
+     RowBox[{"<|", 
+      RowBox[{"\"\<MassFlux\>\"", "->", "1"}], "|>"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"concBc", "=", 
+    RowBox[{"MassConcentrationCondition", "[", 
+     RowBox[{
+      RowBox[{"x", "==", "1"}], ",", "vars", ",", "pars", ",", 
+      RowBox[{"<|", 
+       RowBox[{"\"\<MassConcentration\>\"", "->", "0"}], "|>"}]}], "]"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"eqn", "=", 
+   RowBox[{
+    RowBox[{"MassTransportPDEComponent", "[", 
+     RowBox[{"vars", ",", "pars"}], "]"}], "==", "fluxBc"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"86cb6656-60d2-9d48-acaf-68eda586e409"],
+
+Cell[TextData[{
+ "This matches the structure documented for ",
+ ButtonBox["MassTransportPDEComponent",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/MassTransportPDEComponent"],
+ " and ",
+ ButtonBox["MassFluxValue",
+  BaseStyle->"Link",
+  ButtonData->"paclet:ref/MassFluxValue"],
+ ". "
+}], "Text",ExpressionUUID->"67109ca1-3a8d-1e48-9da4-257c9fb7b2ad"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"7d1df6d0-3e11-4c44-bdb5-87f50a5c095b"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["VII. Review Conclusions", "Section",ExpressionUUID->"382365d6-b3d0-794d-916a-6fe830c03b42"],
+
+Cell[CellGroupData[{
+
+Cell["Most complete RHUFT framework", "Subsection",ExpressionUUID->"444758ca-72d6-e64e-a8ff-42fffe66ddba"],
+
+Cell[TextData[{
+ "The cleanest and strongest complete candidate is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            SubscriptBox[
+             StyleBox["q", "TI"], 
+             StyleBox["i", "TI"]]}], 
+          RowBox[{"\[PartialD]", 
+            StyleBox["t", "TI"]}]], "+", "\[Del]", "\[CenterDot]", 
+         SubscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["R", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\frac{\\partial q_i}{\\partial t} + \\nabla\\cdot\\mathbf{J}_i = R_i", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "98416079-182b-df4c-bcd0-3eff2792368b"],
+ "with ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", "-", 
+         UnderscriptBox["\[Sum]", 
+          StyleBox["j", "TI"], LimitsPositioning -> True], 
+         SubscriptBox[
+          StyleBox["D", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], "\[Del]", 
+         SubscriptBox[
+          StyleBox["q", "TI"], 
+          StyleBox["j", "TI"]], "+", 
+         SubscriptBox[
+          StyleBox["v", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["q", "TI"], 
+          StyleBox["i", "TI"]], "-", 
+         SubscriptBox["\[Chi]", 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["q", "TI"], 
+          StyleBox["i", "TI"]], "\[Del]", "\[Phi]", "+", 
+         SubsuperscriptBox[
+          StyleBox["J", FontSlant -> "Bold"], 
+          StyleBox["i", "TI"], 
+          StyleBox["cross", FontSlant -> "Plain"]]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\mathbf{J}_i = -\\sum_j D_{ij}\\nabla q_j + \\mathbf{v}_i q_i - \
+\\chi_i q_i\\nabla\\phi + \\mathbf{J}^{\\mathrm{cross}}_i", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "9dda799d-6377-cc43-ac67-d34d2ba6c25c"],
+ "plus auxiliary coupled equations ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["L", "TI"], "\[Alpha]"], 
+         RowBox[{"(", 
+           RowBox[{"\[Psi]", ",", 
+             StyleBox["q", FontSlant -> "Bold"]}], ")"}], "\[LongEqual]", 
+         "0."}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\mathcal{L}_\\alpha(\\boldsymbol{\\psi},\\mathbf{q})=0.", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2a23fa56-1a16-de49-9575-426437eb4e6b"],
+ "  "
+}], "Text",ExpressionUUID->"baf7477f-2bdc-3245-ab2b-efbab93717fe"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Why this should anchor the notebook", "Subsection",ExpressionUUID->"3a2259f4-11af-fb42-854c-f80cc6dbe2d4"],
+
+Cell["it is mathematically clean", "Item",ExpressionUUID->"11ef4a02-d846-4346-89f5-f7a6352159f7"],
+
+Cell["it is physically interpretable", "Item",ExpressionUUID->"023bc5f6-bf04-db4d-999c-1175fff88078"],
+
+Cell["it contains the strongest candidate subclasses", "Item",ExpressionUUID->"d5f50149-b20c-5f42-a310-0ccabdb9776e"],
+
+Cell["it supports a proper review structure", "Item",ExpressionUUID->"0bb7cdbe-b454-f94d-85e7-848da6ff6850"],
+
+Cell["it keeps boundary logic explicit", "Item",ExpressionUUID->"fce84698-97ee-1949-b87c-a849ce3e13db"],
+
+Cell["it is extensible without becoming vague", "Item",ExpressionUUID->"56d453da-5b79-db42-abb1-7f8eba29afd5"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"ffa7a0d4-c335-ff4b-9f63-99cf2dbda907"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["VIII. Next Clean Sections to Add", "Section",ExpressionUUID->"a875a166-3144-6a40-8870-e76d14eea9fc"],
+
+Cell["1. Symbol dictionary and units", "Text",ExpressionUUID->"c2a8a85a-0222-ee46-b690-6ddb04892540"],
+
+Cell["2. Boundary-condition comparison table", "Text",ExpressionUUID->"4af50e0d-2fef-7a40-9a3c-1aa9b857cd2d"],
+
+Cell["3. Conservative vs nonconservative derivation notes", "Text",ExpressionUUID->"1b02b0a3-7ccf-ce4b-9eda-31c1b1cb4b40"],
+
+Cell["4. Canonical subclasses and when to use each", "Text",ExpressionUUID->"d54ec009-ca27-f047-993f-1fb19384bf38"],
+
+Cell["5. Wolfram Language implementation patterns", "Text",ExpressionUUID->"eeb57384-5629-6d4b-aa18-0fdf0823b5f8"],
+
+Cell["6. Verification and validation checklist ", "Text",ExpressionUUID->"51eeeda2-0b79-a243-92e0-6796d985f693"],
+
+Cell[BoxData[
+ TagBox[GridBox[{
+    {
+     TemplateBox[{0},
+      "Spacer1"]},
+    {
+     TemplateBox[{0},
+      "Spacer1"]}
+   },
+   AutoDelete->False,
+   FrameStyle->Directive[
+     LightDarkSwitched[
+      GrayLevel[0.8], 
+      GrayLevel[0.4867756]], 
+     AbsoluteThickness[1]],
+   GridBoxDividers->{
+    "Columns" -> {False, {True}, False}, "Rows" -> {False, {True}, False}},
+   GridBoxItemSize->{"Columns" -> {{Fit}}, "Rows" -> {{Automatic}}}],
+  "Grid"]], "Text", "MarkdownDelimiter",
+ ShowStringCharacters->False,
+ Background->None,ExpressionUUID->"3a7454dc-14f1-8f47-ac06-890fc3caf6fb"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["IX. Final Notebook Position", "Section",ExpressionUUID->"f37dcd60-2958-ac42-b755-9ef348d818b3"],
+
+Cell[TextData[{
+ StyleBox["Recommended final RHUFT review position:",
+  FontWeight->Bold],
+ "Use the ",
+ StyleBox["conservative multi-field reaction-transport framework",
+  FontWeight->Bold],
+ " as the principal RHUFT definition, and treat all other strong candidates \
+as subclasses, reductions, or coupled extensions."
+}], "Text",ExpressionUUID->"9bc23724-f320-d344-98dd-6b63da7dc4f0"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{581.25, 654},
+WindowMargins->{{1143, Automatic}, {Automatic, 445.5}},
+FrontEndVersion->"15.0 for Microsoft Windows (64-bit) (May 19, 2026)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"f333a8cd-b278-9b4a-9e43-43f60cf63a90"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 118, 0, 217, "Title",ExpressionUUID->"e05a8f19-410f-3e4b-95f3-d1cd1e41f1c5"],
+Cell[CellGroupData[{
+Cell[719, 26, 99, 0, 66, "Section",ExpressionUUID->"7ca54ee5-2e77-b244-86fd-d493407acf57"],
+Cell[821, 28, 377, 7, 99, "Text",ExpressionUUID->"8b12e37c-5ecd-434e-947e-f6dbf3c096e7"],
+Cell[1201, 37, 596, 20, 48, "Text",ExpressionUUID->"1dfa70a7-2992-9c4e-9a9a-0c8b0b87c7a6"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[1834, 62, 91, 0, 66, "Section",ExpressionUUID->"b0969ffd-e850-f843-8d6b-de5103ac7aa1"],
+Cell[1928, 64, 225, 6, 50, "Item",ExpressionUUID->"2bca1b9e-5948-9845-8e88-ba168f716b63"],
+Cell[2156, 72, 188, 5, 30, "Item",ExpressionUUID->"2de6ade4-c751-2b43-bc02-f6c4326a08bb"],
+Cell[2347, 79, 339, 14, 50, "Item",ExpressionUUID->"968243ba-08a1-0f4e-a192-86ab6b123698"],
+Cell[2689, 95, 192, 5, 30, "Item",ExpressionUUID->"b08b74a8-d2c6-2d41-abfd-1b455774190f"],
+Cell[2884, 102, 350, 14, 50, "Item",ExpressionUUID->"f4ca401c-4157-474c-81ec-eeeef0b608c3"],
+Cell[3237, 118, 596, 20, 48, "Text",ExpressionUUID->"31a4f0fe-c583-584f-a1c3-4e0c983787da"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3870, 143, 110, 0, 66, "Section",ExpressionUUID->"48233f40-73fc-1045-8ad0-1759cea3fb92"],
+Cell[CellGroupData[{
+Cell[4005, 147, 125, 0, 70, "Subsection",ExpressionUUID->"c62d76bc-7096-e848-982a-be64aeb93b99"],
+Cell[4133, 149, 1429, 33, 70, "Text",ExpressionUUID->"1e758f84-b42f-244b-af96-373a284cbe2c"],
+Cell[5565, 184, 407, 9, 70, "Item",ExpressionUUID->"b5bd7fa6-7471-364a-8cf5-b7f8e2c16022"],
+Cell[5975, 195, 405, 9, 70, "Item",ExpressionUUID->"15aeaed8-f35f-a644-9fb5-4d2d4db1587f"],
+Cell[6383, 206, 423, 9, 70, "Item",ExpressionUUID->"04f3997a-a46b-f84c-b330-bbbfc779d2b4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6843, 220, 82, 0, 70, "Subsection",ExpressionUUID->"be0acb31-22e9-c440-9275-2642efdd005d"],
+Cell[6928, 222, 141, 2, 70, "Text",ExpressionUUID->"b44d2e37-7c63-c747-bc2d-0390df3b1293"],
+Cell[7072, 226, 80, 0, 70, "Item",ExpressionUUID->"e8c4aeee-b40b-3347-a13c-14f02c3e4d9b"],
+Cell[7155, 228, 80, 0, 70, "Item",ExpressionUUID->"b7f2cf52-4145-d649-ab96-fff8f2e6c244"],
+Cell[7238, 230, 76, 0, 70, "Item",ExpressionUUID->"f348b790-1a2c-e648-a079-9e9d8e7e999e"],
+Cell[7317, 232, 88, 0, 70, "Item",ExpressionUUID->"53af7387-03fe-6043-bde2-457988e3965f"],
+Cell[7408, 234, 88, 0, 70, "Item",ExpressionUUID->"d8ad4f06-f452-ea49-b200-4cbca92562a3"],
+Cell[7499, 236, 95, 0, 70, "Item",ExpressionUUID->"71cfe0e1-aaec-7c47-8cd9-233974ff906d"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7631, 241, 90, 0, 70, "Subsection",ExpressionUUID->"b93eac3c-fcd4-0d42-a368-3132a61bc6be"],
+Cell[7724, 243, 131, 1, 70, "Item",ExpressionUUID->"517eefa0-3463-4749-8071-7a7e50ae9be1"],
+Cell[7858, 246, 103, 0, 70, "Item",ExpressionUUID->"d30c87c6-2b00-3246-a291-2000ca4e03c6"],
+Cell[7964, 248, 118, 0, 70, "Item",ExpressionUUID->"78252b21-da0f-b843-a5b7-ef9772e73d1f"],
+Cell[8085, 250, 596, 20, 70, "Text",ExpressionUUID->"42923f01-b7d6-8244-8048-0728b8c94607"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8718, 275, 131, 0, 70, "Subsection",ExpressionUUID->"dc34e6ca-bde3-184d-8927-2d1a11197cf9"],
+Cell[8852, 277, 3016, 79, 70, "Text",ExpressionUUID->"9db6e52f-71e7-fa4a-8787-fdc6ada6407a"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[11905, 361, 82, 0, 70, "Subsection",ExpressionUUID->"e3a83f3c-9e89-0a4e-848e-916f1f7a6d72"],
+Cell[11990, 363, 157, 2, 70, "Text",ExpressionUUID->"5acb2f2d-31f8-3e42-bb92-8f820e25bb73"],
+Cell[12150, 367, 99, 0, 70, "Item",ExpressionUUID->"da329816-9837-6842-a46f-46795687d56c"],
+Cell[12252, 369, 81, 0, 70, "Item",ExpressionUUID->"61c5ff35-b4b9-c445-8ae0-3d3729e2dd2a"],
+Cell[12336, 371, 89, 0, 70, "Item",ExpressionUUID->"75abc401-13b5-eb47-9ba9-076d3fb759d5"],
+Cell[12428, 373, 91, 0, 70, "Item",ExpressionUUID->"253e2cba-4dde-634a-b2dc-53f0ed81109e"],
+Cell[12522, 375, 99, 0, 70, "Item",ExpressionUUID->"6f1935d8-c813-8f43-a8fe-cc686a2c33f2"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[12658, 380, 90, 0, 70, "Subsection",ExpressionUUID->"4870f853-a79f-5d4c-ac9c-16df51d9eedd"],
+Cell[12751, 382, 142, 2, 70, "Item",ExpressionUUID->"304673a7-d71f-1f48-a807-eeb7a296097a"],
+Cell[12896, 386, 140, 2, 70, "Item",ExpressionUUID->"0e3e6c9c-e09b-bb41-abdd-48157bc9dcc6"],
+Cell[13039, 390, 111, 0, 70, "Item",ExpressionUUID->"d8fe04c5-9d9b-a645-9994-e9912611e2af"],
+Cell[13153, 392, 596, 20, 70, "Text",ExpressionUUID->"2c62c1ea-d008-e747-8fb3-38c110e85813"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[13786, 417, 118, 0, 70, "Subsection",ExpressionUUID->"e07371a7-309a-0944-b897-4e822259e29d"],
+Cell[13907, 419, 1586, 41, 70, "Text",ExpressionUUID->"d823eddf-218d-c440-b5da-15e393dc251e"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[15530, 465, 82, 0, 70, "Subsection",ExpressionUUID->"aa9ddf57-d0b0-2149-a0af-1a53365ccaa3"],
+Cell[15615, 467, 176, 3, 70, "Text",ExpressionUUID->"568322d2-3364-b04a-a0d4-a346781dfd1a"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[15828, 475, 90, 0, 70, "Subsection",ExpressionUUID->"17bd87e0-39ae-6643-bf11-5c3059bb44eb"],
+Cell[15921, 477, 133, 1, 70, "Item",ExpressionUUID->"555d1f0b-9147-7a40-920a-dc630bbda618"],
+Cell[16057, 480, 119, 0, 70, "Item",ExpressionUUID->"e5078bef-760a-894d-a43d-1f023f87c9de"],
+Cell[16179, 482, 140, 2, 70, "Item",ExpressionUUID->"7e91a75d-bc52-0841-aa6d-ed659b6924e2"],
+Cell[16322, 486, 596, 20, 70, "Text",ExpressionUUID->"e57f3f0c-10c2-1946-ae59-b913338741e3"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[16955, 511, 124, 0, 70, "Subsection",ExpressionUUID->"3643bbe8-c372-d146-860e-407d23b7ca08"],
+Cell[17082, 513, 2091, 56, 70, "Text",ExpressionUUID->"13ebcd6e-b271-054e-a57b-48ccef9cdbd4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[19210, 574, 82, 0, 70, "Subsection",ExpressionUUID->"db9611d7-d777-e94b-a54d-7aaa507b0823"],
+Cell[19295, 576, 213, 3, 70, "Text",ExpressionUUID->"1b243292-e883-b043-bb79-465e3de3cbcf"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[19545, 584, 90, 0, 70, "Subsection",ExpressionUUID->"876fabf2-6c17-7641-8dbb-63ed1c8546a1"],
+Cell[19638, 586, 86, 0, 70, "Item",ExpressionUUID->"a5685db1-f4bf-434e-af6d-8e1172f4a787"],
+Cell[19727, 588, 141, 2, 70, "Item",ExpressionUUID->"8e481a0c-8c69-da42-bf2a-2aa132e721b0"],
+Cell[19871, 592, 596, 20, 70, "Text",ExpressionUUID->"c69ae76f-9828-a64a-b56d-3a2ae99da6cb"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[20504, 617, 133, 0, 70, "Subsection",ExpressionUUID->"4d6b108f-4cc2-114d-a275-ac9629797823"],
+Cell[20640, 619, 2406, 61, 70, "Text",ExpressionUUID->"4b2c8bbb-0edd-6447-afc9-ec616b71fe9d"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[23083, 685, 82, 0, 70, "Subsection",ExpressionUUID->"cdc25de5-a86c-284e-9586-0073f1e0e331"],
+Cell[23168, 687, 195, 3, 70, "Text",ExpressionUUID->"a97f3df6-6749-3c42-859f-2dde28cf1b7b"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[23400, 695, 90, 0, 70, "Subsection",ExpressionUUID->"099eec41-3a0e-6b4a-9df5-1a4e9b7c4cb9"],
+Cell[23493, 697, 100, 0, 70, "Item",ExpressionUUID->"e1755a22-7263-4a4b-a080-75a20401ed30"],
+Cell[23596, 699, 111, 0, 70, "Item",ExpressionUUID->"ac7e05bd-6f2e-a54e-aa58-dd65a35fc9a2"],
+Cell[23710, 701, 596, 20, 70, "Text",ExpressionUUID->"594fb2a9-6118-cb40-ad0a-b50b04494330"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[24355, 727, 111, 0, 70, "Section",ExpressionUUID->"cfca28d4-c2b3-5d4c-b86b-ec1691d6fdf7"],
+Cell[24469, 729, 124, 0, 70, "Text",ExpressionUUID->"272502f9-2b18-3243-bb98-bd51dc93241a"],
+Cell[24596, 731, 6333, 146, 70, "Text",ExpressionUUID->"9f636914-729b-b44c-9b4b-41ff7034418d"],
+Cell[CellGroupData[{
+Cell[30954, 881, 98, 0, 70, "Subsection",ExpressionUUID->"b39b8d41-6a9d-1e40-acc4-72bca6be601a"],
+Cell[31055, 883, 103, 0, 70, "Item",ExpressionUUID->"69e8c094-210b-7644-8606-8b13c3904f8b"],
+Cell[31161, 885, 113, 0, 70, "Item",ExpressionUUID->"3cd3023f-0b2b-5e45-acd5-86e2deced062"],
+Cell[31277, 887, 92, 0, 70, "Item",ExpressionUUID->"f24e217e-5497-284e-b0ce-69d6e42191aa"],
+Cell[31372, 889, 124, 0, 70, "Item",ExpressionUUID->"36451be1-26b9-bf46-8296-63c9d6e75d64"],
+Cell[31499, 891, 109, 0, 70, "Item",ExpressionUUID->"ac66d0cb-d783-6b4d-976b-e1c77569e38e"],
+Cell[31611, 893, 222, 6, 70, "Item",ExpressionUUID->"f9cf3d1d-d5bf-5844-817b-760f686e5a9d"],
+Cell[31836, 901, 596, 20, 70, "Text",ExpressionUUID->"7cf55914-22eb-4f4f-86a9-ae13c0cbf8f0"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[32481, 927, 100, 0, 70, "Section",ExpressionUUID->"98e6acf9-566e-0f42-b286-7880128f62e4"],
+Cell[32584, 929, 145, 2, 70, "Text",ExpressionUUID->"cc4c94e3-a983-e948-aad3-5ec139b3ace3"],
+Cell[32732, 933, 178, 3, 70, "Item",ExpressionUUID->"01152c4d-2290-9a4b-81fb-626c701b7d51"],
+Cell[32913, 938, 166, 3, 70, "Item",ExpressionUUID->"47ced413-efbd-0e41-88fd-f3a812b20728"],
+Cell[33082, 943, 192, 3, 70, "Item",ExpressionUUID->"a53e054c-1d53-d04f-a5a5-eb3780573b58"],
+Cell[33277, 948, 146, 2, 70, "Text",ExpressionUUID->"7ede5fe4-7751-9b4c-aab0-e7245d485981"],
+Cell[33426, 952, 101, 0, 70, "Text",ExpressionUUID->"6b70f493-c92a-f74b-919c-36f63b7dc648"],
+Cell[33530, 954, 83, 0, 70, "Text",ExpressionUUID->"bf5dd3b0-9ad9-ab4b-be0f-ca2965eac9b3"],
+Cell[33616, 956, 96, 0, 70, "Text",ExpressionUUID->"b2e5f764-49d4-b74e-8140-59bb45e208cf"],
+Cell[33715, 958, 87, 0, 70, "Text",ExpressionUUID->"a7a79f48-e5f9-a74f-bbc5-937c3997b686"],
+Cell[33805, 960, 228, 6, 70, "Text",ExpressionUUID->"3aed5347-2ced-484a-ab46-5a896f526970"],
+Cell[CellGroupData[{
+Cell[34058, 970, 106, 0, 70, "Subsection",ExpressionUUID->"d84bb4ee-30f7-704a-b329-41f5be971b33"],
+Cell[CellGroupData[{
+Cell[34189, 974, 95, 0, 70, "Subsubsection",ExpressionUUID->"0f2bf1ed-d8db-c047-a1a6-803015e004d6"],
+Cell[34287, 976, 939, 25, 70, "Text",ExpressionUUID->"0dbc85cf-e1e1-eb47-a426-0da45ecf5ceb"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[35263, 1006, 94, 0, 70, "Subsubsection",ExpressionUUID->"044ac3c2-e39d-104c-9273-65982e8e6601"],
+Cell[35360, 1008, 1017, 27, 70, "Text",ExpressionUUID->"73c71d66-af92-024c-8cc2-55c5ef73f18f"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[36414, 1040, 101, 0, 70, "Subsubsection",ExpressionUUID->"98bcf304-0298-cf41-8351-553764270dec"],
+Cell[36518, 1042, 689, 14, 70, "Text",ExpressionUUID->"68587683-b89f-5643-b8a5-163c89bdad47"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[37244, 1061, 107, 0, 70, "Subsubsection",ExpressionUUID->"40419c87-afc6-9f4e-b749-66e447bbd906"],
+Cell[37354, 1063, 1035, 27, 70, "Text",ExpressionUUID->"0b58aa69-dac2-1d46-8fa6-3e841961bcc4"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[38426, 1095, 97, 0, 70, "Subsubsection",ExpressionUUID->"74a17e8d-ff91-7548-8b4f-fe00b7c1d0ab"],
+Cell[38526, 1097, 231, 4, 70, "Text",ExpressionUUID->"098245f9-3068-0740-a1e3-7387ba032af6"],
+Cell[38760, 1103, 596, 20, 70, "Text",ExpressionUUID->"a693ca70-92c0-c241-b790-2f2a49b5fde1"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[39417, 1130, 115, 0, 70, "Section",ExpressionUUID->"50c4ca80-f14b-0d4c-b2ec-e4450d37972a"],
+Cell[39535, 1132, 155, 2, 70, "Text",ExpressionUUID->"25beeae0-005c-594a-b5f6-773ac4379e83"],
+Cell[39693, 1136, 117, 0, 70, "Text",ExpressionUUID->"34837adc-bd7d-df4b-9470-7d5b1e9638fb"],
+Cell[39813, 1138, 885, 24, 70, "Item",ExpressionUUID->"3f9e9a05-9ad9-4a48-a164-ad2ad330df8a"],
+Cell[40701, 1164, 777, 21, 70, "Item",ExpressionUUID->"b0f56c6e-d7a9-9c4c-94aa-11ce1b4cd698"],
+Cell[41481, 1187, 173, 3, 70, "Text",ExpressionUUID->"774263a5-6fdc-3341-930b-f60030d524a8"],
+Cell[CellGroupData[{
+Cell[41679, 1194, 91, 0, 70, "Subsection",ExpressionUUID->"6fd6b8b9-a780-724d-b9e9-643a2e658553"],
+Cell[41773, 1196, 212, 5, 70, "Item",ExpressionUUID->"1727ffdb-4c42-2746-9890-bbb0bbdfc394"],
+Cell[41988, 1203, 238, 6, 70, "Item",ExpressionUUID->"c87f6d6e-3b72-314f-8332-ccc65d5459dc"],
+Cell[42229, 1211, 596, 20, 70, "Text",ExpressionUUID->"cb4fb367-8511-fc41-93e8-3a962344355e"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[42874, 1237, 104, 0, 70, "Section",ExpressionUUID->"d606faf3-3b6d-ab49-930b-263be7728e02"],
+Cell[CellGroupData[{
+Cell[43003, 1241, 106, 0, 70, "Subsection",ExpressionUUID->"88a56412-9a66-5b4a-9d72-ac045188fffe"],
+Cell[43112, 1243, 334, 10, 70, "Text",ExpressionUUID->"7b206102-b8c4-3b44-a8f0-d1c4a6b3fb7a"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[43483, 1258, 108, 0, 70, "Subsection",ExpressionUUID->"90bf6b00-7ddd-3b4d-8ca6-05cf3e6c5696"],
+Cell[43594, 1260, 339, 10, 70, "Text",ExpressionUUID->"26366714-9b02-9f4c-9c41-e59ca5a6bcb6"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[43970, 1275, 121, 0, 70, "Subsection",ExpressionUUID->"8fc6e064-dd53-fb42-9126-f85b8453b7f6"],
+Cell[44094, 1277, 102, 0, 70, "Text",ExpressionUUID->"8361da8c-5998-9743-a61f-bffd13715a27"],
+Cell[44199, 1279, 97, 0, 70, "Text",ExpressionUUID->"71933559-1a22-3347-944e-80c8bedc14a0"],
+Cell[44299, 1281, 112, 0, 70, "Text",ExpressionUUID->"73842f01-f684-e84e-a576-2082c96a9a0b"],
+Cell[44414, 1283, 596, 20, 70, "Text",ExpressionUUID->"cf3b3d5b-cade-cf43-b55a-c1a1d1176b20"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[45059, 1309, 120, 0, 70, "Section",ExpressionUUID->"08570e0a-3c99-3f4b-a3b6-be0a984edb5f"],
+Cell[CellGroupData[{
+Cell[45204, 1313, 114, 0, 70, "Subsection",ExpressionUUID->"1931afb8-e94b-9b48-973c-5cfe4dea17ca"],
+Cell[45321, 1315, 766, 22, 70, "Input",ExpressionUUID->"0e715a6f-ecb8-5f46-8c5e-773e7997383b"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[46124, 1342, 104, 0, 70, "Subsection",ExpressionUUID->"39835cf4-e72d-f74b-a009-41616901fe75"],
+Cell[46231, 1344, 1502, 44, 70, "Input",ExpressionUUID->"366e6531-4f4d-b448-a52e-53d05a3256ad"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[47770, 1393, 113, 0, 70, "Subsection",ExpressionUUID->"b280ed83-9584-c147-9f34-6c27f5095c9c"],
+Cell[47886, 1395, 1601, 41, 70, "Input",ExpressionUUID->"86cb6656-60d2-9d48-acaf-68eda586e409"],
+Cell[49490, 1438, 353, 10, 70, "Text",ExpressionUUID->"67109ca1-3a8d-1e48-9da4-257c9fb7b2ad"],
+Cell[49846, 1450, 596, 20, 70, "Text",ExpressionUUID->"7d1df6d0-3e11-4c44-bdb5-87f50a5c095b"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[50491, 1476, 97, 0, 70, "Section",ExpressionUUID->"382365d6-b3d0-794d-916a-6fe830c03b42"],
+Cell[CellGroupData[{
+Cell[50613, 1480, 106, 0, 70, "Subsection",ExpressionUUID->"444758ca-72d6-e64e-a8ff-42fffe66ddba"],
+Cell[50722, 1482, 2939, 78, 70, "Text",ExpressionUUID->"baf7477f-2bdc-3245-ab2b-efbab93717fe"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[53698, 1565, 112, 0, 70, "Subsection",ExpressionUUID->"3a2259f4-11af-fb42-854c-f80cc6dbe2d4"],
+Cell[53813, 1567, 97, 0, 70, "Item",ExpressionUUID->"11ef4a02-d846-4346-89f5-f7a6352159f7"],
+Cell[53913, 1569, 101, 0, 70, "Item",ExpressionUUID->"023bc5f6-bf04-db4d-999c-1175fff88078"],
+Cell[54017, 1571, 117, 0, 70, "Item",ExpressionUUID->"d5f50149-b20c-5f42-a310-0ccabdb9776e"],
+Cell[54137, 1573, 108, 0, 70, "Item",ExpressionUUID->"0bb7cdbe-b454-f94d-85e7-848da6ff6850"],
+Cell[54248, 1575, 103, 0, 70, "Item",ExpressionUUID->"fce84698-97ee-1949-b87c-a849ce3e13db"],
+Cell[54354, 1577, 110, 0, 70, "Item",ExpressionUUID->"56d453da-5b79-db42-abb1-7f8eba29afd5"],
+Cell[54467, 1579, 596, 20, 70, "Text",ExpressionUUID->"ffa7a0d4-c335-ff4b-9f63-99cf2dbda907"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[55112, 1605, 106, 0, 70, "Section",ExpressionUUID->"a875a166-3144-6a40-8870-e76d14eea9fc"],
+Cell[55221, 1607, 101, 0, 70, "Text",ExpressionUUID->"c2a8a85a-0222-ee46-b690-6ddb04892540"],
+Cell[55325, 1609, 109, 0, 70, "Text",ExpressionUUID->"4af50e0d-2fef-7a40-9a3c-1aa9b857cd2d"],
+Cell[55437, 1611, 122, 0, 70, "Text",ExpressionUUID->"1b02b0a3-7ccf-ce4b-9eda-31c1b1cb4b40"],
+Cell[55562, 1613, 115, 0, 70, "Text",ExpressionUUID->"d54ec009-ca27-f047-993f-1fb19384bf38"],
+Cell[55680, 1615, 114, 0, 70, "Text",ExpressionUUID->"eeb57384-5629-6d4b-aa18-0fdf0823b5f8"],
+Cell[55797, 1617, 112, 0, 70, "Text",ExpressionUUID->"51eeeda2-0b79-a243-92e0-6796d985f693"],
+Cell[55912, 1619, 596, 20, 70, "Text",ExpressionUUID->"3a7454dc-14f1-8f47-ac06-890fc3caf6fb"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[56545, 1644, 101, 0, 70, "Section",ExpressionUUID->"f37dcd60-2958-ac42-b755-9ef348d818b3"],
+Cell[56649, 1646, 387, 8, 70, "Text",ExpressionUUID->"9bc23724-f320-d344-98dd-6b63da7dc4f0"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

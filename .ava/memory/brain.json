@@ -1,0 +1,13 @@
+{
+  "projectRoot": "c:\\Users\\user-pc\\Desktop\\Workflow\\.devcontainer\\.ava",
+  "generatedAt": "2026-07-28T14:49:14.881Z",
+  "nodeCount": 9,
+  "brief": "[Project: .ava]\nOpen issues: All three memories are now coherent and mutually consistent… | **File 6 — `geometry/closureResidual.ts` is done and verifi… | Machine rules aren't available in this host, so the two pro…\nNodes: 9 active, confidence avg 0.73",
+  "stack": [],
+  "keyDecisions": [],
+  "activeWork": [],
+  "knownPatterns": [],
+  "confidenceAvg": 0.73,
+  "lastSessionDate": "2026-07-28",
+  "graphHash": "9-0-2026-07-28T11:17:25.867Z"
+}
