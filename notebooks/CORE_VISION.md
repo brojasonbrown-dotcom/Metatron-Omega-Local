@@ -189,4 +189,4 @@ Received 2026-07-28. Sheet 03 rebuilds the φ-scale ladder **as a logarithmic ma
 
 ---
 
-*Core Vision v1.8 · 2026-07-28 · condensed from BRAINMAP_18_Scale_Engine.md + BRAINMAP_BUILD_SPEC.md (+ MEMORY_ALGORITHMS.md for File 9/12 math; THL-MP-001 / THL-MSC-020 / THL-MSC-003 author's blueprints; legacy `brain v14/RHUFTFrameworks.ts` reviewed & dissolved). The full docs are the authority; keep this file in sync and short. **STATUS: all 18 files built & green (213/213 tests, tsc clean) — the closed 18-torus engine is complete end-to-end.***
+*Core Vision v1.8 · 2026-07-28 · condensed from BRAINMAP_18_Scale_Engine.md + BRAINMAP_BUILD_SPEC.md (+ MEMORY_ALGORITHMS.md for File 9/12 math; THL-MP-001 / THL-MSC-020 / THL-MSC-003 author's blueprints; legacy `brain v14/RHUFTFrameworks.ts` reviewed & dissolved). The full docs are the authority; keep this file in sync and short.

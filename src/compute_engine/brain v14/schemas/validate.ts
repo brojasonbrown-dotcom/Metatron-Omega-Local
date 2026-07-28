@@ -233,6 +233,12 @@ export interface SerializedConcept {
   readonly labels: string[];
   /** base64 of the raw Float64Array(28) bytes (little-endian). */
   readonly prototype: string;
+  /**
+   * Optional base64 of the semantic prototype (the fused word-geometry).
+   * Absent in older saves and for unnamed concepts; rebuilt from labels on
+   * restore when missing. [SPEC]
+   */
+  readonly semantic?: string;
   readonly reinforcement: number;
   readonly firstSeen: number;
   readonly lastSeen: number;
@@ -305,6 +311,18 @@ export function validateMindState(raw: unknown): ValidationResult<SerializedMind
     if (!protoCheck.ok) {
       return { ok: false, reason: `mind_state: concepts[${i}].${protoCheck.reason}` };
     }
+    // Optional semantic prototype: validate only if present (older saves omit it).
+    let semantic: string | undefined;
+    if (co["semantic"] !== undefined) {
+      if (!isNonEmptyString(co["semantic"])) {
+        return { ok: false, reason: `mind_state: concepts[${i}].semantic must be a non-empty string when present` };
+      }
+      const semCheck = decodeFieldBase64(co["semantic"] as string);
+      if (!semCheck.ok) {
+        return { ok: false, reason: `mind_state: concepts[${i}].${semCheck.reason}` };
+      }
+      semantic = co["semantic"] as string;
+    }
     if (!isFiniteNumber(co["reinforcement"]) || (co["reinforcement"] as number) < 0) {
       return { ok: false, reason: `mind_state: concepts[${i}].reinforcement invalid` };
     }
@@ -315,6 +333,7 @@ export function validateMindState(raw: unknown): ValidationResult<SerializedMind
       id: co["id"] as string,
       labels: co["labels"] as string[],
       prototype: co["prototype"] as string,
+      ...(semantic !== undefined ? { semantic } : {}),
       reinforcement: co["reinforcement"] as number,
       firstSeen: co["firstSeen"] as number,
       lastSeen: co["lastSeen"] as number,

@@ -52,6 +52,12 @@ export function fieldFromLuminanceGrid(
       `signal_codec.fieldFromLuminanceGrid: grid length ${grid.length} !== ${width}x${height}`
     );
   }
+  // Reject non-finite samples — a corrupt capture must not poison the field. [SPEC]
+  for (let i = 0; i < grid.length; i++) {
+    if (!Number.isFinite(grid[i])) {
+      throw new Error(`signal_codec.fieldFromLuminanceGrid: grid[${i}] is not finite`);
+    }
+  }
 
   // Remove mean: structure over brightness. [SPEC]
   let mean = 0.0;
@@ -99,6 +105,15 @@ export function fieldFromLuminanceGrid(
 export function fieldFromWaveform(samples: Float64Array, sampleRate: number): Float64Array {
   if (samples.length < 2 || sampleRate <= 0) {
     throw new Error("signal_codec.fieldFromWaveform: need >= 2 samples and a positive rate");
+  }
+  // Reject non-finite samples — a corrupt buffer must not poison the field. [SPEC]
+  if (!Number.isFinite(sampleRate)) {
+    throw new Error("signal_codec.fieldFromWaveform: sampleRate is not finite");
+  }
+  for (let i = 0; i < samples.length; i++) {
+    if (!Number.isFinite(samples[i])) {
+      throw new Error(`signal_codec.fieldFromWaveform: samples[${i}] is not finite`);
+    }
   }
 
   // Remove DC offset.

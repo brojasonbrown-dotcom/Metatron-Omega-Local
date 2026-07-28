@@ -76,3 +76,34 @@ PHYSICS (honest provenance):
 GOTCHA FIXED: first version had densityOversample = (φ^(125−n))^0.25 = combinatorial explosion (7 BILLION samples on n=27, 3M× on n=1) — demo caught it, tests didn't. Rewrote to info-linear bounded form. LESSON: always live-demo a schedule before trusting it; geometric multipliers on mesh² explode.
 
 Tests: 8 new in tests/file19.scaleMeasurement.test.ts (resolution monotone, oversample bounded+monotone, largest-first, 4 invariants each, phase-lag measured, ZERO-REGRESSION purity, determinism, guards). Full battery 221/221 (was 213), tsc exit 0. Commits: 4bac30a baseline, 1f4ef3e file19, ddc75af calibration.
+
+#### 2026-07-28
+# Brain v14 — blobs/manifests handling + learning architecture
+
+## Blobs (the 5.4GB) — handled 2026
+- `src/compute_engine/brain v14/{blobs,manifests}/` = a local **Ollama model store** (phi 2.7B language + mathstral 7B math), NOT linguistic data files.
+- The two big blobs are GGUF model weights (1.6GB + 4.1GB); small ones are license/template/params JSON.
+- User decision: **never push blobs to GitHub**. Purged from git history (was in the 4bac30a baseline commit, removed via amend + gc). `.gitignore` now has `**/blobs/`. Repo .git went 5.34 GiB → 191 MB. Blobs remain on disk. Manifests ARE committed (tiny JSON, re-pullable models via `ollama pull phi` / `ollama pull mathstral`).
+- Remote: github.com/brojasonbrown-dotcom/Brain-v14.4 — remote history (e3fb537) is UNRELATED to local (no common ancestor). Push requires force / reconcile — user to decide.
+
+## How the mind learns (the loop)
+1. **Engine is the learner, LLMs are instruments** ([PHIL]): "The LLMs are NOT the mind. The engine remains the sole locus of learning."
+2. **Language codec** (`adapters/language_codec.ts`): text → 28-element interleaved-complex field via Latin gematria (a-i=1-9, j-r=10-90, s-z=100-800) + 14 φ-weighted DFT modes (amplitude φ^(-k/2), golden phase θ_k=2πkφ⁻¹/89), mean-removed, L2-normalized. Similarity = resonance kernel C(a,b)=|⟨a|b⟩|²/(|a|²|b|²) — same kernel everywhere.
+3. **Cognitive loop** (146ms = 1000/φ⁴ tick): SENSE (drain ≤5 frames → engine.process) → DETECT (ExistenceDetector, stable thought after ≥3 ticks) → RECOGNIZE (resonance vs ConceptRegistry, λ=1/φ²≈0.382) → ACT (DriveArbiter picks name/define/relate/verify) → VOICE (phi phrases, spoken) → PERSIST.
+4. **Closed learning loop**: every validated LLM answer is `encodeText`'d and pushed back through the SensorBus as "llm.answer" → next tick's engine.process() physically learns it (L1_Pattern/L2_Hebbian/L4′).
+5. **ConceptRegistry**: prototype = 28-elem field, learning = φ-decayed reinforcement (η=1/φ²), recognition = top resonance ≥ λ; mints new concept below threshold; cap 10946 (F_21), evicts weakest; labels capped at 13/concept.
+6. **DriveArbiter**: curiosity = φ-weighted (novelty φ⁻¹, surprise φ⁻², richness φ⁻³). Bootstrap = first 144 stable thoughts MUST act. After: curiosity gate rises as lexicon deepens. Unknown→name, shallow→define/relate, structure pressure→verify (mathstral).
+7. **LLM instruments** (`llm_tool.ts`): phi (nameThis/define/relate/phrase), mathstral (verifyStructure). JSON format-constrained, schema-validated, retry on φ-ladder timeouts (34s/55s/89s), temp=1/φ²≈0.382, one call in flight per model. Never mocked.
+8. **Persistence** (`memory_store.ts`): mind_state.json (schema-validated, atomic tmp+rename, corrupt→quarantine) + append-only journal.jsonl audit trail.
+
+Everything is φ/Fibonacci-proportioned [SPEC]: tick 146ms, snapshot every 13 thoughts / 987 ticks, max frames 5, thought queue 3, 13 warmup attempts, labels ≤13.
+
+#### 2026-07-28
+# Brain v14 — No-Regression Baseline (captured 2026, before hardening work)
+
+Run in `src/compute_engine/brain v14/`:
+- `npm run typecheck` → **PASS**. Custom gate (scripts/typecheck_mind.mjs): mind-layer errors must be **0** (adapters/, cognition/, schemas/, tests/, run_mind.ts); legacy errors (frameworks.ts, RHUFTFrameworks.ts, compute_worker.ts, GeometricReflection.ts, membrane_stabilizer.ts, resonance_finder.ts, SpherePrinciple.ts) are gated at a **baseline of 45** — count may never EXCEED 45. Legacy errors don't affect runtime (Node ≥25 type-strips).
+- `npm test` (vitest run) → **61 passed, 2 skipped** (integration.ollama.test.ts skips without a live Ollama). 5 test files: language_codec, drive_thought, sensors, registry_persistence, integration.ollama.
+- Node v25.8.1. vitest 2.1.9. No vitest config file (defaults). TS 5.6.
+
+Any hardening/memory work must keep: typecheck PASS (mind-layer 0, legacy ≤45) and all 61 unit tests green. Run both after every change before calling it done.

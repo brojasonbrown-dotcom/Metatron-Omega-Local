@@ -31,6 +31,7 @@ import { ExistenceDetector, type ExistenceScore } from "./../existence_detector.
 import type { FractalNodeEngine } from "./../fractal_node_engine.ts";
 import type { ConceptRegistry, ObserveResult } from "./concept_registry.ts";
 import { DriveArbiter, type DriveState, type MindAction } from "./drive_arbiter.ts";
+import { HopfieldMemory } from "./hopfield.ts";
 import type { MemoryStore } from "./memory_store.ts";
 import { ThoughtTracker, type Thought } from "./thought.ts";
 
@@ -62,6 +63,12 @@ export class CognitiveLoop {
   private readonly _deps: CognitiveLoopDeps;
   private readonly _arbiter = new DriveArbiter();
   private readonly _tracker = new ThoughtTracker();
+  /**
+   * Associative episodic memory: high-capacity modern-Hopfield bank retaining
+   * distinct stable-thought attractors (complementary to the registry's averaged
+   * prototypes). Enables one-step recall of a stored episode from a partial cue. [MATH]
+   */
+  private readonly _episodes = new HopfieldMemory();
 
   private _running = false;
   private _timer: NodeJS.Timeout | null = null;
@@ -176,6 +183,10 @@ export class CognitiveLoop {
     );
     thought.labels = [...obs.concept.labels];
 
+    // EPISODIC: retain the distinct attractor and recall what it echoes. [MATH]
+    this._episodes.store(thought.field);
+    const association = this._episodes.retrieve(thought.field);
+
     store.journal({
       t: Date.now(),
       kind: "thought",
@@ -188,6 +199,9 @@ export class CognitiveLoop {
         resonance: obs.resonance,
         labels: thought.labels,
         sources: thought.sources,
+        // Associative recall: the stored episode this thought most strongly
+        // reactivates, and its resonance — the mind noticing a rhyme across time.
+        association: association.ok ? association.resonance : null,
         scores: {
           signal: score.signalScore,
           persistence: score.persistenceScore,
@@ -322,6 +336,9 @@ export class CognitiveLoop {
     }
 
     registry.addLabels(obs.concept.id, out.value.labels, "llm.nameThis");
+    // Symbol grounding: fuse each label's word-geometry into the concept so the
+    // percept and its name become one attractor. [PHIL]
+    for (const label of out.value.labels) registry.bindLabel(obs.concept.id, label);
     thought.labels = [...out.value.labels];
     store.journal({
       t: Date.now(),
@@ -353,6 +370,9 @@ export class CognitiveLoop {
     }
 
     registry.addLabels(obs.concept.id, out.value.related, "llm.define");
+    // Bind the defined word + its related words into the concept's geometry. [PHIL]
+    registry.bindLabel(obs.concept.id, word);
+    for (const rel of out.value.related) registry.bindLabel(obs.concept.id, rel);
     store.journal({
       t: Date.now(),
       kind: "tool.ok",
@@ -363,7 +383,7 @@ export class CognitiveLoop {
 
   /** Known concept with ≥ 2 labels → phi relates them → learned. */
   private async _actRelate(thought: Thought, obs: ObserveResult): Promise<void> {
-    const { llm, store } = this._deps;
+    const { llm, registry, store } = this._deps;
     const [a, b] = obs.concept.labels;
     if (!a || !b) {
       await this._actDefine(thought, obs);
@@ -380,6 +400,10 @@ export class CognitiveLoop {
       });
       return;
     }
+
+    // Strengthen the shared geometry of both related labels on this concept. [PHIL]
+    registry.bindLabel(obs.concept.id, a);
+    registry.bindLabel(obs.concept.id, b);
 
     store.journal({
       t: Date.now(),
@@ -433,6 +457,15 @@ export class CognitiveLoop {
     const { bus, store } = this._deps;
     try {
       const field = encodeText(text);
+      // Containment: never push a degenerate field into the engine. [SPEC]
+      if (field.length === 0 || !field.every((x) => Number.isFinite(x))) {
+        store.journal({
+          t: Date.now(),
+          kind: "error",
+          data: { where: "cognitive_loop.learnText", tool, reason: "encoded field not finite" },
+        });
+        return;
+      }
       const accepted = bus.push({
         source: "llm.answer",
         timestamp: Date.now(),
@@ -464,9 +497,10 @@ export class CognitiveLoop {
   }
 
   private _snapshot(trigger: string): void {
-    const { store, registry } = this._deps;
+    const { store, registry, bus } = this._deps;
     try {
       store.save(registry, this._stableThoughtCount);
+      const busStats = bus.stats();
       store.journal({
         t: Date.now(),
         kind: "snapshot",
@@ -475,6 +509,10 @@ export class CognitiveLoop {
           concepts: registry.size,
           stableThoughts: this._stableThoughtCount,
           ticks: this._tickCount,
+          // Honest learning-health telemetry (TRUTH_SOURCES — never fabricated).
+          episodes: this._episodes.size,
+          annIndexSize: registry.size >= registry.annThreshold ? registry.size : 0,
+          bus: { accepted: busStats.accepted, rejected: busStats.rejected, dropped: busStats.dropped },
         },
       });
     } catch (err) {

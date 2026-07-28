@@ -138,8 +138,23 @@ export function encodeText(text: string): Float64Array {
   return normalizeField(field);
 }
 
-/** Normalize a field to unit L2 norm (no-op for zero fields is an error). */
+/** True if every element of the field is finite (no NaN/Infinity). [SPEC] */
+export function isFieldFinite(field: Float64Array): boolean {
+  for (let i = 0; i < field.length; i++) {
+    if (!Number.isFinite(field[i])) return false;
+  }
+  return true;
+}
+
+/**
+ * Normalize a field to unit L2 norm.
+ * Throws on a zero or non-finite field — the codec never fabricates a direction
+ * for a field that has none (TRUTH_SOURCES). [SPEC]
+ */
 export function normalizeField(field: Float64Array): Float64Array {
+  if (!isFieldFinite(field)) {
+    throw new Error("language_codec.normalizeField: field contains NaN or Infinity");
+  }
   let normSq = 0.0;
   for (let i = 0; i < field.length; i++) {
     normSq += field[i] * field[i];
@@ -212,4 +227,105 @@ export function reinforceField(oldField: Float64Array, incoming: Float64Array): 
     out[i] = oldField[i] * (1.0 - eta) + incoming[i] * eta;
   }
   return normalizeField(out);
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Meaning binding — fuse word-geometry into percept-geometry (symbol grounding)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Blend two unit-norm fields with an explicit weight, then re-normalize.
+ *
+ * [MATH] out = normalize( a·(1 − w) + b·w ). A generalization of reinforceField
+ * (which is the special case w = 1/φ²). Used to bind a word's semantic field
+ * onto a percept's field at a chosen strength. [SPEC]
+ *
+ * Degenerate case: if the blend underflows to a zero field (a ≈ −b), keep the
+ * higher-weighted input unchanged rather than throwing — a field must never
+ * collapse to nothing while binding meaning (TRUTH_SOURCES).
+ */
+export function blendFields(a: Float64Array, b: Float64Array, w: number): Float64Array {
+  const weight = w < 0 ? 0 : w > 1 ? 1 : w;
+  const len = Math.min(a.length, b.length);
+  const out = new Float64Array(a.length);
+  for (let i = 0; i < a.length; i++) out[i] = a[i];
+  for (let i = 0; i < len; i++) {
+    out[i] = a[i] * (1.0 - weight) + b[i] * weight;
+  }
+  let normSq = 0.0;
+  for (let i = 0; i < out.length; i++) normSq += out[i] * out[i];
+  if (normSq <= 0.0 || !Number.isFinite(normSq)) {
+    // Anti-parallel collapse: keep the dominant side so meaning is never lost.
+    return weight >= 0.5 ? new Float64Array(b) : new Float64Array(a);
+  }
+  return normalizeField(out);
+}
+
+/** Binding strength for word→percept fusion: 1/φ² ≈ 0.382. [SPEC] */
+export const MEANING_BIND_WEIGHT: number = 1.0 / (PHI * PHI);
+
+/**
+ * Rotate `field` (interleaved complex) by the global phase φ: each mode
+ * (Re, Im) → (Re·cosφ − Im·sinφ, Re·sinφ + Im·cosφ). A global phase rotation
+ * leaves the field's resonance to itself at 1 (C is phase-invariant), but
+ * changes its INNER PRODUCT with other fields — which is what binding needs. [MATH]
+ */
+export function phaseRotate(field: Float64Array, phi: number): Float64Array {
+  const n = Math.floor(field.length / 2);
+  const out = new Float64Array(field.length);
+  const c = Math.cos(phi);
+  const s = Math.sin(phi);
+  for (let i = 0; i < n; i++) {
+    const re = field[2 * i] ?? 0;
+    const im = field[2 * i + 1] ?? 0;
+    out[2 * i] = re * c - im * s;
+    out[2 * i + 1] = re * s + im * c;
+  }
+  return out;
+}
+
+/**
+ * Align `moving` into `reference`'s global phase frame: find φ* = arg(⟨moving,
+ * reference⟩) and rotate moving by −φ* so ⟨moving, reference⟩ is real and
+ * NON-NEGATIVE (constructive, not destructive). After alignment the two fields
+ * add coherently instead of cancelling. [MATH]
+ */
+export function phaseAlign(moving: Float64Array, reference: Float64Array): Float64Array {
+  const n = Math.min(Math.floor(moving.length / 2), Math.floor(reference.length / 2));
+  let dotRe = 0.0;
+  let dotIm = 0.0;
+  for (let i = 0; i < n; i++) {
+    const aRe = moving[2 * i] ?? 0;
+    const aIm = moving[2 * i + 1] ?? 0;
+    const bRe = reference[2 * i] ?? 0;
+    const bIm = reference[2 * i + 1] ?? 0;
+    dotRe += aRe * bRe + aIm * bIm;
+    dotIm += aRe * bIm - aIm * bRe;
+  }
+  const phase = Math.atan2(dotIm, dotRe);
+  return phaseRotate(moving, -phase);
+}
+
+/**
+ * Fuse a label's language-field into a percept's field prototype.
+ *
+ * [PHIL] — This is the symbol-grounding step: the word for a thing and the
+ * stable geometric structure of the thing become ONE attractor. After fusion,
+ * hearing/reading the word and sensing the percept pull toward the same point
+ * in field space, so the engine correlates information with its meaning.
+ *
+ * [MATH] — Naive mixing fails when the two fields are phase-opposed (they
+ * cancel and resonance COLLAPSES). So the word is first phase-aligned into the
+ * percept's frame (making their inner product constructive), then blended at
+ * MEANING_BIND_WEIGHT. The result stays close to the percept AND moves toward
+ * the word — resonance to both rises. [FIX for anti-phase collapse]
+ *
+ * @param perceptField — The concept's current sensory prototype (unit-norm).
+ * @param wordField    — encodeText(label) for the label being bound.
+ * @returns A unit-norm field carrying both percept and word geometry.
+ */
+export function bindMeaning(perceptField: Float64Array, wordField: Float64Array): Float64Array {
+  const aligned = phaseAlign(wordField, perceptField);
+  return blendFields(perceptField, aligned, MEANING_BIND_WEIGHT);
 }
