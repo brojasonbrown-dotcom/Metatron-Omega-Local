@@ -109,10 +109,18 @@ export class Scaled {
     if (!Number.isFinite(x)) throw new RangeError(`Scaled.from: non-finite ${x}`);
     if (x === 0) return new Scaled(0, 0);
     const exp = Math.floor(Math.log10(Math.abs(x)));
-    let m = x / 10 ** exp;
+    // Scale x down to a mantissa by 10^exp WITHOUT forming 10^exp directly: for
+    // subnormals (|x| < 2.2e-308, exp ≤ -309) 10**exp underflows to 0 and x/0 =
+    // Infinity; for huge exp the power overflows to Infinity. Split the exponent
+    // into two halves so each intermediate power stays in [1e-155, 1e155] and the
+    // two-step division keeps the divisor finite across the whole Float64 range.
+    // [audit F3]
+    const e1 = Math.trunc(exp / 2);
+    const e2 = exp - e1;
+    const m = x / 10 ** e1 / 10 ** e2;
     // Correct the rare |m| ∉ [1,10) from Float64 log10 round-off.
-    if (Math.abs(m) >= 10) { m /= 10; return new Scaled(m, exp + 1); }
-    if (Math.abs(m) < 1) { m *= 10; return new Scaled(m, exp - 1); }
+    if (Math.abs(m) >= 10) return new Scaled(m / 10, exp + 1);
+    if (Math.abs(m) < 1) return new Scaled(m * 10, exp - 1);
     return new Scaled(m, exp);
   }
 
@@ -200,7 +208,10 @@ export class Scaled {
     const sa = Math.sign(this.mantissa), sb = Math.sign(o.mantissa);
     if (sa !== sb) return sa - sb;
     if (this.exp10 !== o.exp10) return sa * (this.exp10 - o.exp10 > 0 ? 1 : -1);
-    return sa * Math.sign(this.mantissa - o.mantissa);
+    // Equal exponent: the mantissa difference ALREADY carries the correct sign
+    // for both parities. Multiplying by sa would invert the order for negatives
+    // (−9e5 vs −5e5 must compare −1, not +1). [audit F4]
+    return Math.sign(this.mantissa - o.mantissa);
   }
 
   /** Exact equality of (mantissa, exp10) after normalization. */

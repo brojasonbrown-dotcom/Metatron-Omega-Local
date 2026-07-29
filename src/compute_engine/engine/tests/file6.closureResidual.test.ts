@@ -44,6 +44,20 @@ describe("File 6 · smooth periodic field closes to machine-eps", () => {
   it("constant field (zero mode) closes exactly", () => {
     expect(closureResidual(() => 7.3, t1).value).toBeLessThan(1e-9);
   });
+
+  it("pure-poloidal (m=0) fields close — the audit F5 acceptance vector", () => {
+    // cos(m·v) has zero u-dependence, so every u-slice is identical and the
+    // telescoping flux sum cancels EXACTLY (true surface flux = 0). The pre-fix
+    // engine threw `flux quadrature not converged` on these. Must not throw, and
+    // must report ~machine-eps.
+    for (const m of [1, 2, 3]) {
+      const poloidal = ({ v }: { u: number; v: number }) => Math.cos(m * v);
+      const r = closureResidual(poloidal, t1);
+      expect(r.value).toBeLessThan(1e-6);
+      expect(closureScore(poloidal, t1)).toBeGreaterThan(0.999);
+      expect(isMinimallyOpen(poloidal, t1)).toBe(true);
+    }
+  });
 });
 
 describe("File 6 · broken periodicity is caught", () => {

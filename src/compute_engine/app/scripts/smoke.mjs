@@ -123,6 +123,43 @@ async function checkLoop() {
 }
 await checkLoop();
 
+// ── MindService lifecycle — real child agent, real stdio, real protocol ──
+async function checkMindService() {
+  const { MindService } = require("../electron/mindService.cjs");
+  const path = require("node:path");
+  const svc = new MindService({
+    brainDir: path.join(import.meta.dirname, "fixtures"),
+    entry: "child-agent.cjs",
+  });
+  const events = [];
+  svc.onEvent((f) => events.push(f));
+  const checks = [];
+  const st0 = svc.status();
+  checks.push(["capabilities honest (fixture present)", st0.brainPresent === true]);
+  checks.push(["starts stopped", st0.state === "stopped" && !st0.running]);
+  svc.start();
+  await wait(600);
+  const st1 = svc.status();
+  checks.push(["awake after boot frames", st1.state === "awake" && st1.running]);
+  const chat = svc.chat("hello agent");
+  checks.push(["chat accepted while awake", chat.ok === true]);
+  await wait(300);
+  checks.push(["chat.ack received", events.some((f) => f.type === "chat.ack" && f.accepted)]);
+  svc.sensorFrame("audio", new Array(28).fill(0.01), { energy: 0.5 });
+  const stop = svc.stop();
+  checks.push(["stop requested", typeof stop === "object"]);
+  await wait(800);
+  checks.push(["child exited cleanly", events.some((f) => f.type === "mind.exit" && f.code === 0)]);
+  checks.push(["state stopped after exit", svc.status().running === false]);
+  const bad = svc.chat("after death");
+  checks.push(["chat after stop honestly refused", bad.ok === false]);
+  for (const [name, ok] of checks) {
+    if (!ok) failures++;
+    console.log(`${ok ? "PASS" : "FAIL"}  mindService: ${name}`);
+  }
+}
+await checkMindService();
+
 if (failures > 0) {
   console.error(`\n${failures} smoke check(s) FAILED`);
   process.exit(1);

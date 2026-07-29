@@ -295,3 +295,40 @@ html, body {
 /* when the stability panel is open, the preview slides left out of its way */
 #stab:not(.hidden) ~ #camprev { right: 338px; }
 #camprev video { display: block; width: 100%; filter: saturate(0.6) hue-rotate(60deg) brightness(0.9); }
+
+/* ── mind (v14 cognition) bubbles ── */
+.msg.mind {
+  align-self: flex-start;
+  background: rgba(20, 16, 4, 0.9);
+  border: 1px solid #3a2f10;
+  border-left: 2px solid var(--gold, #d4a94e);
+  border-bottom-left-radius: 2px;
+  color: #e8cf8f;
+  font-size: 13.5px;
+  text-shadow: 0 0 6px rgba(212, 169, 78, 0.18);
+}
+.msg.mind.thought {
+  color: #9a885a;
+  font-size: 12px;
+  font-style: italic;
+  border-left-color: #6b5a2a;
+}
+.msg.sys {
+  align-self: center;
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+}
+
+/* resolution switch in the Σ panel */
+.res-opt { color: var(--green-dim); text-decoration: none; cursor: pointer; }
+.res-opt:hover { color: var(--green); text-decoration: underline; }
+.res-cur { color: var(--green); font-weight: 600; text-shadow: var(--glow); }
+
+/* grounded mind+engine answers */
+.msg.ava.mind-answer {
+  border-left-color: var(--gold, #d4a94e);
+  color: #d9e8c9;
+}

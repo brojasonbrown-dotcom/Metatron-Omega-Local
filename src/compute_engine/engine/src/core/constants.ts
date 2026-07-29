@@ -33,8 +33,13 @@ export const PHI_NEG2 = 0.3819660112501051518 as const;
 /** φ⁻³. EXACT. */
 export const PHI_NEG3 = 0.2360679774997896964 as const;
 
-/** φ⁻²⁶ — Metatron-shell flux; spec §2 invariant anchor. EXACT. */
-export const PHI_NEG26 = 3.684014691873265e-6 as const;
+/**
+ * φ⁻²⁶ — Metatron-shell flux; spec §2 invariant anchor. EXACT.
+ * DERIVED (not a literal) so it is the single source of truth: the prior literal
+ * 3.684014691873265e-6 was off by 7.4e-12 and disagreed with torus.ts's pow form.
+ * True value 3.68401469190059041585…e-6 (mpmath dps=50). [audit F1]
+ */
+export const PHI_NEG26 = Math.pow(PHI, -26);
 
 /** π and 2π. EXACT (mathematical). */
 export const PI = 3.1415926535897932385 as const;
@@ -95,7 +100,7 @@ export const HARMONIC_COUNT = 13 as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The 18 Lucas-stable scale indices — corrected ladder (spec §2, erratum E13).
-// Stable ⇔ n odd AND 7∤n  ⇔  n ≡ {1,13,15,27} (mod 28). 43 rungs below n≈294.
+// Stable ⇔ Lₙ ≡ ±1 (mod 13)  ⇔  n ≡ {1,13,15,27} (mod 28). 42 rungs ≤ 293.
 // This REPLACES the discredited source table (which was wrong by up to 10¹⁴ at n=292).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -112,8 +117,14 @@ export const STABLE_SCALES: readonly StableScaleIndex[] = [
 /** The Metatron shell — the n=13 rung carries the φ⁻²⁶ flux. EXACT. */
 export const METATRON_SHELL: StableScaleIndex = 13;
 
-/** Total stable rungs below the cosmic rung (n≈293); rungs 19–43 are coarse-grained continuation. */
-export const CONTINUATION_COUNT = 25 as const;
+/**
+ * Continuation rungs beyond the dense core, up to the cosmic rung n≈293.
+ * The exact Lucas census gives 42 stable rungs ≤ 293 (40 from 10 full mod-28
+ * periods + n=281, 293), so rungs 19–42 = 24 continuation records. The prior
+ * value 25 was a stale miscount (the engine's own CONTINUATION array holds 24).
+ * [audit F2]
+ */
+export const CONTINUATION_COUNT = 24 as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // B2 — Open postulates surfaced, never silently resolved (spec §0/B2).

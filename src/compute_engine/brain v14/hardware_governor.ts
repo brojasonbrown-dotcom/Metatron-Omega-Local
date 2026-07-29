@@ -62,11 +62,25 @@ const BYTES_PER_NODE: number = 1024 * 64;
  * usage versus the target threshold. [SPEC]
  */
 export class HardwareGovernor {
+  /** Cognitive cadence the engine shares (1000/φ⁴ ≈ 146 ms). [SPEC] */
+  static readonly CADENCE_MS = 146;
+  /** Deepest tree the measured governor may build (ladder headroom). [SPEC] */
+  static readonly MAX_DEPTH = 7;
+  /** Minimum ticks between two grow steps (F₇ — deepen slowly). [SPEC] */
+  static readonly GROW_EVERY = 13;
+
+  /** Sync the measured path with the engine's actually-built depth. */
+  setMeasuredDepth(d: number): void {
+    this._lastMeasuredDepth = d;
+  }
+
   /**
    * Target resource usage ratio.
-   * [SPEC] — 0.35 = 35%, aligned with the RHUFT φ-scale heuristic.
+   * [SPEC] — default 0.35 = 35%, aligned with the RHUFT φ-scale heuristic.
+   * The engine's config.target_resource_usage OVERRIDES this (previously a
+   * dead knob — the governor hardcoded 0.35 and never read the config).
    */
-  readonly target_usage: Float64 = 0.35 as Float64;
+  readonly target_usage: Float64;
 
   /** Detected hardware specifications. [SPEC] */
   private _specs: HardwareSpecs;
@@ -74,7 +88,8 @@ export class HardwareGovernor {
   /** Computed resource budget. [SPEC] */
   private _budget: ResourceBudget;
 
-  constructor() {
+  constructor(targetUsage: Float64 = 0.35 as Float64) {
+    this.target_usage = targetUsage;
     this._specs = this._detect_hardware();
     this._budget = this._compute_budget();
   }
@@ -251,6 +266,76 @@ export class HardwareGovernor {
       cpu_percent: current_usage.cpu_percent,
     };
   }
+
+  /**
+   * MEASURED scaling decision — the honest successor of should_scale().
+   *
+   * The old estimate_usage() model was proven wrong by orders of magnitude
+   * (it claimed 0.057% CPU while a depth-7 tree actually cost 256 ms/tick).
+   * This method scales the tree on the REAL wall-clock tick cost (EMA) against
+   * the engine's share of the cognitive cadence:
+   *
+   *   budgetMs = CADENCE_MS × target_usage   (at 0.618 → ≈ 90 ms per tick)
+   *
+   *   shrink: emaTickMs > budgetMs                    (over budget — cut depth now)
+   *   grow:   emaTickMs < 0.5·budgetMs, one step,
+   *           at most every GROW_EVERY ticks          (headroom — deepen slowly)
+   *   else:   maintain                                (inside the φ-band)
+   *
+   * Depth is clamped to [1, MAX_DEPTH]. The rebuild itself is guarded
+   * upstream (only fires when the target depth differs from the built depth).
+   */
+  should_scale_measured(
+    emaTickMs: number,
+    _budget: ResourceBudget,
+    tickCount: number
+  ): ScalingDecision | null {
+    const budgetMs = HardwareGovernor.CADENCE_MS * this.target_usage;
+    const clamp = (d: number) => Math.max(1, Math.min(HardwareGovernor.MAX_DEPTH, d));
+
+    if (emaTickMs > budgetMs) {
+      // SHRINK — and REMEMBER the overshoot: the depth we shrink from becomes
+      // a ceiling. Without this the control loop limit-cycles (6→7→6 forever:
+      // depth 6 at 24% says grow, depth 7 at 117% says shrink). The ceiling is
+      // the conservative fixed point — the engine's law favors stability.
+      this._measuredCeiling = clamp(this._lastMeasuredDepth - 1);
+      return {
+        action: "shrink",
+        target_depth: clamp(this._lastMeasuredDepth - 1),
+        reason: `measured tick cost ${emaTickMs.toFixed(1)}ms exceeds cadence budget ${budgetMs.toFixed(0)}ms (ceiling now ${this._measuredCeiling})`,
+        ram_bytes: 0,
+        cpu_percent: emaTickMs / budgetMs,
+      };
+    }
+    const growTarget = Math.min(clamp(this._lastMeasuredDepth + 1), this._measuredCeiling);
+    if (
+      emaTickMs < 0.5 * budgetMs &&
+      tickCount - this._lastGrowTick >= HardwareGovernor.GROW_EVERY &&
+      growTarget > this._lastMeasuredDepth
+    ) {
+      this._lastGrowTick = tickCount;
+      return {
+        action: "grow",
+        target_depth: growTarget,
+        reason: `measured headroom: ${emaTickMs.toFixed(1)}ms < ${(0.5 * budgetMs).toFixed(0)}ms half-budget`,
+        ram_bytes: 0,
+        cpu_percent: emaTickMs / budgetMs,
+      };
+    }
+    return {
+      action: "maintain",
+      target_depth: this._lastMeasuredDepth,
+      reason: `measured ${emaTickMs.toFixed(1)}ms within budget ${budgetMs.toFixed(0)}ms`,
+      ram_bytes: 0,
+      cpu_percent: emaTickMs / budgetMs,
+    };
+  }
+
+  /** Track the currently-built depth for the measured path (set by the engine). */
+  private _lastMeasuredDepth = 5;
+  private _lastGrowTick = 0;
+  /** Learned ceiling: shrink-overshoot memory (starts at the hard max). */
+  private _measuredCeiling = HardwareGovernor.MAX_DEPTH;
 
   // ───────────────────────────────────────────────────────────────────────────
   // 6. Accessors

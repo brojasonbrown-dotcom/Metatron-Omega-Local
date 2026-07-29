@@ -62,6 +62,16 @@
   // Jupyter
   "jupyter.askForKernelRestart": false,
   "jupyter.interactiveWindow.creationMode": "perFile",
+
+  // Wolfram Language
+  "wolfram.systemPath": "Automatic",
+  "wolfram.lsp.serverEnabled": true,
+  "wolfram.notebook.kernelEnabled": true,
+  "wolfram.mcp.serverEnabled": true,
+  "wolfram.lsp.semanticTokens": true,
+  "wolframLanguageNotebook.rendering.renderTexForm": true,
+  "wolframLanguageNotebook.rendering.renderAsImages": true,
+  "wolframLanguageNotebook.kernel.connectOnOpeningNotebook": true,
   
   // Git
   "git.enableSmartCommit": true,

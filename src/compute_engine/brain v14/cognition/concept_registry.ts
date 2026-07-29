@@ -205,9 +205,11 @@ export class ConceptRegistry {
     const best = this.nearest(normalized, 1)[0];
 
     if (best && best.resonance >= this.recognitionThreshold) {
-      // Recognized: reinforce prototype with φ-decayed averaging. [SPEC]
+      // Recognized: reinforce prototype with φ-decayed averaging, weighted by
+      // how much evidence the attractor already holds. A mature concept HARDENS
+      // (η ∝ 1/(reinforcement+1)) so one noisy frame cannot move it. [SPEC]
       const c = best.concept;
-      c.prototype = reinforceField(c.prototype, normalized);
+      c.prototype = reinforceField(c.prototype, normalized, c.reinforcement);
       c.reinforcement += 1;
       c.lastSeen = now;
       this._mergeLabels(c, labels);

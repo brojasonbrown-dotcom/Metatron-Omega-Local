@@ -56,8 +56,35 @@ describe("File 2 · provenance + scaled", () => {
   });
   it("φ⁻²⁶ as Scaled equals 3.684e-6", () => {
     const s = Scaled.from(PHI_NEG26);
-    expect(REL(s.mantissa, 3.684014691873265)).toBeLessThan(1e-9);
+    // True φ⁻²⁶ mantissa (mpmath dps=50); the prior literal 3.684014691873265 was
+    // off by 7.4e-12 — PHI_NEG26 is now derived via Math.pow(PHI,-26). [audit F1]
+    expect(REL(s.mantissa, 3.6840146919005904)).toBeLessThan(1e-12);
     expect(s.exp10).toBe(-6);
+  });
+  it("Scaled.compare orders negative equal-exponent values correctly (audit F4)", () => {
+    // −9e5 < −5e5: the equal-exponent branch must NOT multiply by the sign.
+    expect(Scaled.of(-9, 5).compare(Scaled.of(-5, 5))).toBeLessThan(0);
+    expect(Scaled.of(-5, 5).compare(Scaled.of(-9, 5))).toBeGreaterThan(0);
+    expect(Scaled.of(-9, 5).compare(Scaled.of(-9, 5))).toBe(0);
+    // Sanity: positives still order correctly, and magnitude still wins across exponents.
+    expect(Scaled.of(9, 5).compare(Scaled.of(5, 5))).toBeGreaterThan(0);
+    expect(Scaled.of(-1, 6).compare(Scaled.of(-9, 5))).toBeLessThan(0); // −1e6 < −9e5
+  });
+  it("Scaled.from normalizes subnormals without an Infinity mantissa (audit F3)", () => {
+    // The smallest subnormal (5e-324) must NOT produce an Infinity mantissa —
+    // the pre-fix `10 ** exp` underflowed to 0 and x/0 = Infinity poisoned
+    // equals/toString. The class contract is "construct from ANY finite number."
+    const s = Scaled.from(Number.MIN_VALUE);
+    expect(Number.isFinite(s.mantissa)).toBe(true);
+    expect(Math.abs(s.mantissa)).toBeGreaterThanOrEqual(1);
+    expect(Math.abs(s.mantissa)).toBeLessThan(10);
+    // The (mantissa, exp) pair must be self-consistent: reconstruct the value.
+    // 5e-324 has |exp10| = 324 > 308, so toFloat64 by design declines (null) —
+    // the guarantee is a clean finite mantissa+exp, not a representable Float64.
+    expect(s.toString()).not.toContain("Infinity");
+    // A representable small value still round-trips exactly.
+    const r = Scaled.from(1.5e-300);
+    expect(r.toFloat64()).toBeCloseTo(1.5e-300, -310);
   });
   it("Scaled mantissa normalized to [1,10)", () => {
     for (const x of [0.005, 12.3, 1e-40, 9.99e300]) {

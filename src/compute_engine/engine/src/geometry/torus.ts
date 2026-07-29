@@ -199,26 +199,36 @@ export function isClosed(
   samples = 64,
 ): boolean {
   if (tol <= 0) throw new RangeError(`isClosed: tol must be > 0, got ${tol}`);
-  // Seam half-width. The defect of a genuinely periodic field at the seam is
-  // O(max|∂f|·eps) — for O(1) Lipschitz fields ≈ 6·1e-6 = 6e-6. A non-periodic
-  // field's defect is O(its jump) = O(1) regardless of eps. So any tol in the
-  // wide band (≈1e-5 … 1e-1) cleanly separates the two; 1e-4 is the default.
-  const eps = 1e-6;
   void torus;
-  let maxDefect = 0;
-  for (let i = 0; i < samples; i++) {
-    // Golden-ratio low-discrepancy orbit for the cross-seam coordinate.
-    const u = wrapAngle(eps + i * 2 * PI * PHI_INV);
-    const v = wrapAngle(eps + i * 2 * PI * PHI_INV * PHI_INV);
-    // Continuity across the u-seam: f(eps, v) ≈ f(2π−eps, v).
-    maxDefect = Math.max(
-      maxDefect,
-      Math.abs(field({ u: eps, v }) - field({ u: TWO_PI - eps, v })),
-      // Continuity across the v-seam: f(u, eps) ≈ f(u, 2π−eps).
-      Math.abs(field({ u, v: eps }) - field({ u, v: TWO_PI - eps })),
-    );
-  }
-  return maxDefect <= tol;
+  // Measure the seam JUMP, not field smoothness. A genuinely periodic field's
+  // cross-seam defect is O(L·eps) — it shrinks to zero as eps→0 no matter how
+  // large its Lipschitz constant L. A non-periodic field's defect is O(jump),
+  // eps-independent. A single fixed-eps probe conflates the two (it reads
+  // O(L·eps), so high-Lipschitz periodic fields false-negative once L·eps > tol —
+  // the audit found this cutoff at m≈50–60 for cos(m·u+v) [F6]). We probe at two
+  // widths a decade apart and linearly extrapolate the defect to eps→0: smooth
+  // periodic fields extrapolate to ~0; jumped fields keep their finite jump.
+  const measure = (eps: number): number => {
+    let m = 0;
+    for (let i = 0; i < samples; i++) {
+      // Golden-ratio low-discrepancy orbit for the cross-seam coordinate.
+      const u = wrapAngle(eps + i * 2 * PI * PHI_INV);
+      const v = wrapAngle(eps + i * 2 * PI * PHI_INV * PHI_INV);
+      m = Math.max(
+        m,
+        // Continuity across the u-seam: f(eps, v) ≈ f(2π−eps, v).
+        Math.abs(field({ u: eps, v }) - field({ u: TWO_PI - eps, v })),
+        // Continuity across the v-seam: f(u, eps) ≈ f(u, 2π−eps).
+        Math.abs(field({ u, v: eps }) - field({ u, v: TWO_PI - eps })),
+      );
+    }
+    return m;
+  };
+  const e1 = 1e-5, e2 = 1e-6;
+  const d1 = measure(e1), d2 = measure(e2);
+  // Linear extrapolation to eps=0 (defect d ≈ jump + L·eps ⇒ intercept = jump).
+  const jump = Math.max(0, d2 - ((d1 - d2) * e2) / (e1 - e2));
+  return jump <= tol;
 }
 
 /**

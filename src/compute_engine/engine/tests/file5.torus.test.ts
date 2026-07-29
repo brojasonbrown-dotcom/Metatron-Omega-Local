@@ -151,6 +151,24 @@ describe("File 5 · closure / periodicity", () => {
     const open = ({ u, v }: { u: number; v: number }) => Math.sin(0.5 * u) + v;
     expect(isClosed(open, t)).toBe(false);
   });
+  it("a high-Lipschitz periodic field is still closed (audit F6)", () => {
+    // cos(m·u + v) is perfectly periodic for any integer m, but its Lipschitz
+    // constant grows with m. The old fixed-eps probe read O(m·eps) and began
+    // false-negativing between m=50 and m=60. The eps→0 extrapolated jump must
+    // stay ~0 for ALL m — periodicity is about the jump, not the smoothness.
+    for (const m of [60, 100, 200]) {
+      const hi = ({ u, v }: { u: number; v: number }) => Math.cos(m * u + v);
+      expect(isClosed(hi, t)).toBe(true);
+    }
+    // A genuine obstruction at the SAME Lipschitz scale is still caught. A
+    // non-integer wavenumber gives a real VALUE jump across the u-seam:
+    // cos(100.5·u) has u-seam defect |cos(100.5ε) − cos(100.5(2π−ε))| →
+    // |1 − cos(201π)| = 2, an O(1) jump that must NOT extrapolate away.
+    // (Note: sin(m·u/2) would be wrong here — it is value-CONTINUOUS at the seam
+    // since sin(m·π)=0, so it is correctly judged closed; only its derivative jumps.)
+    const jumped = ({ u }: { u: number; v: number }) => Math.cos(100.5 * u);
+    expect(isClosed(jumped, t)).toBe(false);
+  });
   it("wrapAngle lands in [0,2π) and is idempotent", () => {
     for (const th of [0, TWO_PI, -1, 7.3, 100 * TWO_PI + 0.5, -13 * TWO_PI - 2]) {
       const w = wrapAngle(th);

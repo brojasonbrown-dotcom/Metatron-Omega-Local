@@ -69,7 +69,7 @@ module.exports = __toCommonJS(engine_entry_exports);
 var PHI = 1.618033988749895;
 var PHI_INV = 0.6180339887498949;
 var PHI_NEG2 = 0.38196601125010515;
-var PHI_NEG26 = 3684014691873265e-21;
+var PHI_NEG26 = Math.pow(PHI, -26);
 var PI = 3.141592653589793;
 var TWO_PI = 6.283185307179586;
 var C = 299792458;
@@ -147,15 +147,11 @@ var Scaled = class _Scaled {
     if (!Number.isFinite(x)) throw new RangeError(`Scaled.from: non-finite ${x}`);
     if (x === 0) return new _Scaled(0, 0);
     const exp = Math.floor(Math.log10(Math.abs(x)));
-    let m = x / 10 ** exp;
-    if (Math.abs(m) >= 10) {
-      m /= 10;
-      return new _Scaled(m, exp + 1);
-    }
-    if (Math.abs(m) < 1) {
-      m *= 10;
-      return new _Scaled(m, exp - 1);
-    }
+    const e1 = Math.trunc(exp / 2);
+    const e2 = exp - e1;
+    const m = x / 10 ** e1 / 10 ** e2;
+    if (Math.abs(m) >= 10) return new _Scaled(m / 10, exp + 1);
+    if (Math.abs(m) < 1) return new _Scaled(m * 10, exp - 1);
     return new _Scaled(m, exp);
   }
   /** Construct from explicit parts; normalizes. */
@@ -230,7 +226,7 @@ var Scaled = class _Scaled {
     const sa = Math.sign(this.mantissa), sb = Math.sign(o.mantissa);
     if (sa !== sb) return sa - sb;
     if (this.exp10 !== o.exp10) return sa * (this.exp10 - o.exp10 > 0 ? 1 : -1);
-    return sa * Math.sign(this.mantissa - o.mantissa);
+    return Math.sign(this.mantissa - o.mantissa);
   }
   /** Exact equality of (mantissa, exp10) after normalization. */
   equals(o) {
@@ -383,19 +379,25 @@ function gaussianCurvatureTimesR2(torus, p) {
 }
 function isClosed(field, torus, tol = 1e-4, samples = 64) {
   if (tol <= 0) throw new RangeError(`isClosed: tol must be > 0, got ${tol}`);
-  const eps = 1e-6;
-  let maxDefect = 0;
-  for (let i = 0; i < samples; i++) {
-    const u = wrapAngle(eps + i * 2 * PI * PHI_INV);
-    const v = wrapAngle(eps + i * 2 * PI * PHI_INV * PHI_INV);
-    maxDefect = Math.max(
-      maxDefect,
-      Math.abs(field({ u: eps, v }) - field({ u: TWO_PI - eps, v })),
-      // Continuity across the v-seam: f(u, eps) ≈ f(u, 2π−eps).
-      Math.abs(field({ u, v: eps }) - field({ u, v: TWO_PI - eps }))
-    );
-  }
-  return maxDefect <= tol;
+  const measure = (eps) => {
+    let m = 0;
+    for (let i = 0; i < samples; i++) {
+      const u = wrapAngle(eps + i * 2 * PI * PHI_INV);
+      const v = wrapAngle(eps + i * 2 * PI * PHI_INV * PHI_INV);
+      m = Math.max(
+        m,
+        // Continuity across the u-seam: f(eps, v) ≈ f(2π−eps, v).
+        Math.abs(field({ u: eps, v }) - field({ u: TWO_PI - eps, v })),
+        // Continuity across the v-seam: f(u, eps) ≈ f(u, 2π−eps).
+        Math.abs(field({ u, v: eps }) - field({ u, v: TWO_PI - eps }))
+      );
+    }
+    return m;
+  };
+  const e1 = 1e-5, e2 = 1e-6;
+  const d1 = measure(e1), d2 = measure(e2);
+  const jump = Math.max(0, d2 - (d1 - d2) * e2 / (e1 - e2));
+  return jump <= tol;
 }
 function metatronShellFlux() {
   return classify(
@@ -425,11 +427,12 @@ function fluxIntegral(field, torus, grid) {
       const dPsiDu_p = (field({ u: up, v }) - field({ u, v })) / du;
       const dPsiDu_m = (field({ u, v }) - field({ u: um, v })) / du;
       const duTerm = gHere * (dPsiDu_p - dPsiDu_m) / du;
-      const gP = aspect + Math.cos(vp);
-      const gM = aspect + Math.cos(vm);
+      const gAt = (vv) => aspect + Math.cos(vv);
+      const invGInterfaceP = 2 / (gAt(v) + gAt(vp));
+      const invGInterfaceM = 2 / (gAt(vm) + gAt(v));
       const dPsiDv_p = (field({ u, v: vp }) - field({ u, v })) / du;
       const dPsiDv_m = (field({ u, v }) - field({ u, v: vm })) / du;
-      const dvTerm = (dPsiDv_p / gP - dPsiDv_m / gM) / du;
+      const dvTerm = (dPsiDv_p * invGInterfaceP - dPsiDv_m * invGInterfaceM) / du;
       sum += (duTerm + dvTerm) * du * du;
     }
   }

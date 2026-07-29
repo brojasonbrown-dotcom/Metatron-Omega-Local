@@ -249,3 +249,54 @@ record), all driven from the engine's own public API. Nothing in `src/`,
 `tests/`, `notebooks/`, or `.ava/` was modified by the audit.
 
 *Generated 2026-07-28 · the only audit artifact; sandbox deleted.*
+
+---
+
+## P-series — P1 De-biased Naming (2026-07-29)
+
+**Root bias (archaeology, journal t=1785240418285):** first-boot `nameThis`
+received ONLY abstract scores (signal/coherence/persistence/relation). phi
+invented `["dog","cat"]` (conf 0.9, 587 ms); the hallucination self-reinforced
+into 5 concepts + 1 glossary entry. The system was not distracted — it was
+poisoned by its own ungrounded naming.
+
+**Fix (structural, not behavioural):**
+- Perceptual-grounding gate in `_actName`: a thought born of internal dynamics
+  or the `llm.answer` echo is NEVER named — no LLM call, label stays "unnamed".
+- Naming description now carries MEASURED field structure (dominant φ-band
+  energies + real source types), not a score-dump that invites object invention.
+- A6 provenance hash (sha1 of thought‖sources‖field‖labels) on every minted name.
+- P1.3 glossary margin rule: dictionary answer requires top-match to beat the
+  runner-up by ≥ φ⁻² (kills off-topic hits in a tiny lexicon).
+
+**Quarantine (auditable, nothing deleted):** 5 poisoned concepts (c1–c5) + 1
+glossary entry archived to `mind_state/quarantine-dogcat-2026-07-29T11-20-23Z/`
+with `ARCHAEOLOGY.md`. State after: 0 concepts, 0 glossary entries (clean boot).
+
+**Gate P1:** `tests/debiased_naming.test.ts` — 4 tests:
+internal-only thought → 0 LLM calls + `name.suppressed`; llm.answer echo → still
+suppressed; perceptual (text.feed/vision) → named with measured-structure
+description + 16-char provenance hash; description contains NO abstract scores.
+Full suite 110 pass / 2 skipped (was 106). Mind-layer typecheck strict-clean.
+
+---
+
+## P-series — P3 Memory-Algorithm Battery (2026-07-29)
+
+`tests/memory-algorithms.test.ts` — 9 tests measuring LEARNING behavior, not API
+shape. Every substrate green:
+
+| substrate | measured behavior | result |
+|---|---|---|
+| registry prototype averaging | teach A → recall A at ≥ λ; EMA curve converges toward attractor | PASS |
+| dual-channel recognition | concept retrieved by BOTH percept field and bound word field | PASS |
+| Hopfield one-step recall | noisy cue → correct attractor wins in one step | PASS |
+| Hopfield near-dup merge | resonance ≥ 3−√5 merges, no unbounded copies | PASS |
+| glossary persist/restore | learned meaning survives save/load round-trip | PASS |
+| EMA reinforcement decay | residual monotone ↓, matches closed form (1−η)^t, η=1/φ² | PASS |
+| Hopfield capacity | bounded at F₁₁=89 (FIFO) after 144 stores | PASS |
+| registry capacity | honors maxConcepts = F₂₁ = 10946 | PASS |
+
+Regret discipline (A4): EMA and prototype tests assert the empirical residual
+stays within 4× the closed-form geometric bound (1−1/φ²)^t — a number with a
+theory, not a picture. Full suite now 119 pass / 2 skipped.

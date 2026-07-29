@@ -8,6 +8,7 @@
 
 (() => {
   const btnEngine = document.getElementById("fab-engine");
+  const btnMind = document.getElementById("fab-mind");
   const btnStab = document.getElementById("fab-stab");
   const btnMic = document.getElementById("fab-mic");
   const btnCam = document.getElementById("fab-cam");
@@ -17,6 +18,8 @@
   const camvideo = document.getElementById("camvideo");
 
   let stabTimer = null;
+  let mindStatus = null; // last status() snapshot
+  const mindInfo = () => (mindStatus && mindStatus.info) || {};
 
   const flashError = (btn, reason) => {
     btn.classList.add("error");
@@ -39,6 +42,13 @@
       row("ticks", String(s.ticks)),
       row("uptime", `${(s.uptimeMs / 1000).toFixed(1)} s`),
       row("nodes / ν", `${s.nodes} / ${s.courant.toFixed(3)}`),
+      `<div class="stab-row"><span>resolution</span><b id="res-switch">` +
+        [64, 144, 256].map((n) =>
+          n === s.nodes
+            ? `<span class="res-cur">${n}</span>`
+            : `<a href="#" class="res-opt" data-n="${n}">${n}</a>`,
+        ).join(" · ") +
+        `</b></div>`,
       `<div class="stab-sec">INVARIANTS (computed live)</div>`,
       row("coherence", inv.coherence.toFixed(6)), bar(inv.coherence),
       row("closure defect", sci(inv.closure)), bar(inv.closure),
@@ -54,6 +64,13 @@
       row("roots", `{${c.roots[0]}, ${c.roots[1].toFixed(6)}}`),
       row("conservative", String(c.conservative)),
       row("ν limit / boundary", `${c.cflLimit} / ${c.cflBoundary.toFixed(3)}`),
+      `<div class="stab-sec">MIND (v14 cognition)</div>`,
+      row("state", mindStatus ? mindStatus.state : "stopped"),
+      row("ticks", String(mindInfo().ticks ?? 0)),
+      row("stable thoughts", String(mindInfo().stableThoughts ?? 0)),
+      row("concepts", String(mindInfo().concepts ?? 0)),
+      row("ollama", mindInfo().ollama ?? (mindStatus && mindStatus.running ? "warming…" : "—")),
+      row("restarts", String(mindStatus ? mindStatus.restarts : 0)),
     ].join("");
   }
 
@@ -62,6 +79,89 @@
       renderState(await window.ava.engine.state());
     } catch { /* main busy — next poll retries */ }
   }
+
+  btnMind.addEventListener("click", async () => {
+    try {
+      const s = await window.ava.mind.status();
+      if (s.running) {
+        renderMind(await window.ava.mind.stop());
+      } else {
+        if (!s.brainPresent) {
+          flashError(btnMind, s.lastError ?? `mind unavailable (tried: ${(s.brainTried ?? []).join(" | ")})`);
+          return;
+        }
+        btnMind.classList.add("active");
+        renderMind(await window.ava.mind.start());
+      }
+    } catch (err) {
+      flashError(btnMind, `mind control failed: ${err}`);
+    }
+  });
+
+  function renderMind(s) {
+    mindStatus = s;
+    btnMind.classList.toggle("active", s.running);
+    btnMind.title =
+      s.state === "awake"
+        ? `mind awake · ${mindInfo().stableThoughts ?? 0} thoughts · ${mindInfo().concepts ?? 0} concepts`
+        : s.lastError ?? `mind ${s.state}`;
+  }
+
+  // The mind's stream of consciousness, as it happens.
+  window.ava.mind.onEvent((f) => {
+    if (f.type === "journal" && f.kind === "voice" && f.data && f.data.text) {
+      addBubble(f.data.text, "mind");
+    } else if (f.type === "journal" && f.kind === "thought" && f.data) {
+      const d = f.data;
+      addBubble(
+        `ψ thought #${d.stableCount ?? "?"} stabilized [${(d.sources ?? []).join("+") || "internal"}]` +
+          (Array.isArray(d.labels) && d.labels.length ? ` → ${d.labels.join(", ")}` : ""),
+        "mind thought",
+      );
+      // keep the panel's counters live from the thought stream itself
+      mindStatus = { ...(mindStatus || {}), running: true, state: "awake",
+        info: { ...mindInfo(), stableThoughts: d.stableCount ?? mindInfo().stableThoughts } };
+      btnMind.classList.add("active");
+    } else if (f.type === "boot" && f.phase === "ollama") {
+      mindStatus = { ...(mindStatus || {}), running: true, state: f.running ? "starting (models)" : "degraded",
+        info: { ...mindInfo(), ollama: f.running ? f.baseUrl : null } };
+    } else if (f.type === "boot" && f.phase === "awake") {
+      addBubble("ψ mind awake — cognition online (v14 + ollama).", "sys");
+      mindStatus = { ...(mindStatus || {}), running: true, state: "awake" };
+      btnMind.classList.add("active");
+    } else if (f.type === "boot") {
+      // every other boot phase moves the panel honestly (starting/warming)
+      mindStatus = { ...(mindStatus || {}), running: true, state: `starting (${f.phase})` };
+    } else if (f.type === "fatal" || f.type === "error") {
+      addBubble(`ψ ${f.where ?? "mind"}: ${f.message ?? f.text ?? "error"}`, "ava error");
+    } else if (f.type === "mind.exit") {
+      addBubble(`ψ mind sleeping (exit ${f.code}).`, "sys");
+      void refreshMind();
+    }
+    // keep the panel honest without polling
+    if (f.type === "state") {
+      mindStatus = { ...(mindStatus || {}), running: true, state: "awake", info: { ...mindInfo(), ticks: f.ticks, stableThoughts: f.stableThoughts, concepts: f.concepts } };
+      btnMind.classList.add("active");
+    }
+  });
+
+  async function refreshMind() {
+    try {
+      renderMind(await window.ava.mind.status());
+    } catch { /* next poll retries */ }
+  }
+
+  // resolution switch (delegated — the panel re-renders every poll)
+  panelBody.addEventListener("click", async (e) => {
+    const opt = e.target.closest(".res-opt");
+    if (!opt) return;
+    e.preventDefault();
+    try {
+      renderState(await window.ava.engine.setNodes(Number(opt.dataset.n)));
+    } catch (err) {
+      flashError(btnEngine, `resolution switch failed: ${err}`);
+    }
+  });
 
   btnEngine.addEventListener("click", async () => {
     try {
@@ -125,6 +225,7 @@
     }
   });
 
-  // sync the engine button with the true loop state at load
+  // sync the buttons with the true states at load
   void refreshState();
+  void refreshMind();
 })();

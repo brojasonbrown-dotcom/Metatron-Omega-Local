@@ -41,22 +41,46 @@ scripts/
   smoke.mjs         headless test: chat + sensory codec + engine loop (28 checks)
 ```
 
-## The four floating buttons
+## The five floating buttons
 
-- **⏻ engine** — starts/stops the live engine loop (real wave on a 64-node
-  ring, ν=0.5, ticked ~30 Hz in the main process). The button glows while
-  the loop runs; state never faked — it always reflects `engineLoop.state()`.
+- **⏻ engine** — starts/stops the live engine loop (real wave on a 64/144/256-node
+  ring, ν=0.5, ticked ~30 Hz in the main process — resolution switchable in
+  the Σ panel). The button glows while the loop runs; state never faked.
+- **ψ mind** — starts/stops the v14 cognitive mind (sidecar on system Node 25,
+  Ollama phi+mathstral). Never auto-starts.
 - **Σ stability** — slides out the FRAMEWORK STABILITY panel: the four
   invariants computed live each tick (coherence = cos² self-overlap,
   closure defect = net-flux fraction, drift = naive-energy deviation with the
-  measured 1e-3 bound, burden = Σu²), sensor drive levels, and the exact
-  certificates (λ=φ⁻², roots {1,−φ⁻²}, ν* = 3/2).
+  measured 1e-3 bound, burden = Σu²), ring resolution switch, sensor drives,
+  exact certificates (λ=φ⁻², roots {1,−φ⁻²}, ν* = 3/2), and the MIND section.
 - **🎙 mic** — live microphone: 100 ms windows at the device's native rate,
   projected onto 14 φ-spaced Goertzel bands in the main process; the measured
-  energy drives the engine loop (button glow tracks the level; title shows
-  the dominant φ-band). Absent/denied device → honest error flash.
+  energy drives the engine loop AND feeds the mind's ear (dual-feed, one
+  measurement). Absent/denied device → honest error flash.
 - **📷 camera** — live camera: 144×89 luminance grid at 2 Hz, golden-spiral
-  mode projection; mean luminance drives the loop; small preview bottom-left.
+  mode projection; mean luminance drives the loop; the same field is the
+  mind's upgraded eye.
+
+## The query pipeline (how AVA answers — no mocks, no hallucination path)
+
+1. **Engine first.** Computed intents (scale, lucas, closure, ladder, phi…)
+   are answered by the engine directly — numbers win.
+2. **Grounded mind query.** Anything else, while the mind is awake, goes
+   through the synchronous `{type:"query"}` path:
+   - **dictionary first** — if a learned meaning covers the question at
+     resonance ≥ φ⁻², the glossary answers it directly (**zero LLM latency**);
+   - else phi-2 phrases a one-sentence **commentary** over a deterministic
+     **fact-spine** (engine facts, verbatim) + learned concepts + glossary
+     meanings + a Hopfield prediction cue — the spine is assembled by the
+     machine, so hallucinated numbers are structurally impossible;
+   - **stabilization certificates**: input is sentence-chunked (144-char
+     discipline); commentary must resonate with its question (one retry,
+     else spine-only honesty); any digits in the commentary are verified by
+     **mathstral** against the real facts — invalid numerics are suppressed
+     before they can reach you.
+3. **Cognition keeps flowing.** Every chat line also enters the mind's
+   sensory stream (stabilized chunks); stable thoughts, voices and learning
+   arrive asynchronously as gold bubbles.
 
 The sensory mathematics is the v14 brain's signal_codec, ported and upgraded
 (v14: 16 kHz mic / 89×55 screen grid → AVA: native-rate audio / 144×89 grid).
@@ -79,6 +103,22 @@ run from a plain terminal.
 
 ## Package (Windows .exe)
 
+**Double-click (recommended):**
+
+- `BUILD-AVA.bat` — full pipeline: deps check → engine bundle → 28 smoke
+  checks → pack → packaged `--ci` verification → NSIS installer + portable.
+  Stops loudly at the first red step.
+- `INSTALL-AVA.bat` — assisted install (pick your folder);
+  `INSTALL-AVA.bat /S` — silent install. Both verify the install from the
+  registry and run the installed app's self-check (CI report).
+- `LAUNCH-AVA.bat` — starts the installed AVA, or the dev app from source
+  if nothing is installed.
+
+All three clear `ELECTRON_RUN_AS_NODE` internally, so they work correctly
+even from IDE terminals that export it.
+
+**Manual equivalent:**
+
 ```bash
 npm run icon         # regenerate build/icon.ico (PIL; phosphor torus ring)
 npm run pack         # unpacked build → release/win-unpacked/AVA.exe
@@ -97,16 +137,32 @@ all accept `--ci` and must print
 `[ci] renderer+IPC+responder roundtrip: PASS`.
 Silent install for testing: `AVA-0.1.0-setup.exe /S /D=C:\path\to\dir`.
 
+**What's inside the installer:** the complete app (Electron runtime +
+renderer + bundled engine) **and the v14 mind's full source** at
+`resources/brain v14` — the ψ button works out of the box. The mind runs on
+the **system Node ≥ 25** (native type-stripping) — install Node 25+ if
+missing; without it ψ reports honestly.
+
+**What is NOT inside:** the 5.4 GB Ollama model weights (`blobs/`). They are
+a machine-level resource, re-pullable, and deliberately not shipped. The
+mind finds models in this order: (1) an already-running Ollama with
+`phi:latest` + `mathstral:latest` (preferred), (2) its own store if you copy
+`manifests/`+`blobs/` back into the brain dir. To provision a FRESH Ollama:
+
+```bash
+ollama pull phi3:mini        # or any phi-family 3B model
+ollama tag  phi3:mini phi:latest
+ollama pull mathstral:latest # Mistral Mathstral 7B (Apache-2.0)
+```
+
+Until models exist, the mind's senses and cognition still run — only the
+LLM instruments (name/define/relate/verify/phrase) report down, honestly.
+
 **Unsigned binary:** no code-signing certificate is configured, so Windows
 SmartScreen will warn on first run ("unknown publisher"). That is expected
 for a local build — the binaries are byte-identical to what
 `electron-builder` produced from this tree. Sign with a real certificate
 (`win.certificateFile`) before distributing widely.
-
-**What is NOT inside:** the `brain v14` autonomous mind layer (Ollama
-phi/mathstral, 5.4 GB model blobs, mic/screen sensors) is a separate system
-and is deliberately not packaged. AVA-the-app talks only to the RHUFT
-18-scale engine, which is fully self-contained.
 
 Try in the chat: `help`, `scale 13`, `closure 13`, `lucas 27`, `fib 100`,
 `phi`, `ladder`, `torus 27`, `memory`, `overlap`, `density`, `status`.

@@ -74,10 +74,16 @@ export class ScreenVisionSensor {
   private _injected = 0;
   private _failures = 0;
   private _lastError: string | null = null;
+  private _onGrid: ((grid: Float64Array, w: number, h: number) => void) | null = null;
 
   constructor(bus: SensorBus, periodMs: number = DEFAULT_PERIOD_MS) {
     this._bus = bus;
     this._periodMs = periodMs;
+  }
+
+  /** P2 — register an observer for the raw luminance grid (visual memory). */
+  onGrid(cb: (grid: Float64Array, w: number, h: number) => void): void {
+    this._onGrid = cb;
   }
 
   start(): void {
@@ -113,6 +119,14 @@ export class ScreenVisionSensor {
       const grid = parseLuminanceCsv(csv, GRID_W * GRID_H);
       const field = fieldFromLuminanceGrid(grid, GRID_W, GRID_H);
       this._captures++;
+      // P2 — hand the raw grid to visual memory before it is discarded.
+      if (this._onGrid) {
+        try {
+          this._onGrid(grid, GRID_W, GRID_H);
+        } catch {
+          /* visual-memory failure is not a sensor failure */
+        }
+      }
 
       const novel =
         this._prevField === null || resonance(field, this._prevField) < COHERENCE_THRESHOLD;

@@ -23,7 +23,7 @@
  * itself empty rather than inventing an attractor (TRUTH_SOURCES).
  */
 
-import { PHI } from "./../core/constants.ts";
+import { HOPFIELD_BETA, HOPFIELD_MERGE_THRESHOLD, PHI } from "./../core/constants.ts";
 import { FIELD_SIZE, normalizeField, resonance } from "./../adapters/language_codec.ts";
 
 /** Maximum stored patterns: F_11 = 89 per memory bank. [SPEC] */
@@ -33,18 +33,25 @@ export class HopfieldMemory {
   /** Field dimensionality (28 for the mind's interleaved-complex fields). */
   readonly dim: number;
 
-  /** Inverse temperature β = φ / √dim. [SPEC] */
+  /** Inverse temperature β = φ / √dim. [SPEC] — Wolfram-verified: Certificate 2.3. */
   readonly beta: number;
 
   /** Stored attractor patterns (each unit-norm, length = dim). */
   private _patterns: Float64Array[] = [];
+
+  /**
+   * Reusable scratch buffer for the merge blend, allocated once on first merge.
+   * Avoids a fresh Float64Array(dim) on EVERY reinforcement (the hot learning
+   * path) — pure GC-pressure reduction, no behavioral change. [SPEC]
+   */
+  private _mergeScratch: Float64Array | null = null;
 
   constructor(dim: number = FIELD_SIZE) {
     if (!Number.isInteger(dim) || dim <= 0) {
       throw new Error(`HopfieldMemory: dim must be a positive integer, got ${dim}`);
     }
     this.dim = dim;
-    this.beta = PHI / Math.sqrt(dim);
+    this.beta = HOPFIELD_BETA; // φ/√28, Wolfram-verified (Certificate 2.3).
   }
 
   /** Number of stored patterns. */
@@ -71,7 +78,8 @@ export class HopfieldMemory {
     const p = normalizeField(pattern);
 
     // Merge near-duplicates instead of accumulating copies. [SPEC]
-    const mergeThreshold = 1.0 - 1.0 / (PHI * PHI * PHI); // 1 − 1/φ³ ≈ 0.764
+    // Threshold 1 − 1/φ³ = 3 − √5, Wolfram-verified (Certificate 2.5).
+    const mergeThreshold = HOPFIELD_MERGE_THRESHOLD;
     let bestIdx = -1;
     let bestRes = 0;
     for (let i = 0; i < this._patterns.length; i++) {
@@ -85,8 +93,11 @@ export class HopfieldMemory {
       // φ-decayed reinforcement of the existing attractor.
       const eta = 1.0 / (PHI * PHI);
       const cur = this._patterns[bestIdx];
-      const merged = new Float64Array(this.dim);
+      if (this._mergeScratch === null) this._mergeScratch = new Float64Array(this.dim);
+      const merged = this._mergeScratch;
       for (let i = 0; i < this.dim; i++) merged[i] = cur[i] * (1.0 - eta) + p[i] * eta;
+      // normalizeField allocates a fresh output, so the stored pattern never
+      // aliases the scratch buffer (which the next merge will overwrite). [SPEC]
       this._patterns[bestIdx] = normalizeField(merged);
       return false;
     }

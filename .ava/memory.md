@@ -107,3 +107,49 @@ Run in `src/compute_engine/brain v14/`:
 - Node v25.8.1. vitest 2.1.9. No vitest config file (defaults). TS 5.6.
 
 Any hardening/memory work must keep: typecheck PASS (mind-layer 0, legacy ≤45) and all 61 unit tests green. Run both after every change before calling it done.
+
+#### 2026-07-28
+# Brain v14 — mind-layer memory/cognition track (2026-07-28 → this session)
+
+Built + wired + tested the associative-memory / recognition layer. All commits in src/compute_engine/brain v14/.
+
+## New cognition modules (all wired into the live loop, all φ/Fibonacci-proportioned)
+- **hopfield.ts** — modern continuous Hopfield (Ramsauer 2020). Episodic attractor store; wired into cognitive_loop.ts (`_episodes`), each stable thought stored + associated (one-step recall, journal field `association`).
+- **hnsw_index.ts** — HNSW ANN (Malkov 2016), deterministic SplitMix level assignment (RNG-free). Used by ConceptRegistry for recognition when size ≥ annThreshold (144).
+- **pq_codec.ts** — product quantization (Jégou 2011), ~14× compression. Built + tested, NOT yet wired (no consumer yet — future memory-efficient trace store).
+- **Meaning grounding** (language_codec.ts `bindMeaning`/`phaseAlign`/`phaseRotate`): phase-aligned word→percept binding. Concepts carry a `semantic` prototype; recognition matches percept OR word channel. Persisted (optional, back-compat).
+
+## Key bug fixes
+- **Anti-phase binding collapse**: naive linear blend of word+percept could CANCEL (resonance 0.29→0.01) when fields were phase-opposed. Fixed by phase-aligning the word into the percept's frame before blending → resonance rises to 0.65.
+- **HNSW never rebuilt on restore** (commit c607e31): restore() cleared concepts but left the ANN graph empty → above annThreshold, nearest() returned nothing after a restart. Recognition silently died at scale. Fixed: restore() now clears+rebuilds the index. `annThreshold` made non-readonly so tests can cross the strategy boundary.
+
+## Field-geometry gotcha (matters for ALL future tests)
+Raw luminance/sensory fields are NOT reliably orthogonal — the resonance kernel is non-metric and non-uniform. e.g. res(field200, field500) ≈ 0.98 (same attractor) while other distinct seeds sit at 0.004. Tests that need DISTINCT attractors must use golden-angle orthogonal fields (`orthogonalField` in tests/hopfield.test.ts), NOT the makeField/sin·cos helper.
+
+## State
+- typecheck PASS (mind layer 0, legacy baseline 45). 
+- 106 unit tests green, 2 skipped (ollama integration needs live server).
+- Test files: sensors(23), drive_thought(15), registry_persistence(10), meaning_binding(10), hnsw_index(10), hopfield(13), pq_codec(10), language_codec(?), integration.ollama(skip).
+
+## Open / not yet done
+- pq_codec has no live consumer (built for future memory-efficient episodic trace store).
+- The 5.4GB Ollama blobs: never push (gitignored). Remote github.com/brojasonbrown-dotcom/Brain-v14.4 has UNRELATED history — push needs force/reconcile, user to decide.
+
+#### 2026-07-28
+RHUFT 18-scale engine — all six testresults.md audit findings (F1–F6) FIXED and regression-proven this session (2026-07-28). Build state: Files 1–19, 225/225 tests green, `tsc --noEmit` exit 0 (run in `src/compute_engine/engine`).
+
+The fixes:
+- F1: `core/constants.ts` PHI_NEG26 was a literal off by 7.4e-12 (and disagreed with torus.pow form); now derived via `Math.pow(PHI,-26)`. True value 3.6840146919005904e-6.
+- F2: `CONTINUATION_COUNT` 25 → 24 (exact census: 42 stable rungs ≤ 293; rungs 19–42). Header "43 rungs" → 42.
+- F3: `core/provenance.ts` Scaled.from() gave Infinity mantissa on subnormals (10**exp underflowed to 0). Now scales in two halves (e1=trunc(exp/2), e2=exp-e1) so divisor stays finite.
+- F4: `Scaled.compare()` equal-exponent branch multiplied by sign → inverted order for negatives. Now returns `Math.sign(Δmantissa)` directly. (Latent — no scale quantity negative yet.)
+- F5 (HIGH): `geometry/closureResidual.ts` pure-poloidal m=0 fields (cos(v)) THREW "quadrature not converged" (~1.07 spurious residue). Root cause: dv-flux evaluated metric 1/g at node centres → sum didn't telescope. Fixed to conservative flux form (harmonic-mean interface 1/g) → telescopes to ~1e-13. Verified by independent probe.
+- F6: `geometry/torus.ts` isClosed fixed-eps seam probe false-negatived high-Lipschitz periodic fields (cos(m·u+v), m≥~60). Now two-probe eps→0 extrapolated jump (same principle as closureResidual.seamDefect).
+
+Regression vectors added: sprint0.test.ts (F3 subnormal, F4 negative-compare, corrected F1 mantissa), file5.torus.test.ts (F6 high-Lipschitz cos(m·u+v) m=60/100/200 closed; cos(100.5u) value-jump open — NOTE sin(m·u/2) is value-continuous at seam so correctly closed, only derivative jumps), file6.closureResidual.test.ts (F5 pure-poloidal cos(m·v) m=1/2/3).
+
+File 19 `engine/scaleMeasurement.ts` exists + green (8 tests) — scale-native field measurement, pure observer sampling each scale at resolution from its File-4 record. Was undocumented; added to CORE_VISION §4 table.
+
+CORE_VISION.md updated: §3 stability shorthand corrected (the "odd n ∧ 7∤n" law is FALSE — counterexamples n=3,5,9,11,...; only n≡{1,13,15,27} mod 28 is correct, audit D1); §7 build-state now records 225/225 + all fixes + File 19.
+
+NOTE on the §11.5 scale table (n=0,13,20,40,60,...,292 with S_stab=0.9999): that is the OLD Chapter-11 DISCREDITED ladder. The engine correctly uses the Lucas-stable ladder n≡{1,13,15,27} mod 28 → {1,13,15,27,29,...,125}. Do NOT regress to the pasted table — its S_stab is a near-integer detector, not a stability law.

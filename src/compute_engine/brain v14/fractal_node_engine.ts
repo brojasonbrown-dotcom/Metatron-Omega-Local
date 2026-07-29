@@ -35,6 +35,9 @@ import { ResonanceFinder } from "./resonance_finder.ts";
 import { InterdimensionalFlow } from "./interdimensional_flow.ts";
 import { HardwareGovernor } from "./hardware_governor.ts";
 import { L4_Sensory } from "./frameworks.ts";
+
+/** EMA rate for the measured tick cost (η = φ⁻² — the engine's own law). */
+const EMA_RATE = 0.3819660112501051;
 import { COHERENCE_THRESHOLD } from "./core/constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -79,6 +82,12 @@ export class FractalNodeEngine {
   /** Deterministic tick counter (starts at 0, increments by 1 each tick). [SPEC] */
   private _tick_count: number;
 
+  /** The depth the tree was last built to (guards against per-tick rebuild churn). */
+  private _treeDepth = 0;
+
+  /** EMA of the real wall-clock tick cost (η = φ⁻²) — the governor's truth. */
+  private _emaTickMs = 0;
+
   /** Current engine runtime state. [SPEC] */
   private _state: EngineState;
 
@@ -112,7 +121,8 @@ export class FractalNodeEngine {
     this.membrane_stabilizer = new MembraneStabilizer();
     this.resonance_finder = new ResonanceFinder();
     this.interdimensional_flow = new InterdimensionalFlow();
-    this.hardware_governor = new HardwareGovernor();
+    // The config's target_resource_usage now genuinely governs (was a dead knob).
+    this.hardware_governor = new HardwareGovernor(this.config.target_resource_usage);
 
     this._root_node = FractalNode.createAtScale(
       this.config.target_scale as ScaleIndex,
@@ -155,6 +165,8 @@ export class FractalNodeEngine {
 
     // 3. Build fractal tree recursively
     this._buildTree(this._root_node, maxDepth);
+    this._treeDepth = maxDepth;
+    this.hardware_governor.setMeasuredDepth(maxDepth);
 
     // 4. Frameworks and memory are initialized in FractalNode constructor
     // 5. Compute initial resonance
@@ -216,6 +228,7 @@ export class FractalNodeEngine {
    * @returns EngineTickResult for this tick.
    */
   tick(): EngineTickResult {
+    const _tickStart = performance.now();
     this._tick_count++;
     this.interdimensional_flow.advance_iteration();
 
@@ -233,18 +246,40 @@ export class FractalNodeEngine {
     // 4. Compute resonance convergences
     const resonance = this.resonance_finder.find_resonance(this._root_node);
 
-    // 5. Check hardware budget and scale if necessary
+    // 5. Check hardware budget and scale if necessary.
+    //    MEASURED, not modelled: the old path estimated CPU% with a formula
+    //    that was off by orders of magnitude (0.057% claimed vs 256 ms/tick
+    //    measured on a depth-7 tree). The governor now scales the tree on the
+    //    REAL wall-clock tick cost against the cognitive cadence budget.
+    const tickMs = performance.now() - _tickStart;
+    this._emaTickMs =
+      this._emaTickMs === 0
+        ? tickMs
+        : (1 - EMA_RATE) * this._emaTickMs + EMA_RATE * tickMs;
     const stats = this._root_node.get_tree_stats();
-    const resourceUsage = this.hardware_governor.estimate_usage(stats.total_nodes);
-    const scalingAction = this.hardware_governor.should_scale(
-      resourceUsage,
-      this._state.hardware_budget
+    const scalingAction = this.hardware_governor.should_scale_measured(
+      this._emaTickMs,
+      this._state.hardware_budget,
+      this._tick_count
     );
 
-    if (scalingAction && scalingAction.action !== "maintain") {
+    // Rebuild ONLY when the target depth actually changes — previously the
+    // tree was destroyed and rebuilt on EVERY tick (pure churn: the ladder
+    // caps depth, so the same 41 nodes were recreated each tick).
+    if (
+      scalingAction &&
+      scalingAction.action !== "maintain" &&
+      scalingAction.target_depth !== this._treeDepth
+    ) {
       const newDepth = scalingAction.target_depth;
       this._root_node.destroy_children();
       this._buildTree(this._root_node, newDepth);
+      this._treeDepth = newDepth;
+      this.hardware_governor.setMeasuredDepth(newDepth);
+      // The EMA must not carry the OLD tree's cost across a rebuild — reseed
+      // so the next tick measures the NEW tree honestly (prevents EMA-lag
+      // double-shrinks, e.g. 94.5ms "at depth 6" that was really depth-7 lag).
+      this._emaTickMs = 0;
     }
 
     // 6. Update global coherence
@@ -258,7 +293,7 @@ export class FractalNodeEngine {
       global_coherence: globalCoherence,
       active_nodes: stats.coherent_nodes,
       total_nodes: stats.total_nodes,
-      resource_usage: resourceUsage,
+      resource_usage: this.hardware_governor.estimate_usage(stats.total_nodes),
       last_scaling_decision: scalingAction,
     };
 
@@ -268,7 +303,7 @@ export class FractalNodeEngine {
       resonance,
       active_nodes: stats.coherent_nodes,
       total_nodes: stats.total_nodes,
-      resource_usage: resourceUsage,
+      resource_usage: this._state.resource_usage,
       scaling_action: scalingAction,
       flow_packets: flowPackets,
       stabilized: this._isStabilized(),

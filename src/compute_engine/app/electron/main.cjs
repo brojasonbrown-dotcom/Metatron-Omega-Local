@@ -15,9 +15,21 @@ const path = require("node:path");
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { respond } = require("./responder.cjs");
 const { EngineLoop } = require("./engineLoop.cjs");
+const { MindService } = require("./mindService.cjs");
 const sensory = require("./sensory.cjs");
 
-const engineLoop = new EngineLoop();
+let engineLoop = new EngineLoop();
+
+// Live ring-resolution switch: stop, rebuild at the new node count, resume
+// (state is seeded fresh — an honest restart, not a fake continuity).
+function setLoopNodes(n) {
+  const wasRunning = engineLoop.running;
+  engineLoop.stop();
+  engineLoop = new EngineLoop({ nodes: n });
+  if (wasRunning) engineLoop.start();
+  return engineLoop.state();
+}
+const mind = new MindService();
 
 const CI_MODE = process.argv.includes("--ci");
 // --ci-report=PATH: where the CI verdict is written (packaged GUI apps have
@@ -83,24 +95,63 @@ function createWindow() {
   return win;
 }
 
-// Chat IPC: every message is answered by real engine computation.
+// Chat IPC: every message is answered by real computation. Routing law:
+//   1. the engine responder answers computed intents directly (numbers win);
+//   2. else, if the mind is awake, the GROUNDED query path — phi phrases an
+//      answer over real context (engine digest + learned concepts), inline;
+//   3. else the honest fallback with the capabilities list.
 ipcMain.handle("ava:send", async (_event, message) => {
   if (typeof message !== "string" || message.trim().length === 0) {
     return { ok: false, error: "empty message" };
   }
   try {
-    const answer = respond(message.slice(0, 4000));
+    const text = message.slice(0, 4000);
+    const answer = respond(text);
+    const isFallback = answer.startsWith("I don't have a computed answer");
+    if (isFallback && mind.running) {
+      const facts = engineDigest();
+      const q = await mind.query(text.slice(0, 500), facts);
+      if (q.ok) {
+        return { ok: true, answer: q.answer, grounded: q.grounded, via: "mind+engine" };
+      }
+      // query failed or mind busy — fall through to the async sensory path
+      mind.chat(text.slice(0, 500));
+      return { ok: true, answer: `${answer}\n\n(mind query: ${q.error} — your words reached the sensory stream instead)`, routedToMind: true };
+    }
     return { ok: true, answer };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
   }
 });
 
+/** The compact engine-truth digest fed to the mind's grounded answers. */
+function engineDigest() {
+  const s = engineLoop.state();
+  const inv = s.invariants;
+  return [
+    `Engine loop: ${s.running ? "running" : "stopped"}, ${s.nodes} nodes, ν=${s.courant.toFixed(2)}.`,
+    `Live invariants: coherence ${inv.coherence.toFixed(4)}, closure defect ${inv.closure.toExponential(2)}, drift ${inv.drift.toExponential(2)}, burden ${inv.burden.toFixed(2)}.`,
+    `Stable ladder (18 dense rungs): 1, 13, 15, 27, 29, 41, 43, 55, 57, 69, 71, 83, 85, 97, 99, 111, 113, 125 — stability ⇔ Lₙ ≡ ±1 (mod 13).`,
+    `Metatron shell n=13: flux = φ⁻²⁶ = 3.6840146919e-6; L(13) = 8.421e-33 m; λ = φ⁻² = 0.381966.`,
+  ].join("\n");
+}
+
+// Mind IPC: the v14 cognitive mind as a supervised sidecar.
+ipcMain.handle("ava:mind:start", () => mind.start());
+ipcMain.handle("ava:mind:stop", () => mind.stop());
+ipcMain.handle("ava:mind:status", () => mind.status());
+ipcMain.handle("ava:mind:chat", (_e, text) => mind.chat(text));
+ipcMain.handle("ava:mind:query", (_e, text, facts) => mind.query(text, facts));
+
 // Engine loop IPC: start/stop/reset/state — the live simulation service.
 ipcMain.handle("ava:engine:start", () => engineLoop.start());
 ipcMain.handle("ava:engine:stop", () => engineLoop.stop());
 ipcMain.handle("ava:engine:reset", () => engineLoop.reset());
 ipcMain.handle("ava:engine:state", () => engineLoop.state());
+ipcMain.handle("ava:engine:nodes", (_e, n) => {
+  if (![64, 144, 256].includes(n)) throw new RangeError(`nodes must be 64, 144, or 256; got ${n}`);
+  return setLoopNodes(n);
+});
 
 // Sensory IPC: raw measurements arrive; the projections + drive injection
 // happen HERE (main process = authoritative compute), never in the renderer.
@@ -109,6 +160,8 @@ ipcMain.handle("ava:sensor:audio", async (_event, samples, sampleRate) => {
     const field = sensory.fieldFromWaveform(Float64Array.from(samples), sampleRate);
     const energy = sensory.waveformEnergy(samples);
     engineLoop.injectSensor("audio", Math.min(1, energy * 4));
+    // dual-feed: the SAME computed field is the mind's ear too (no double work)
+    if (mind.running) mind.sensorFrame("audio", Array.from(field), { energy });
     // dominant φ-band (computed, for the UI to show what was heard)
     let dom = 0;
     let best = -1;
@@ -125,9 +178,11 @@ ipcMain.handle("ava:sensor:audio", async (_event, samples, sampleRate) => {
 ipcMain.handle("ava:sensor:video", async (_event, grid, width, height) => {
   try {
     const g = Float64Array.from(grid);
-    sensory.fieldFromLuminanceGrid(g, width, height); // validated + projected
+    const field = sensory.fieldFromLuminanceGrid(g, width, height); // validated + projected
     const mean = sensory.gridMean(g);
     engineLoop.injectSensor("vision", Math.min(1, mean));
+    // dual-feed: the SAME computed field is the mind's upgraded eye
+    if (mind.running) mind.sensorFrame("vision", Array.from(field), { mean });
     return { ok: true, mean };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
@@ -136,6 +191,12 @@ ipcMain.handle("ava:sensor:video", async (_event, grid, width, height) => {
 
 app.whenReady().then(() => {
   mainWindow = createWindow();
+  // The mind pushes its stream of consciousness to the renderer as it happens.
+  mind.onEvent((frame) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("ava:mind:event", frame);
+    }
+  });
 
   if (CI_MODE) {
     // Headless end-to-end smoke: renderer loads, all IPC surfaces roundtrip.
@@ -155,6 +216,12 @@ app.whenReady().then(() => {
           if (!(audio.ok && audio.energy > 0)) return "sensor-audio";
           const video = await window.ava.sensorVideo(new Float32Array(144*89).fill(0.5), 144, 89);
           if (!(video.ok && Math.abs(video.mean - 0.5) < 1e-9)) return "sensor-video";
+          const ms = await window.ava.mind.status();
+          // packaged context: the brain dir is OUTSIDE the package by design
+          // (5.4 GB models are not shipped) — the channel must answer sanely,
+          // whether or not a brain is present here.
+          if (!(ms && typeof ms.state === "string" && typeof ms.brainPresent === "boolean")) return "mind-status";
+          if (!document.getElementById("fab-mind")) return "mind-fab";
           return "PASS";
         })()`);
         console.log(`[ci] renderer+IPC+engine+sensors roundtrip: ${probe === "PASS" ? "PASS" : `FAIL (${probe})`}`);
@@ -178,9 +245,10 @@ app.whenReady().then(() => {
         // live UI (real state, real controls — no staging)
         await mainWindow.webContents.executeJavaScript(`(async () => {
           await window.ava.engine.start();
+          await window.ava.mind.start();
           document.getElementById("fab-stab").click();
         })()`);
-        await new Promise((r) => setTimeout(r, 2500));
+        await new Promise((r) => setTimeout(r, 20000));
         const img = await mainWindow.webContents.capturePage();
         require("node:fs").writeFileSync(SHOT_PATH, img.toPNG());
         await mainWindow.webContents.executeJavaScript("window.ava.engine.stop()");

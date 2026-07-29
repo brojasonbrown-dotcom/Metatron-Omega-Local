@@ -38,7 +38,13 @@ async function send() {
     const r = await window.ava.send(text);
     typing.classList.remove("typing");
     if (r.ok) {
-      typing.textContent = r.answer;
+      if (r.via === "mind+engine") {
+        typing.classList.add("mind-answer");
+        typing.textContent =
+          r.answer + (Array.isArray(r.grounded) && r.grounded.length ? `\n\n[grounded: ${r.grounded.join(", ")}]` : "");
+      } else {
+        typing.textContent = r.answer;
+      }
     } else {
       typing.textContent = `engine error: ${r.error}`;
       typing.classList.add("error");

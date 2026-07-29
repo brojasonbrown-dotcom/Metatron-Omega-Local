@@ -24,7 +24,7 @@
  *   C(a,b) = |⟨Ψ_a|Ψ_b⟩|² / (|Ψ_a|²·|Ψ_b|²) ∈ [0, 1]. [MATH]
  */
 
-import { MASTER_EQUATION_N, PHI, PHI_INV, PI } from "./../core/constants.ts";
+import { BIND_WEIGHT, GOLDEN_PHASE_DENOMINATOR, MASTER_EQUATION_N, PHI, PHI_INV, PI } from "./../core/constants.ts";
 
 /** Field size contract: 2 * (N + 1) = 28 for N = 13. [SPEC] */
 export const FIELD_SIZE: number = 2 * (MASTER_EQUATION_N + 1);
@@ -88,7 +88,7 @@ export function normalizeText(text: string): string {
  * @param text — Any UTF-8 text (word, phrase, sentence, chunk).
  * @returns Unit-norm Float64Array(28), interleaved complex.
  */
-export function encodeText(text: string): Float64Array {
+function _encodeTextUncached(text: string): Float64Array {
   const norm = normalizeText(text);
   if (norm.length === 0) {
     throw new Error("language_codec.encodeText: text is empty after normalization");
@@ -121,8 +121,8 @@ export function encodeText(text: string): Float64Array {
   const field = new Float64Array(FIELD_SIZE);
 
   for (let k = 0; k < NUM_MODES; k++) {
-    const amplitude = Math.pow(PHI_INV, k / 2); // φ^(-k/2) half-power decay. [SPEC]
-    const theta_k = (2.0 * PI * k * PHI_INV) / 89.0; // golden phase offset. [SPEC]
+    const amplitude = Math.pow(PHI_INV, k / 2); // φ^(-k/2) half-power decay. [SPEC] — Wolfram-verified total energy (Certificate 3.1).
+    const theta_k = (2.0 * PI * k * PHI_INV) / GOLDEN_PHASE_DENOMINATOR; // golden phase offset θ_k = 2πk·φ⁻¹/89. [SPEC] — all 14 phases distinct mod 2π (Certificate 3.2).
     let re = 0.0;
     let im = 0.0;
     for (let i = 0; i < L; i++) {
@@ -136,6 +136,48 @@ export function encodeText(text: string): Float64Array {
   }
 
   return normalizeField(field);
+}
+
+/**
+ * Bounded memoization cache for encodeText. [SPEC]
+ *
+ * The DFT projection is O(NUM_MODES · L) transcendentals and the mind re-encodes
+ * the SAME labels on every bind/name/recognize pass — a textbook pure function
+ * (deterministic: same normalized text → identical unit field). Caching removes
+ * that repeated cost with zero behavioral change.
+ *
+ * The cache is bounded (F_8 = 21 entries, FIFO evict) so a long-lived mind cannot
+ * grow it without limit, and it returns DEFENSIVE COPIES so a caller mutating the
+ * result can never corrupt the cached attractor (TRUTH_SOURCES).
+ */
+const ENCODE_CACHE_MAX = 21; // F_8. [SPEC]
+const _encodeCache = new Map<string, Float64Array>();
+
+/**
+ * Encode text into a 28-element interleaved-complex geometric field (memoized).
+ *
+ * Identical output to the underlying projection; only the repeated computation
+ * is elided. See _encodeTextUncached for the math. [SPEC]
+ */
+export function encodeText(text: string): Float64Array {
+  const key = normalizeText(text);
+  // Empty text must still throw (never fabricate content) — the uncached path
+  // does that; do not let a cached empty key smuggle a field in. [SPEC]
+  if (key.length === 0) {
+    return _encodeTextUncached(text);
+  }
+  const hit = _encodeCache.get(key);
+  if (hit !== undefined) {
+    return new Float64Array(hit); // defensive copy — never hand out the cache line
+  }
+  const field = _encodeTextUncached(text);
+  _encodeCache.set(key, field);
+  if (_encodeCache.size > ENCODE_CACHE_MAX) {
+    // FIFO evict the oldest inserted key (Map preserves insertion order). [SPEC]
+    const oldest = _encodeCache.keys().next();
+    if (!oldest.done) _encodeCache.delete(oldest.value);
+  }
+  return new Float64Array(field);
 }
 
 /** True if every element of the field is finite (no NaN/Infinity). [SPEC] */
@@ -193,10 +235,10 @@ export function resonance(a: Float64Array, b: Float64Array): number {
   let normB = 0.0;
 
   for (let i = 0; i < n; i++) {
-    const aRe = a[2 * i] ?? 0;
-    const aIm = a[2 * i + 1] ?? 0;
-    const bRe = b[2 * i] ?? 0;
-    const bIm = b[2 * i + 1] ?? 0;
+    const aRe = a[2 * i];
+    const aIm = a[2 * i + 1];
+    const bRe = b[2 * i];
+    const bIm = b[2 * i + 1];
 
     dotRe += aRe * bRe + aIm * bIm;
     dotIm += aRe * bIm - aIm * bRe;
@@ -214,10 +256,27 @@ export function resonance(a: Float64Array, b: Float64Array): number {
 
 /**
  * Blend two fields with a φ-decayed moving average (L1_Pattern prototype rule):
- * out = old·(1 − 1/φ²) + incoming·(1/φ²), then re-normalized. [SPEC]
+ * out = old·(1 − η) + incoming·η, then re-normalized. [SPEC]
+ *
+ * @param oldField — The current prototype (unit-norm).
+ * @param incoming — The new observation (unit-norm).
+ * @param evidence — OPTIONAL confidence weight: how many prior observations the
+ *   prototype already encodes. When provided, the learning rate decays as
+ *   η = (1/φ²) / (evidence + 1), so a mature prototype HARDENS — a single noisy
+ *   or adversarial observation cannot drag a well-evidenced attractor. Omitted,
+ *   η stays the canonical 1/φ² (the L2_Hebbian rate), preserving the closed-form
+ *   convergence contract the P3 battery asserts. [SPEC]
  */
-export function reinforceField(oldField: Float64Array, incoming: Float64Array): Float64Array {
-  const eta = 1.0 / (PHI * PHI); // learning rate 1/φ², same as L2_Hebbian. [SPEC]
+export function reinforceField(
+  oldField: Float64Array,
+  incoming: Float64Array,
+  evidence?: number
+): Float64Array {
+  const base = 1.0 / (PHI * PHI); // canonical learning rate 1/φ² (L2_Hebbian). [SPEC]
+  const eta =
+    evidence !== undefined && Number.isFinite(evidence) && evidence > 0
+      ? base / (evidence + 1)
+      : base;
   const len = Math.min(oldField.length, incoming.length);
   const out = new Float64Array(oldField.length);
   for (let i = 0; i < oldField.length; i++) {
@@ -262,8 +321,8 @@ export function blendFields(a: Float64Array, b: Float64Array, w: number): Float6
   return normalizeField(out);
 }
 
-/** Binding strength for word→percept fusion: 1/φ² ≈ 0.382. [SPEC] */
-export const MEANING_BIND_WEIGHT: number = 1.0 / (PHI * PHI);
+/** Binding strength for word→percept fusion: 1/φ² ≈ 0.382. [SPEC] — Wolfram-verified ratio word:percept = 1:φ (Certificate 3.7). */
+export const MEANING_BIND_WEIGHT: number = BIND_WEIGHT;
 
 /**
  * Rotate `field` (interleaved complex) by the global phase φ: each mode
@@ -277,8 +336,8 @@ export function phaseRotate(field: Float64Array, phi: number): Float64Array {
   const c = Math.cos(phi);
   const s = Math.sin(phi);
   for (let i = 0; i < n; i++) {
-    const re = field[2 * i] ?? 0;
-    const im = field[2 * i + 1] ?? 0;
+    const re = field[2 * i];
+    const im = field[2 * i + 1];
     out[2 * i] = re * c - im * s;
     out[2 * i + 1] = re * s + im * c;
   }
@@ -296,10 +355,10 @@ export function phaseAlign(moving: Float64Array, reference: Float64Array): Float
   let dotRe = 0.0;
   let dotIm = 0.0;
   for (let i = 0; i < n; i++) {
-    const aRe = moving[2 * i] ?? 0;
-    const aIm = moving[2 * i + 1] ?? 0;
-    const bRe = reference[2 * i] ?? 0;
-    const bIm = reference[2 * i + 1] ?? 0;
+    const aRe = moving[2 * i];
+    const aIm = moving[2 * i + 1];
+    const bRe = reference[2 * i];
+    const bIm = reference[2 * i + 1];
     dotRe += aRe * bRe + aIm * bIm;
     dotIm += aRe * bIm - aIm * bRe;
   }

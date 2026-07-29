@@ -61,11 +61,17 @@ export class FileVisionSensor {
   private _sensed = 0;
   private _failures = 0;
   private _lastError: string | null = null;
+  private _onGrid: ((grid: Float64Array, w: number, h: number, file: string) => void) | null = null;
 
   constructor(bus: SensorBus, inboxDir: string) {
     this._bus = bus;
     this.watchDir = path.join(inboxDir, "vision");
     this.processedDir = path.join(this.watchDir, "processed");
+  }
+
+  /** P2 — register an observer for the raw luminance grid (visual memory). */
+  onGrid(cb: (grid: Float64Array, w: number, h: number, file: string) => void): void {
+    this._onGrid = cb;
   }
 
   start(): void {
@@ -110,6 +116,14 @@ export class FileVisionSensor {
       const csv = await runPowerShell(decodeScript(filePath), 30_000);
       const grid = parseLuminanceCsv(csv, GRID_W * GRID_H);
       const field = fieldFromLuminanceGrid(grid, GRID_W, GRID_H);
+      // P2 — hand the raw grid to visual memory before it is discarded.
+      if (this._onGrid) {
+        try {
+          this._onGrid(grid, GRID_W, GRID_H, path.basename(filePath));
+        } catch {
+          /* visual-memory failure is not a sensor failure */
+        }
+      }
 
       const accepted = this._bus.push({
         source: "vision.file",

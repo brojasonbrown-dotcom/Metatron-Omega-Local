@@ -12,3 +12,9 @@ out/
 **/blobs/
 # electron / bundler artifacts
 **/*.tsbuildinfo
+src/compute_engine/app/release/
+# python caches / packaging metadata
+__pycache__/
+**/__pycache__/
+*.egg-info/
+**/*.egg-info/

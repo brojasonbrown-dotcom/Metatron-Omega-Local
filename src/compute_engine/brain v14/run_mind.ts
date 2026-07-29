@@ -31,6 +31,7 @@ import { VoiceOut } from "./adapters/voice_out.ts";
 import { CognitiveLoop } from "./cognition/cognitive_loop.ts";
 import { ConceptRegistry } from "./cognition/concept_registry.ts";
 import { MemoryStore } from "./cognition/memory_store.ts";
+import { VisualMemory } from "./cognition/visual_memory.ts";
 import { FractalNodeEngine } from "./fractal_node_engine.ts";
 
 const BRAIN_DIR = import.meta.dirname;
@@ -82,6 +83,15 @@ async function main(): Promise<void> {
   const bus = new SensorBus();
   const screenEye = new ScreenVisionSensor(bus);
   const fileEye = new FileVisionSensor(bus, INBOX_DIR);
+
+  // P2 — true vision: both eyes feed visual episodic memory (see/remember).
+  const visualMemory = new VisualMemory(STATE_DIR);
+  const vload = visualMemory.load();
+  if (vload.quarantined) {
+    console.warn(`[boot] visual_memory corrupt — quarantined to ${vload.quarantined}`);
+  }
+  screenEye.onGrid((g, w, h) => visualMemory.observe(g, w, h, "screen"));
+  fileEye.onGrid((g, w, h, file) => visualMemory.observe(g, w, h, file));
   const ear = new AudioSensor(bus, INBOX_DIR);
   const reader = new TextFeedSensor(bus, INBOX_DIR);
 
@@ -90,6 +100,7 @@ async function main(): Promise<void> {
   await ear.start();
   reader.start();
   console.log(`[boot] sensors up — screen eye + inboxes at ${INBOX_DIR}`);
+  console.log(`[boot] visual memory: ${visualMemory.size} frames remembered (restored ${vload.restored})`);
   const earStats = ear.stats();
   console.log(
     earStats.micActive

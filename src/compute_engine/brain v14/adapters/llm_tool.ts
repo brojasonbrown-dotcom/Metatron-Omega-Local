@@ -121,6 +121,48 @@ export class LlmTool {
     return { ok: true, value: text, rawText: out.value, elapsedMs: out.elapsedMs };
   }
 
+  /**
+   * phi: GROUNDED question answering — the hybrid path (M3).
+   *
+   * Unlike phrase() (which sees only labels + mood), answer() receives the
+   * human's ACTUAL words plus everything the machine can honestly bring to
+   * bear. Measured reality (Gate M3): a 3B model will ignore a facts block
+   * and hallucinate if asked to answer FROM it. The prompt is therefore
+   * shaped as a COPY-task: one commentary sentence ABOUT the facts, placed
+   * LAST (recency), with an explicit ban on new numbers. The caller then
+   * builds the factual spine DETERMINISTICALLY — phi only comments on it.
+   * Temperature stays 1/φ² (the engine's own law).
+   */
+  async answer(
+    question: string,
+    context: {
+      engineFacts: string;
+      concepts: Array<{ labels: string[]; resonance: number }>;
+    },
+  ): Promise<ToolOutcome<string>> {
+    const conceptBlock =
+      context.concepts.length === 0
+        ? "(nothing learned yet)"
+        : context.concepts
+            .map((c) => `- ${c.labels.join(", ") || "unnamed"} (resonance ${c.resonance.toFixed(3)})`)
+            .join("\n");
+    const prompt =
+      `You are the voice of a learning machine built on the RHUFT engine.\n` +
+      `The human asked: "${question}"\n` +
+      `The machine's learned concepts near this question:\n${conceptBlock}\n\n` +
+      `Speak ONE sentence (max 30 words, first person) commenting on the question in the light of these FACTS. ` +
+      `Do NOT introduce any new numbers or claims — only perspective on what the facts mean.\n` +
+      `FACTS (the only truth you may reference):\n${context.engineFacts || "(none computed for this query)"}\n\n` +
+      `COMMENTARY:`;
+    const out = await this._generate(PHI_MODEL, prompt, false, TIMEOUT_LADDER_MS[0]);
+    if (!out.ok) return out;
+    const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 300);
+    if (text.length === 0) {
+      return { ok: false, reason: "answer: empty response", elapsedMs: out.elapsedMs };
+    }
+    return { ok: true, value: text, rawText: out.value, elapsedMs: out.elapsedMs };
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // 2. Internals: bounded-retry JSON call + raw generate
   // ───────────────────────────────────────────────────────────────────────────

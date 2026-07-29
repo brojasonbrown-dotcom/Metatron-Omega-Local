@@ -135,12 +135,22 @@ function fluxIntegral(field: TorusField, torus: TorusParams, grid: number): numb
       const dPsiDu_m = (field({ u, v }) - field({ u: um, v })) / du;
       const duTerm = gHere * (dPsiDu_p - dPsiDu_m) / du;
 
-      // ∂v((1/g) ∂vΨ): the (1/g) factor varies with v — use the flux form.
-      const gP = aspect + Math.cos(vp);
-      const gM = aspect + Math.cos(vm);
+      // ∂v((1/g) ∂vΨ): the (1/g) factor varies with v. CONSERVATIVE FLUX FORM:
+      // evaluate 1/g at the cell INTERFACES (v±du/2), not the node centres
+      // (v±du). The audit (F5) found the nodal form left a spurious ~1.07
+      // residue on pure-poloidal fields (cos(m·v)) and threw "quadrature not
+      // converged", because the discrete sum Σ Δf·(1/g_{j+1} − 1/g_j) does not
+      // telescope. With the interface value shared EXACTLY between adjacent
+      // cells, the flux leaving cell j equals the flux entering cell j+1 and
+      // the interior sum cancels to zero for any u-independent field.
+      const gAt = (vv: number) => aspect + Math.cos(vv);
+      // Harmonic-mean interface value of the diffusion coefficient 1/g — the
+      // standard conservative average, making the interface flux shared exactly.
+      const invGInterfaceP = 2 / (gAt(v) + gAt(vp)); // 1/g at v+du/2
+      const invGInterfaceM = 2 / (gAt(vm) + gAt(v)); // 1/g at v−du/2
       const dPsiDv_p = (field({ u, v: vp }) - field({ u, v })) / du;
       const dPsiDv_m = (field({ u, v }) - field({ u, v: vm })) / du;
-      const dvTerm = (dPsiDv_p / gP - dPsiDv_m / gM) / du;
+      const dvTerm = (dPsiDv_p * invGInterfaceP - dPsiDv_m * invGInterfaceM) / du;
 
       // dA contribution = √det g (dimensionless g) · du·dv; the 1/g in the
       // divergence cancels the √det g Jacobian, leaving the integrand above.

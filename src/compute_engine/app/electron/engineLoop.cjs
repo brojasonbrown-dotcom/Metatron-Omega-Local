@@ -31,15 +31,23 @@
 
 const E = require("./engine-bundle.cjs");
 
-const NODES = 64;
-const DX = 1 / NODES;
 const V = 1; // scale-free: invariants are dimensionless
-const DT = 0.5 * DX; // ν = 0.5 — strictly inside the ν* = 3/2 stable region
 const TICK_MS = 33; // ~30 Hz wall-clock
 const TWO_PI = 2 * Math.PI;
 
 class EngineLoop {
-  constructor() {
+  /**
+   * @param {{nodes?: number}} [opts] — ring resolution: 64 (default), 144
+   * (F_12) or 256. Higher = finer spatial resolution of the same physics.
+   */
+  constructor(opts = {}) {
+    const nodes = opts.nodes ?? 64;
+    if (!Number.isInteger(nodes) || nodes < 8) {
+      throw new RangeError(`EngineLoop: nodes must be an integer ≥ 8, got ${nodes}`);
+    }
+    this._nodes = nodes;
+    this._dx = 1 / nodes;
+    this._dt = 0.5 * this._dx; // ν = 0.5 — strictly inside the ν* = 3/2 stable region
     this._memory = new E.MemoryKernel(); // λ = φ⁻², conservative
     this._prop = new E.Propagator(E.getScale(13), V); // v injected (B2 discipline)
     this._timer = null;
@@ -54,16 +62,17 @@ class EngineLoop {
 
   _seedField() {
     // two ring modes (k=3 and k=7 — a Lucas pair), traveling d'Alembert seed
-    this._present = Array.from({ length: NODES }, (_, i) =>
-      Math.sin(TWO_PI * 3 * i * DX) + 0.5 * Math.sin(TWO_PI * 7 * i * DX));
-    this._past = Array.from({ length: NODES }, (_, i) =>
-      Math.sin(TWO_PI * 3 * (i * DX + DT)) + 0.5 * Math.sin(TWO_PI * 7 * (i * DX + DT)));
+    const dx = this._dx, dt = this._dt;
+    this._present = Array.from({ length: this._nodes }, (_, i) =>
+      Math.sin(TWO_PI * 3 * i * dx) + 0.5 * Math.sin(TWO_PI * 7 * i * dx));
+    this._past = Array.from({ length: this._nodes }, (_, i) =>
+      Math.sin(TWO_PI * 3 * (i * dx + dt)) + 0.5 * Math.sin(TWO_PI * 7 * (i * dx + dt)));
     this._E0 = this._energy(this._present);
   }
 
   _energy(u) {
     let e = 0;
-    for (let i = 0; i < NODES; i++) e += u[i] * u[i];
+    for (let i = 0; i < this._nodes; i++) e += u[i] * u[i];
     return e;
   }
 
@@ -111,10 +120,10 @@ class EngineLoop {
   }
 
   _tick() {
-    const next = this._prop.stepRaw(this._present, this._past, DX, DT);
+    const next = this._prop.stepRaw(this._present, this._past, this._dx, this._dt);
     // sensor drives: bounded, injected at two antipodal nodes
     next[0] += this._audioDrive * 0.05;
-    next[NODES / 2] += this._visionDrive * 0.05;
+    next[this._nodes >> 1] += this._visionDrive * 0.05;
     this._past = this._present;
     this._present = next;
     this._ticks++;
@@ -127,7 +136,7 @@ class EngineLoop {
     // coherence: cos² between successive states
     let dot = 0, na = 0, nb = 0;
     let sum = 0, sumAbs = 0;
-    for (let i = 0; i < NODES; i++) {
+    for (let i = 0; i < this._nodes; i++) {
       dot += u[i] * up[i];
       na += u[i] * u[i];
       nb += up[i] * up[i];
@@ -149,8 +158,8 @@ class EngineLoop {
       running: this.running,
       ticks: this._ticks,
       uptimeMs: this._startedAt && this.running ? Date.now() - this._startedAt : 0,
-      nodes: NODES,
-      courant: this._prop.courant(DX, DT),
+      nodes: this._nodes,
+      courant: this._prop.courant(this._dx, this._dt),
       invariants: inv,
       drives: { audio: this._audioDrive, vision: this._visionDrive },
       levels: { audio: this._audioLevel, vision: this._visionLevel },

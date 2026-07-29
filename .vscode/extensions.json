@@ -38,7 +38,11 @@
     
     // Utilities
     "Gruntfuggly.todo-tree",
-    "usernamehw.errorlens"
+    "usernamehw.errorlens",
+
+      // Wolfram Language
+      "wolframresearch.wolfram",
+      "njpipeorgan.wolfram-language-notebook"
   ],
   "unwantedRecommendations": []
 }

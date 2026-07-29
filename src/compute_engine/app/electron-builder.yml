@@ -17,6 +17,27 @@ files:
   - renderer/**
   - package.json
 
+# The v14 MIND (source-only) ships as plain files at resources/brain v14 —
+# exactly where mindService's resolution chain looks. The mind runs on the
+# SYSTEM Node (≥25, type-stripping), so these must NOT be inside the asar.
+# EXCLUDED (deliberately): blobs/ (5.4 GB re-pullable model weights — a
+# machine-level resource), node_modules/ + dist/ + tests/ (dev-only),
+# mind_state/ (learned state starts fresh per machine, auto-created).
+extraResources:
+  - from: "../brain v14"
+    to: "brain v14"
+    filter:
+      - "*.ts"
+      - adapters/**
+      - cognition/**
+      - schemas/**
+      - core/**
+      - manifests/**
+      - "!**/*.test.ts"
+      - "!**/WOlfram nt.txt"
+      - "!**/FIXES.md"
+      - "!**/*.log"
+
 win:
   executableName: AVA
   artifactName: AVA-${version}-setup.${ext}

@@ -29,6 +29,7 @@ export interface JournalEntry {
     | "tool.call"
     | "tool.ok"
     | "tool.fail"
+    | "name.suppressed"
     | "voice"
     | "learn"
     | "snapshot"

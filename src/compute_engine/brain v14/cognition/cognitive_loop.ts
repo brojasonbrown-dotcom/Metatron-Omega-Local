@@ -24,6 +24,7 @@
  */
 
 import { encodeText } from "./../adapters/language_codec.ts";
+import { createHash } from "node:crypto";
 import type { LlmTool } from "./../adapters/llm_tool.ts";
 import type { SensorBus } from "./../adapters/sensors/sensor_bus.ts";
 import type { VoiceOut } from "./../adapters/voice_out.ts";
@@ -34,6 +35,7 @@ import { DriveArbiter, type DriveState, type MindAction } from "./drive_arbiter.
 import { HopfieldMemory } from "./hopfield.ts";
 import type { MemoryStore } from "./memory_store.ts";
 import { ThoughtTracker, type Thought } from "./thought.ts";
+import type { ConceptGlossary } from "./glossary.ts";
 
 /** Tick period: 1000/φ⁴ ≈ 146 ms. [SPEC] */
 export const TICK_MS = 146;
@@ -57,6 +59,8 @@ export interface CognitiveLoopDeps {
   readonly store: MemoryStore;
   readonly llm: LlmTool;
   readonly voice: VoiceOut;
+  /** M4 — dictionary-quality memory. Optional: run_mind.ts needs no change. */
+  readonly glossary?: ConceptGlossary;
 }
 
 export class CognitiveLoop {
@@ -88,6 +92,15 @@ export class CognitiveLoop {
 
   get stableThoughtCount(): number {
     return this._stableThoughtCount;
+  }
+
+  /**
+   * M4 — read access to the episodic Hopfield bank (predictive recall).
+   * The association was telemetry-only; the bridge now uses it as a genuine
+   * prediction cue for grounded answers.
+   */
+  get episodes(): HopfieldMemory {
+    return this._episodes;
   }
 
   get tickCount(): number {
@@ -315,14 +328,94 @@ export class CognitiveLoop {
     }
   }
 
+  /**
+   * P1 — perceptual grounding for the naming path.
+   *
+   * The dog/cat poison (journal t=1785240418285) happened because `nameThis` was
+   * handed ONLY abstract scores and a 3B model, asked to name a perception from
+   * bare numbers, invented concrete objects. That is now structurally impossible:
+   *
+   *  - A thought carries `sources`. Real perceptual content means an actual
+   *    external feed reached the engine (vision.*, audio.*, text.feed). The
+   *    "llm.answer" source is the mind's OWN prior output fed back — it is NOT
+   *    new perceptual content, and an empty source list is pure internal dynamics.
+   *  - With no real perceptual source we do NOT call the LLM and do NOT mint a
+   *    label. The thought stays honestly "unnamed".
+   *  - With a real source we still describe the MEASURED structure (dominant
+   *    φ-band energies of the thought field + the source types), never a prompt
+   *    that invites object invention, and we stamp a provenance hash so every
+   *    minted name is traceable to the exact field+sources that produced it.
+   */
+
+  /** Real external perceptual sources (everything except the llm.answer echo). */
+  private static readonly _PERCEPTUAL_SOURCES = new Set([
+    "vision.screen",
+    "vision.file",
+    "audio.mic",
+    "audio.file",
+    "text.feed",
+  ]);
+
+  /** True iff the thought was born from at least one real external percept. */
+  private _hasPerceptualGrounding(thought: Thought): boolean {
+    return thought.sources.some((s) => CognitiveLoop._PERCEPTUAL_SOURCES.has(s));
+  }
+
+  /**
+   * Build a measured-structure description from the thought field's dominant
+   * φ-band energies. The field is 28 interleaved-complex = 14 modes; we report
+   * the top modal energies and the real source types. This is structure the
+   * engine actually measured — it names WHAT was sensed, not an invented object.
+   */
+  private _describePerceptStructure(thought: Thought): string {
+    const f = thought.field;
+    const modes: number[] = [];
+    for (let k = 0; k + 1 < f.length; k += 2) {
+      modes.push(f[k] * f[k] + f[k + 1] * f[k + 1]); // |mode_k|²
+    }
+    const total = modes.reduce((a, b) => a + b, 0) || 1;
+    const ranked = modes
+      .map((e, k) => ({ k, frac: e / total }))
+      .sort((a, b) => b.frac - a.frac)
+      .slice(0, 3);
+    const bandStr = ranked.map((m) => `band${m.k}=${(m.frac * 100).toFixed(0)}%`).join(", ");
+    const srcStr = thought.sources.filter((s) => CognitiveLoop._PERCEPTUAL_SOURCES.has(s)).join(", ");
+    return `measured field structure (dominant φ-bands: ${bandStr}); sensed via [${srcStr}]`;
+  }
+
+  /** A6 — provenance hash: traceable to field structure + sources + labels. */
+  private _provenanceHash(thought: Thought, labels: readonly string[]): string {
+    const h = createHash("sha1");
+    h.update(thought.id);
+    h.update("|");
+    h.update(thought.sources.join(","));
+    h.update("|");
+    for (let i = 0; i < thought.field.length; i++) h.update(String(thought.field[i].toFixed(6)));
+    h.update("|");
+    h.update(labels.join(","));
+    return h.digest("hex").slice(0, 16);
+  }
+
   /** Unknown percept → phi proposes labels → concept named + learned. */
   private async _actName(thought: Thought, obs: ObserveResult): Promise<void> {
     const { llm, registry, store } = this._deps;
-    const s = thought.score;
-    const description =
-      `sensed via [${thought.sources.join(", ") || "internal dynamics"}]; ` +
-      `signal ${s.signalScore.toFixed(3)}, coherence ${s.coherenceScore.toFixed(3)}, ` +
-      `persistence ${s.persistenceScore.toFixed(3)}, relation-to-environment ${s.relationScore.toFixed(3)}`;
+
+    // P1 GATE — no perceptual grounding → no naming. Never a label from scores.
+    if (!this._hasPerceptualGrounding(thought)) {
+      store.journal({
+        t: Date.now(),
+        kind: "name.suppressed",
+        data: {
+          tool: "nameThis",
+          thought: thought.id,
+          reason: "no perceptual content — sources are internal/echo only",
+          sources: thought.sources,
+        },
+      });
+      return;
+    }
+
+    const description = this._describePerceptStructure(thought);
 
     store.journal({ t: Date.now(), kind: "tool.call", data: { tool: "nameThis", thought: thought.id } });
     const out = await llm.nameThis(description);
@@ -335,6 +428,7 @@ export class CognitiveLoop {
       return;
     }
 
+    const provenance = this._provenanceHash(thought, out.value.labels);
     registry.addLabels(obs.concept.id, out.value.labels, "llm.nameThis");
     // Symbol grounding: fuse each label's word-geometry into the concept so the
     // percept and its name become one attractor. [PHIL]
@@ -343,7 +437,15 @@ export class CognitiveLoop {
     store.journal({
       t: Date.now(),
       kind: "tool.ok",
-      data: { tool: "nameThis", thought: thought.id, labels: out.value.labels, confidence: out.value.confidence, elapsedMs: out.elapsedMs },
+      data: {
+        tool: "nameThis",
+        thought: thought.id,
+        labels: out.value.labels,
+        confidence: out.value.confidence,
+        elapsedMs: out.elapsedMs,
+        provenance, // A6 — every minted name is traceable to its measured field.
+        grounded: true,
+      },
     });
     this._learnText(out.value.labels.join(" "), "nameThis", thought.id);
   }
@@ -373,6 +475,14 @@ export class CognitiveLoop {
     // Bind the defined word + its related words into the concept's geometry. [PHIL]
     registry.bindLabel(obs.concept.id, word);
     for (const rel of out.value.related) registry.bindLabel(obs.concept.id, rel);
+    // M4 — persist the MEANING in the glossary (dictionary, not just journal).
+    this._deps.glossary?.learn({
+      conceptId: obs.concept.id,
+      definition: out.value.definition,
+      related: [word, ...out.value.related],
+      source: "define",
+      confidence: 0.5,
+    });
     store.journal({
       t: Date.now(),
       kind: "tool.ok",
@@ -404,6 +514,15 @@ export class CognitiveLoop {
     // Strengthen the shared geometry of both related labels on this concept. [PHIL]
     registry.bindLabel(obs.concept.id, a);
     registry.bindLabel(obs.concept.id, b);
+
+    // M4 — the relation IS a meaning: persist it in the glossary.
+    this._deps.glossary?.learn({
+      conceptId: obs.concept.id,
+      definition: out.value.relation,
+      related: [a, b],
+      source: "relate",
+      confidence: out.value.strength,
+    });
 
     store.journal({
       t: Date.now(),

@@ -35,6 +35,10 @@ jupyter>=1.0.0
 jupyterlab>=4.0.0
 ipython>=8.16.0
 
+# Symbolic Computation
+wolframclient>=1.4.0
+wolframalpha>=5.0.0
+
 # Code Quality
 black>=23.9.0
 isort>=5.12.0

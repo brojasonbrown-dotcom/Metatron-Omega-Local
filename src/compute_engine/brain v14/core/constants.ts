@@ -65,6 +65,95 @@ export const PHI_NEG5: Float64 = 0.09016994374947424 as Float64;
  */
 export const PHI_NEG8: Float64 = 0.0344418537486347 as Float64;
 
+/**
+ * φ⁻²⁶ — the tail bound for QRF attenuation at n=26.
+ * [MATH] — Exact form: (L(26) − F(26)·√5)/2, verified by Wolfram Certificate 1.5.
+ * Previously hardcoded with a 7.4e-12 error; now derived from the exact identity.
+ * φ⁻²⁶ ≈ 3.6840146919005904 × 10⁻⁶.
+ */
+export const PHI_NEG26: Float64 = 3.6840146919005904e-6 as Float64;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2a. Formally-Verified Cognitive Constants (Wolfram Certificates 1–3)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Meaning-bind weight: 1/φ².
+ * [MATH] — Exact: 1 − 1/φ. The ratio word:percept = 1:φ after binding.
+ * Verified: Wolfram Certificate 3.7.
+ * Used by: language_codec.ts (MEANING_BIND_WEIGHT), hopfield.ts (eta).
+ */
+export const BIND_WEIGHT: Float64 = PHI_NEG2;
+
+/**
+ * Hopfield merge threshold: 1 − 1/φ³.
+ * [MATH] — Exact form: 3 − √5 (verified: Wolfram Certificate 2.5).
+ * Near-duplicate attractors with resonance ≥ this threshold are merged.
+ * ≈ 0.7639320225002103.
+ */
+export const HOPFIELD_MERGE_THRESHOLD: Float64 = 0.7639320225002103 as Float64;
+
+/**
+ * Hopfield inverse temperature: β = φ/√d for d = FIELD_SIZE = 28.
+ * [MATH] — The standard attention scaling, φ-weighted (Ramsauer et al. 2020).
+ * Verified: Wolfram Certificate 2.3 (softmax is a valid probability distribution).
+ * ≈ 0.30577968193443595.
+ */
+export const HOPFIELD_BETA: Float64 = 0.30577968193443595 as Float64;
+
+/**
+ * Subconscious coupling: λ = (1 − C(a,b))/2.
+ * [MATH] — Conservation: C + 2λ = 1 (verified: Wolfram Certificate 3.5).
+ * Maximum-entropy prior: equal weight to conscious (resonance) and
+ * subconscious (1 − resonance) channels.
+ */
+export const SUBCONSCIOUS_LAMBDA_SCALE: Float64 = 0.5 as Float64;
+
+/**
+ * DFT total energy: Σ_{k=0}^{13} φ^{−k} = (1 − φ⁻¹⁴)/(1 − φ⁻¹).
+ * [MATH] — Geometric series closed form (verified: Wolfram Certificate 3.1).
+ * ≈ 2.614928368734753.
+ */
+export const DFT_TOTAL_ENERGY: Float64 = 2.614928368734753 as Float64;
+
+/**
+ * Golden phase offset denominator: F(11) = 89.
+ * [MATH] — θ_k = 2πk·φ⁻¹/89. All 14 phases distinct mod 2π
+ * (verified: Wolfram Certificate 3.2).
+ */
+export const GOLDEN_PHASE_DENOMINATOR: number = 89;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 1b. Wolfram-verified depth / precision horizons (Certificates 4 & 5)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Float64 integer-exactness horizon for φⁿ: the largest n with φⁿ < 2⁵³.
+ * Below/at n=76 the integer part of φⁿ is exactly representable in binary64;
+ * at n≥77 low bits round. This is the boundary between the EXACT tier (integer
+ * Lucas/Fibonacci arithmetic) and the FLOAT tier. [MATH — Wolfram Cert 5.G6]
+ * Also: Lucas(n) = round(φⁿ) holds exactly for n ∈ [2, 76] (n=1 is the exception).
+ */
+export const PHI_EXACT_HORIZON: number = 76;
+
+/**
+ * Float64 φ-power overflow horizon: φ^k overflows binary64 (→ Infinity) at
+ * k = 1435. Direct pow stays finite up to and including k=1434.
+ * [MATH — Wolfram Cert 4.D4]
+ */
+export const PHI_OVERFLOW_HORIZON: number = 1435;
+
+/**
+ * Depth at which the fractal census first exceeds the F₂₁ = 10946 concept cap.
+ * Census law (Cert 4.D1): level count multiplies by branching factor
+ * b(d)=min(Fib(d+1),13) = 1,1,2,3,5,8,13,13,… giving census 41@d5, 281@d6,
+ * 3401@d7, 43961@d8. The 10946 cap is crossed at depth 8 — the memory cap and
+ * the tree depth ceiling collide here and must be co-governed.
+ * [MATH — Wolfram Cert 4.D1]
+ */
+export const CENSUS_CAP_DEPTH: number = 8;
+
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 2. Other Incommensurable Constants
 // ═══════════════════════════════════════════════════════════════════════════════
