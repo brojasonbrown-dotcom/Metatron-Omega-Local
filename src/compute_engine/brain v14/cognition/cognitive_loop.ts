@@ -85,9 +85,16 @@ export class CognitiveLoop {
   private _mathstralBusy = false;
   private readonly _thoughtQueue: Array<{ thought: Thought; obs: ObserveResult; action: MindAction; drives: DriveState }> = [];
 
-  constructor(deps: CognitiveLoopDeps, restoredStableThoughtCount: number = 0) {
+  constructor(
+    deps: CognitiveLoopDeps,
+    restoredStableThoughtCount: number = 0,
+    restoredEpisodes: readonly string[] = []
+  ) {
     this._deps = deps;
     this._stableThoughtCount = restoredStableThoughtCount;
+    // Restore the episodic attractors so correlation-across-time survives a
+    // restart (previously RAM-only — the mind forgot its episodes each session).
+    if (restoredEpisodes.length > 0) this._episodes.restore(restoredEpisodes);
   }
 
   get stableThoughtCount(): number {
@@ -618,7 +625,18 @@ export class CognitiveLoop {
   private _snapshot(trigger: string): void {
     const { store, registry, bus } = this._deps;
     try {
-      store.save(registry, this._stableThoughtCount);
+      // Consolidation: fold duplicate attractors into one before persisting, so
+      // the lexicon accretes meaning instead of fragmenting. [FIX]
+      const { merged, absorbed } = registry.consolidate();
+      if (merged > 0) {
+        const rekeyed = this._deps.glossary?.rekey(absorbed) ?? 0;
+        store.journal({
+          t: Date.now(),
+          kind: "snapshot",
+          data: { trigger: "consolidate", merged, rekeyed, concepts: registry.size },
+        });
+      }
+      store.save(registry, this._stableThoughtCount, this._episodes.serialize());
       const busStats = bus.stats();
       store.journal({
         t: Date.now(),

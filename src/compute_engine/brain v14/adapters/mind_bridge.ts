@@ -130,6 +130,10 @@ export class MindBridge {
     const { registry, llm, bus } = this._deps;
     try {
       const queryField = encodeText(text);
+      // CORRELATE the question: route its words through label-grounded
+      // recognition so it reinforces the concept it is ABOUT (the fix for
+      // fragmentation), then let the mind hear it as a percept too.
+      registry.observeText(text, "ava.query");
       // the mind hears the question too (same as chat — cognition is continuous)
       bus.push({
         source: "text.feed",
@@ -289,6 +293,10 @@ export class MindBridge {
           return;
         }
         try {
+          // CORRELATE first: route the whole message through label-grounded
+          // recognition so repeated words reinforce ONE concept (the fix for
+          // the "doesn't correlate" fragmentation), then feed the percept.
+          this._deps.registry.observeText(o["text"], "ava.chat");
           // M5 — INPUT STABILIZATION: long messages arrive as sentence-aware
           // 144-char chunks (the text_feed discipline), not one overloaded field.
           const parts = chunkText(o["text"].slice(0, 2000), 144).slice(0, 21);

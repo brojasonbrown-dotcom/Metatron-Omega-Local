@@ -68,18 +68,22 @@ export class LlmTool {
 
   /** phi: define a word the engine has heard but does not understand deeply. */
   async define(word: string): Promise<ToolOutcome<DefineResponse>> {
+    // Anti-echo prompt: a 3B model parrots example text ("one or two sentences")
+    // back as the definition. Demand concrete content and forbid meta-language,
+    // so the glossary stores a real meaning, not a description of the reply.
     const prompt =
-      `Define the word "${word}" for a learning machine.\n` +
-      `Reply ONLY with JSON: {"word": "${word}", "definition": "one or two sentences", ` +
-      `"related": ["up to 8 related words"]}.`;
+      `Define the word "${word}" concretely, the way a dictionary does: what it IS and what it does or is used for.\n` +
+      `Rules: state real facts about "${word}" itself; do NOT write phrases like "one or two sentences" or describe your own answer.\n` +
+      `Reply ONLY with JSON: {"word": "${word}", "definition": "<the actual meaning>", "related": ["<up to 8 related words>"]}.`;
     return this._callJson(PHI_MODEL, prompt, validateDefine);
   }
 
   /** phi: explain the relation between two concepts the engine finds resonant. */
   async relate(wordA: string, wordB: string): Promise<ToolOutcome<RelateResponse>> {
     const prompt =
-      `Explain how "${wordA}" relates to "${wordB}" for a learning machine.\n` +
-      `Reply ONLY with JSON: {"relation": "one or two sentences", "strength": 0.0 to 1.0}.`;
+      `State the concrete relationship between "${wordA}" and "${wordB}" — how one involves the other in the real world.\n` +
+      `Rules: name the actual connection (e.g. part-of, causes, lives-in, is-a); do NOT write "one or two sentences" or describe your own answer.\n` +
+      `Reply ONLY with JSON: {"relation": "<the actual connection>", "strength": 0.0 to 1.0}.`;
     return this._callJson(PHI_MODEL, prompt, validateRelate);
   }
 
@@ -146,17 +150,21 @@ export class LlmTool {
         : context.concepts
             .map((c) => `- ${c.labels.join(", ") || "unnamed"} (resonance ${c.resonance.toFixed(3)})`)
             .join("\n");
+    // BOUNDED MULTI-SENTENCE (the "one paragraph" fix): the previous cap of
+    // ONE sentence / 30 words / 300 chars was the truncation the user saw. The
+    // answer may now run to a short paragraph — still finite (the UI can never
+    // hang on an endless stream) and still grounded (no new numbers).
     const prompt =
       `You are the voice of a learning machine built on the RHUFT engine.\n` +
       `The human asked: "${question}"\n` +
       `The machine's learned concepts near this question:\n${conceptBlock}\n\n` +
-      `Speak ONE sentence (max 30 words, first person) commenting on the question in the light of these FACTS. ` +
-      `Do NOT introduce any new numbers or claims — only perspective on what the facts mean.\n` +
+      `Answer in a short paragraph (2-4 sentences, up to 110 words, first person) that engages the question in the light of these FACTS. ` +
+      `Be substantive, not one clipped line. Do NOT introduce any new numbers or claims — only perspective on what the facts mean.\n` +
       `FACTS (the only truth you may reference):\n${context.engineFacts || "(none computed for this query)"}\n\n` +
-      `COMMENTARY:`;
-    const out = await this._generate(PHI_MODEL, prompt, false, TIMEOUT_LADDER_MS[0]);
+      `ANSWER:`;
+    const out = await this._generate(PHI_MODEL, prompt, false, TIMEOUT_LADDER_MS[0], 640);
     if (!out.ok) return out;
-    const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 300);
+    const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 900);
     if (text.length === 0) {
       return { ok: false, reason: "answer: empty response", elapsedMs: out.elapsedMs };
     }
@@ -208,7 +216,8 @@ export class LlmTool {
     model: string,
     prompt: string,
     json: boolean,
-    timeoutMs: number
+    timeoutMs: number,
+    numPredict: number = 256
   ): Promise<{ ok: true; value: string; elapsedMs: number } | { ok: false; reason: string; elapsedMs: number }> {
     const started = Date.now();
     try {
@@ -219,7 +228,7 @@ export class LlmTool {
         keep_alive: "30m",
         options: {
           temperature: 1 / (PHI * PHI), // ≈ 0.382 — structured but not frozen. [SPEC]
-          num_predict: 256,
+          num_predict: numPredict,
         },
       };
       if (json) body["format"] = "json";

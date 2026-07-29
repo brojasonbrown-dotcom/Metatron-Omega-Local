@@ -25,6 +25,7 @@
 
 import { HOPFIELD_BETA, HOPFIELD_MERGE_THRESHOLD, PHI } from "./../core/constants.ts";
 import { FIELD_SIZE, normalizeField, resonance } from "./../adapters/language_codec.ts";
+import { decodeFieldBase64, encodeFieldBase64 } from "./../schemas/validate.ts";
 
 /** Maximum stored patterns: F_11 = 89 per memory bank. [SPEC] */
 const MAX_PATTERNS = 89;
@@ -166,5 +167,35 @@ export class HopfieldMemory {
   /** Clear all stored attractors. */
   clear(): void {
     this._patterns = [];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Persistence — the registry discipline: the episodes survive a restart. [FIX]
+  //
+  // Previously the bank lived only in RAM: stableThoughtCount kept climbing but
+  // every restart wiped the episodic attractors, so correlation-across-time
+  // reset each session. Now the patterns serialize to base64 fields beside the
+  // concept geometry and are restored on boot.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Serialize the stored attractors as base64 Float64 fields. [SPEC] */
+  serialize(): string[] {
+    return this._patterns.map((p) => encodeFieldBase64(p));
+  }
+
+  /**
+   * Restore attractors from base64 fields (validation happens in the schema
+   * layer before this is called — corrupt entries are skipped, never repaired).
+   * Replaces any current patterns; caps at MAX_PATTERNS keeping the newest.
+   */
+  restore(fields: readonly string[]): void {
+    this._patterns = [];
+    for (const b64 of fields) {
+      const dec = decodeFieldBase64(b64);
+      if (dec.ok) this._patterns.push(normalizeField(dec.value));
+    }
+    if (this._patterns.length > MAX_PATTERNS) {
+      this._patterns = this._patterns.slice(this._patterns.length - MAX_PATTERNS);
+    }
   }
 }

@@ -106,6 +106,29 @@ export class ConceptRegistry {
   }
 
   /**
+   * Split free text into normalized content tokens: lowercase, a-z0-9, len ≥ 3,
+   * stop-words removed. This is the lexical signal the field encoder cannot
+   * supply (it is deliberately non-semantic), so correlation happens on words
+   * the mind has actually grounded, not on character-ngram accidents. [FIX]
+   */
+  private static readonly _STOP = new Set([
+    "the", "and", "for", "are", "but", "not", "you", "your", "yours", "with", "this",
+    "that", "these", "those", "from", "have", "has", "had", "was", "were", "will",
+    "would", "can", "could", "should", "what", "when", "where", "which", "who", "why",
+    "how", "about", "into", "over", "under", "then", "than", "there", "here", "they",
+    "them", "their", "its", "it's", "does", "did", "done", "some", "any", "all", "each",
+    "tell", "know", "think", "mean", "means", "meaning", "like", "just", "really",
+  ]);
+
+  private _tokens(text: string): string[] {
+    const out = new Set<string>();
+    for (const raw of text.toLowerCase().split(/[^a-z0-9]+/)) {
+      if (raw.length >= 3 && !ConceptRegistry._STOP.has(raw)) out.add(raw);
+    }
+    return [...out];
+  }
+
+  /**
    * Rank the k nearest concepts to a field by resonance (descending).
    *
    * [MATH] — Uses the single shared coherence kernel C(a,b). A concept's score
@@ -239,6 +262,113 @@ export class ConceptRegistry {
   }
 
   /**
+   * Observe TEXT — the label-grounded correlation path. [FIX]
+   *
+   * The field encoder is deliberately non-semantic (character n-grams), so raw
+   * resonance cannot tell "dog" from "dogs" (0.08) yet scores "dog~cat" at 0.26.
+   * Routing text through observe() therefore minted a fresh anonymous concept
+   * for every message — the fragmentation the user saw. Instead, when the text
+   * contains a word the mind has ALREADY grounded as a label on a named concept,
+   * we reinforce THAT attractor (the correlation), bind its geometry to the new
+   * utterance, and return it. Only genuinely ungrounded text falls through to
+   * the field path (a new percept). This is how repeated words accumulate into
+   * one concept instead of shattering across many.
+   */
+  observeText(text: string, source: string = "text.feed"): ObserveResult {
+    const tokens = this._tokens(text);
+    // Strongest grounded hit: the named concept sharing the most content tokens.
+    let hit: Concept | null = null;
+    let hitScore = 0;
+    if (tokens.length > 0) {
+      for (const c of this._concepts.values()) {
+        if (c.labels.length === 0) continue; // only named concepts can correlate
+        let overlap = 0;
+        for (const t of tokens) if (c.labels.includes(t)) overlap++;
+        // normalize by the smaller vocabulary so a rich concept isn't penalized
+        const denom = Math.min(tokens.length, c.labels.length) || 1;
+        const score = overlap / denom;
+        if (overlap > 0 && score > hitScore) {
+          hit = c;
+          hitScore = score;
+        }
+      }
+    }
+
+    if (hit) {
+      // Correlate: fold this utterance's field into the existing attractor and
+      // refresh its geometry/word grounding. η-weighted so it hardens with use.
+      const field = encodeText(text);
+      hit.prototype = reinforceField(hit.prototype, normalizeField(field), hit.reinforcement);
+      if (hit.semantic !== null) hit.semantic = reinforceField(hit.semantic, normalizeField(field));
+      hit.reinforcement += 1;
+      hit.lastSeen = Date.now();
+      this._traceSource(hit, source);
+      this._hnsw.add(hit.id, hit.prototype);
+      return { concept: hit, isNew: false, resonance: 1 };
+    }
+
+    // No grounded label matched: this is new content — mint a percept concept.
+    return this.observe(encodeText(text), [], source);
+  }
+
+  /**
+   * Consolidate near-duplicate concepts — the merge the system never had. [FIX]
+   *
+   * Two concepts are the SAME attractor only when they agree on BOTH channels:
+   * they share a normalized label (the mind calls them the same thing) AND their
+   * prototypes resonate ≥ λ (the geometry agrees). The strict AND-rule means
+   * dog/cat (no shared label) can NEVER merge, while the duplicate bird/tree
+   * concepts the registry accumulated DO. Fused: φ-weighted prototype, union of
+   * labels, summed reinforcement, survivor = higher reinforcement. Re-indexes
+   * HNSW. Returns the absorbed (loser) ids so the glossary can re-key.
+   */
+  consolidate(): { merged: number; absorbed: Map<string, string> } {
+    const absorbed = new Map<string, string>(); // loserId → survivorId
+    const ids = [...this._concepts.keys()];
+    let merged = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const a = this._concepts.get(ids[i]!);
+      if (!a) continue;
+      for (let j = i + 1; j < ids.length; j++) {
+        const b = this._concepts.get(ids[j]!);
+        if (!b) continue;
+        const shareLabel = a.labels.some((l) => b.labels.includes(l));
+        if (!shareLabel) continue; // different names → different concepts, keep both
+        const res = resonance(a.prototype, b.prototype);
+        if (res < this.recognitionThreshold) continue; // geometry disagrees → keep both
+        // Merge b into the stronger of the two.
+        const [survivor, loser] = a.reinforcement >= b.reinforcement ? [a, b] : [b, a];
+        const total = survivor.reinforcement + loser.reinforcement;
+        // φ-weighted prototype fusion weighted by evidence.
+        const wS = survivor.reinforcement / total;
+        const wL = loser.reinforcement / total;
+        const fused = new Float64Array(survivor.prototype.length);
+        for (let k = 0; k < fused.length; k++) {
+          fused[k] = survivor.prototype[k]! * wS + loser.prototype[k]! * wL;
+        }
+        survivor.prototype = normalizeField(fused);
+        if (survivor.semantic !== null && loser.semantic !== null) {
+          const fs = new Float64Array(survivor.semantic.length);
+          for (let k = 0; k < fs.length; k++) fs[k] = survivor.semantic[k]! * wS + loser.semantic[k]! * wL;
+          survivor.semantic = normalizeField(fs);
+        } else if (survivor.semantic === null) {
+          survivor.semantic = loser.semantic;
+        }
+        this._mergeLabels(survivor, loser.labels);
+        survivor.reinforcement = total;
+        survivor.lastSeen = Math.max(survivor.lastSeen, loser.lastSeen);
+        for (const s of loser.sourceTrace) this._traceSource(survivor, s);
+        this._concepts.delete(loser.id);
+        this._hnsw.remove(loser.id);
+        this._hnsw.add(survivor.id, survivor.prototype);
+        absorbed.set(loser.id, survivor.id);
+        merged++;
+      }
+    }
+    return { merged, absorbed };
+  }
+
+  /**
    * Bind a label's word-geometry into a concept — the symbol-grounding step.
    *
    * Fuses encodeText(label) into the concept's SEMANTIC prototype (created on
@@ -319,7 +449,7 @@ export class ConceptRegistry {
   // Serialization (schema: mind_state.schema.json)
   // ───────────────────────────────────────────────────────────────────────────
 
-  serialize(stableThoughtCount: number): SerializedMindState {
+  serialize(stableThoughtCount: number, episodes?: readonly string[]): SerializedMindState {
     const concepts: SerializedConcept[] = [];
     for (const c of this._concepts.values()) {
       concepts.push({
@@ -334,7 +464,13 @@ export class ConceptRegistry {
         sourceTrace: [...c.sourceTrace],
       });
     }
-    return { version: 1, savedAt: Date.now(), stableThoughtCount, concepts };
+    return {
+      version: 1,
+      savedAt: Date.now(),
+      stableThoughtCount,
+      concepts,
+      ...(episodes !== undefined ? { episodes: [...episodes] } : {}),
+    };
   }
 
   /**

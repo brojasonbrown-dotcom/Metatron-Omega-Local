@@ -37,6 +37,27 @@ export function isStringArray(x: unknown): x is string[] {
   return Array.isArray(x) && x.every((s) => typeof s === "string");
 }
 
+/**
+ * True when a model's free-text output is meta-language ABOUT the reply rather
+ * than the content itself — the echo failure where a small model parrots the
+ * prompt's example ("one or two sentences") or describes its own format. Such
+ * text carries no learnable meaning, so define/relate reject it. [FIX]
+ */
+export function isMetaText(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (t.length === 0) return true;
+  // Whole-output meta phrases (the prompt's example text echoed back).
+  const metaPatterns = [
+    /^one or two sentences\b/,      // the define prompt's example, verbatim
+    /^depending on the context\b/,  // its common completion
+    /^(a|an)?\s*short (definition|answer|response|sentence)\b/,
+    /^(the )?definition (is|would be|will be)\b/,
+    /^(this|that) (is|describes) (a|the) (definition|relation)\b/,
+    /^as (a|an) (noun|verb|word|term)\b/,
+  ];
+  return metaPatterns.some((re) => re.test(t));
+}
+
 /** Validate a Float64Array-shaped field: exact length, all finite. [SPEC] */
 export function validateField(
   field: unknown,
@@ -117,14 +138,19 @@ export function validateDefine(raw: unknown): ValidationResult<DefineResponse> {
   if (!isNonEmptyString(o["definition"])) {
     return { ok: false, reason: "define: definition must be a non-empty string" };
   }
+  const definition = (o["definition"] as string).trim().slice(0, 2000);
+  // ECHO GUARD: a small model parrots the prompt's example text ("one or two
+  // sentences") instead of defining. A definition that is ONLY meta-language
+  // about the reply itself carries no meaning — reject it so the caller retries
+  // with a clearer prompt rather than persisting placeholder noise. [FIX]
+  if (isMetaText(definition)) {
+    return { ok: false, reason: `define: definition is meta/echo text, not a meaning: "${definition.slice(0, 60)}"` };
+  }
   const word = isNonEmptyString(o["word"]) ? (o["word"] as string).trim() : "";
   const related = isStringArray(o["related"])
     ? (o["related"] as string[]).map((s) => s.trim().toLowerCase()).filter((s) => s.length > 0).slice(0, 8)
     : [];
-  return {
-    ok: true,
-    value: { word, definition: (o["definition"] as string).trim().slice(0, 2000), related },
-  };
+  return { ok: true, value: { word, definition, related } };
 }
 
 export function validateRelate(raw: unknown): ValidationResult<RelateResponse> {
@@ -135,10 +161,14 @@ export function validateRelate(raw: unknown): ValidationResult<RelateResponse> {
   if (!isNonEmptyString(o["relation"])) {
     return { ok: false, reason: "relate: relation must be a non-empty string" };
   }
+  const relation = (o["relation"] as string).trim().slice(0, 2000);
+  if (isMetaText(relation)) {
+    return { ok: false, reason: `relate: relation is meta/echo text, not a meaning: "${relation.slice(0, 60)}"` };
+  }
   const strength = isFiniteNumber(o["strength"])
     ? Math.min(1, Math.max(0, o["strength"] as number))
     : 0.5;
-  return { ok: true, value: { relation: (o["relation"] as string).trim().slice(0, 2000), strength } };
+  return { ok: true, value: { relation, strength } };
 }
 
 export function validateVerify(raw: unknown): ValidationResult<VerifyResponse> {
@@ -251,6 +281,12 @@ export interface SerializedMindState {
   readonly savedAt: number;
   readonly stableThoughtCount: number;
   readonly concepts: SerializedConcept[];
+  /**
+   * Optional base64 fields of the episodic Hopfield attractors. Absent in older
+   * saves (episodes were RAM-only); when present they restore correlation-across
+   * -time across restarts. [FIX — episode persistence]
+   */
+  readonly episodes?: string[];
 }
 
 /** Decode base64 → Float64Array and validate shape. */
@@ -340,6 +376,18 @@ export function validateMindState(raw: unknown): ValidationResult<SerializedMind
       sourceTrace: isStringArray(co["sourceTrace"]) ? (co["sourceTrace"] as string[]) : [],
     });
   }
+  // Optional episodic Hopfield attractors: validate each base64 field, skip the
+  // malformed (defense in depth — never let one bad episode sink the snapshot).
+  let episodes: string[] | undefined;
+  if (Array.isArray(o["episodes"])) {
+    episodes = [];
+    for (const e of o["episodes"] as unknown[]) {
+      if (typeof e === "string") {
+        const dec = decodeFieldBase64(e);
+        if (dec.ok) episodes.push(e);
+      }
+    }
+  }
   return {
     ok: true,
     value: {
@@ -347,6 +395,7 @@ export function validateMindState(raw: unknown): ValidationResult<SerializedMind
       savedAt: o["savedAt"] as number,
       stableThoughtCount: o["stableThoughtCount"] as number,
       concepts,
+      ...(episodes !== undefined ? { episodes } : {}),
     },
   };
 }

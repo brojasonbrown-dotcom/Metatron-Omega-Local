@@ -42,6 +42,8 @@ export interface LoadResult {
   readonly loaded: boolean;
   readonly stableThoughtCount: number;
   readonly quarantined: string | null;
+  /** Restored episodic Hopfield attractors (empty for older saves). [FIX] */
+  readonly episodes?: readonly string[];
 }
 
 /**
@@ -84,9 +86,9 @@ export class MemoryStore {
   // 1. Snapshot save/load (atomic, validated, quarantine-on-corruption)
   // ───────────────────────────────────────────────────────────────────────────
 
-  /** Atomically persist the registry snapshot. */
-  save(registry: ConceptRegistry, stableThoughtCount: number): void {
-    const state = registry.serialize(stableThoughtCount);
+  /** Atomically persist the registry snapshot (+ episodic attractors when given). */
+  save(registry: ConceptRegistry, stableThoughtCount: number, episodes?: readonly string[]): void {
+    const state = registry.serialize(stableThoughtCount, episodes);
     const tmpPath = `${this.statePath}.tmp`;
     fs.writeFileSync(tmpPath, JSON.stringify(state), "utf8");
     fs.renameSync(tmpPath, this.statePath);
@@ -98,7 +100,7 @@ export class MemoryStore {
    */
   load(registry: ConceptRegistry): LoadResult {
     if (!fs.existsSync(this.statePath)) {
-      return { loaded: false, stableThoughtCount: 0, quarantined: null };
+      return { loaded: false, stableThoughtCount: 0, quarantined: null, episodes: [] };
     }
 
     let parsed: unknown;
@@ -120,6 +122,7 @@ export class MemoryStore {
       loaded: true,
       stableThoughtCount: check.value.stableThoughtCount,
       quarantined: null,
+      episodes: check.value.episodes ?? [],
     };
   }
 

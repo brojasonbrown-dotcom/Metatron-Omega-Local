@@ -122,7 +122,8 @@ async function main(): Promise<void> {
   const voice = new VoiceOut(store);
   const loop = new CognitiveLoop(
     { engine, bus, registry, store, llm, voice, glossary },
-    loaded.stableThoughtCount
+    loaded.stableThoughtCount,
+    loaded.episodes ?? []
   );
   const bridge = new MindBridge({ bus, store, loop, registry, llm, glossary });
 

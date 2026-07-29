@@ -86,6 +86,45 @@ export class ConceptGlossary {
     this._save();
   }
 
+  /**
+   * Re-key entries after a registry consolidation: each absorbed (loser) id's
+   * meaning moves onto its survivor. Order-independent: the highest-confidence
+   * meaning among {survivor's own entry, all absorbed entries} always wins, no
+   * matter which way the map iterates. [FIX — keeps the dictionary consistent
+   * across a merge]
+   */
+  rekey(absorbed: ReadonlyMap<string, string>): number {
+    // Group all candidate entries by their final (survivor) id first.
+    const bySurvivor = new Map<string, GlossaryEntry[]>();
+    const losers: string[] = [];
+    for (const [loserId, survivorId] of absorbed) {
+      const loserEntry = this._entries.get(loserId);
+      losers.push(loserId);
+      if (!loserEntry) continue;
+      const list = bySurvivor.get(survivorId) ?? [];
+      list.push(loserEntry);
+      bySurvivor.set(survivorId, list);
+    }
+    let moved = 0;
+    for (const [survivorId, candidates] of bySurvivor) {
+      const existing = this._entries.get(survivorId);
+      const all = existing ? [existing, ...candidates] : candidates;
+      // Highest confidence wins; ties broken by most recently learned.
+      let best = all[0]!;
+      for (const e of all) {
+        if (e.confidence > best.confidence ||
+            (e.confidence === best.confidence && e.learnedAt > best.learnedAt)) {
+          best = e;
+        }
+      }
+      this._entries.set(survivorId, { ...best, conceptId: survivorId });
+      moved += candidates.length;
+    }
+    for (const loserId of losers) this._entries.delete(loserId);
+    if (moved > 0) this._save();
+    return moved;
+  }
+
   all(): readonly GlossaryEntry[] {
     return [...this._entries.values()];
   }
