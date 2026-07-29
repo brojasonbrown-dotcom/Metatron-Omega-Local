@@ -20,9 +20,12 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // electron/engine-entry.ts
 var engine_entry_exports = {};
 __export(engine_entry_exports, {
+  AdaptiveMesh: () => AdaptiveMesh,
   C: () => C,
+  CADENCE_MS: () => CADENCE_MS,
   CFL_LIMIT: () => CFL_LIMIT,
   CFL_STABILITY_BOUNDARY: () => CFL_STABILITY_BOUNDARY,
+  COARSEN_THRESHOLD: () => COARSEN_THRESHOLD,
   CONTINUATION: () => CONTINUATION,
   DensityField: () => DensityField,
   LADDER: () => LADDER,
@@ -33,15 +36,21 @@ __export(engine_entry_exports, {
   PHI_NEG2: () => PHI_NEG2,
   PHI_NEG26: () => PHI_NEG26,
   PLANCK_LENGTH: () => PLANCK_LENGTH,
+  PROLONGATION_WEIGHT: () => PROLONGATION_WEIGHT,
   Propagator: () => Propagator,
+  REFINE_GRADING: () => REFINE_GRADING,
+  REFINE_THRESHOLD: () => REFINE_THRESHOLD,
+  RESTRICTION_WEIGHT: () => RESTRICTION_WEIGHT,
   STABLE_SCALES: () => STABLE_SCALES,
   Scaled: () => Scaled,
+  TARGET_USAGE: () => TARGET_USAGE,
   UNRESOLVED: () => UNRESOLVED,
   allScales: () => allScales,
   binetDefect: () => binetDefect,
   closureResidual: () => closureResidual,
   closureResidueMin: () => closureResidueMin,
   closureScore: () => closureScore,
+  energyRatio: () => energyRatio,
   envelopeDensity: () => envelopeDensity,
   fibonacci: () => fibonacci,
   getScale: () => getScale,
@@ -55,6 +64,16 @@ __export(engine_entry_exports, {
   metatronShellFlux: () => metatronShellFlux,
   minimallyOpenFloor: () => minimallyOpenFloor,
   octavePartners: () => octavePartners,
+  prolongateBlock: () => prolongateBlock,
+  relativeConservationResidual: () => relativeConservationResidual,
+  relativeRestrictionResidual: () => relativeRestrictionResidual,
+  relativeRoundTripDefect: () => relativeRoundTripDefect,
+  restrictBlock: () => restrictBlock,
+  restrictParent: () => restrictParent,
+  restrictPartial: () => restrictPartial,
+  restrictionConservationResidual: () => restrictionConservationResidual,
+  restrictionWeights: () => restrictionWeights,
+  roundTripDefect: () => roundTripDefect,
   selfOverlap: () => selfOverlap,
   spectralAmplitudes: () => spectralAmplitudes,
   spectralLines: () => spectralLines,
@@ -165,8 +184,8 @@ var Scaled = class _Scaled {
     return new _Scaled(0, 0);
   }
   /** φ^k as a Scaled — exact in the exponent, Float64 mantissa. */
-  static phiPow(k, PHI2) {
-    return _Scaled.from(Math.pow(PHI2, k));
+  static phiPow(k, PHI3) {
+    return _Scaled.from(Math.pow(PHI3, k));
   }
   /** Normalize so mantissa ∈ [1,10) (or exactly 0). Returns a fresh Scaled. */
   normalize() {
@@ -1154,11 +1173,684 @@ var DensityField = class {
 function envelopeDensity(n) {
   return getScale(n).rhoI;
 }
+
+// ../engine/src/refinement/constants.ts
+var REFINE_GRADING = PHI * PHI;
+var REFINE_THRESHOLD = PHI_NEG2;
+var COARSEN_THRESHOLD = PHI_NEG2 * PHI_NEG2;
+var BYTES_PER_NODE = 64 * 1024;
+var CADENCE_MS = 146;
+var TARGET_USAGE = 0.35;
+
+// ../engine/src/refinement/node.ts
+var GRADING = REFINE_GRADING;
+var CHILDREN_PER_NODE = 4;
+function resolvedScaleAt(rootCellSize, level) {
+  if (!(rootCellSize > 0) || !Number.isFinite(rootCellSize)) {
+    throw new RangeError(`resolvedScaleAt: rootCellSize must be > 0 finite; got ${rootCellSize}.`);
+  }
+  if (!Number.isInteger(level) || level < 0) {
+    throw new RangeError(`resolvedScaleAt: level must be an integer \u2265 0; got ${level}.`);
+  }
+  const scale = rootCellSize * Math.pow(GRADING, -level);
+  return classify(
+    scale,
+    "POSTULATE",
+    void 0,
+    `rootCell\xB7\u03C6^(\u22122\xB7${level}); the \u03C6-power is EXACT, its reading as resolved feature size is POSTULATE (Phase 7 measures)`
+  );
+}
+function subdivideCell(cell) {
+  if (!(cell.size > 0) || !Number.isFinite(cell.size)) {
+    throw new RangeError(`subdivideCell: cell.size must be > 0 finite; got ${cell.size}.`);
+  }
+  const half = cell.size / 2;
+  return [
+    Object.freeze({ u0: cell.u0, v0: cell.v0, size: half }),
+    // 0: du=0 dv=0
+    Object.freeze({ u0: cell.u0, v0: cell.v0 + half, size: half }),
+    // 1: du=0 dv=1
+    Object.freeze({ u0: cell.u0 + half, v0: cell.v0, size: half }),
+    // 2: du=1 dv=0
+    Object.freeze({ u0: cell.u0 + half, v0: cell.v0 + half, size: half })
+    // 3: du=1 dv=1
+  ];
+}
+function makeNode(cell, level, slot, rootCellSize) {
+  if (!Number.isInteger(level) || level < 0) {
+    throw new RangeError(`makeNode: level must be an integer \u2265 0; got ${level}.`);
+  }
+  if (!Number.isInteger(slot) || slot < 0 || slot >= CHILDREN_PER_NODE) {
+    throw new RangeError(`makeNode: slot must be an integer in [0,4); got ${slot}.`);
+  }
+  return Object.freeze({
+    level,
+    cell: Object.freeze({ ...cell }),
+    slot,
+    resolvedScale: resolvedScaleAt(rootCellSize, level),
+    children: null
+  });
+}
+function withChildren(node, rootCellSize) {
+  if (node.children !== null) {
+    throw new RangeError("withChildren: node is already internal (children attached).");
+  }
+  const childCells = subdivideCell(node.cell);
+  const children = childCells.map(
+    (cell, slot) => makeNode(cell, node.level + 1, slot, rootCellSize)
+  );
+  return Object.freeze({ ...node, children: Object.freeze(children) });
+}
+function isLeaf(node) {
+  return node.children === null;
+}
+function isInternal(node) {
+  return node.children !== null;
+}
+
+// ../engine/src/refinement/octree.ts
+function rootCell() {
+  return Object.freeze({ u0: 0, v0: 0, size: TWO_PI });
+}
+var Octree = class _Octree {
+  /** The root node (level 0). */
+  root;
+  /** The root cell size, anchoring the φ² grading for every node. */
+  rootCellSize;
+  constructor(root, rootCellSize) {
+    this.root = root;
+    this.rootCellSize = rootCellSize;
+    Object.freeze(this);
+  }
+  /** Build a tree that is a single leaf over the full (u,v) domain. */
+  static create() {
+    const cell = rootCell();
+    return new _Octree(makeNode(cell, 0, 0, cell.size), cell.size);
+  }
+  /**
+   * Refine the leaf at `path` into the strict 2×2 dyadic block.
+   * `path` is the sequence of child slots from the root to the target leaf
+   * (empty path = the root itself). Returns a NEW tree.
+   *
+   * Throws if the path does not resolve to a leaf — refining an internal node
+   * or a non-existent path is a structural error, never silently ignored.
+   */
+  refine(path) {
+    const newRoot = this.rebuild(this.root, path, 0, "refine");
+    return new _Octree(newRoot, this.rootCellSize);
+  }
+  /**
+   * Coarsen the internal node at `path` back into a leaf. Only legal when all
+   * four of its children are leaves (the dyadic collapse is total). Returns a
+   * NEW tree. Throws otherwise — partial coarsening is not a tree operation.
+   */
+  coarsen(path) {
+    const newRoot = this.rebuild(this.root, path, 0, "coarsen");
+    return new _Octree(newRoot, this.rootCellSize);
+  }
+  /**
+   * Rebuild the tree, applying `op` at the node addressed by `path[depth..]`.
+   * Structural sharing: untouched subtrees are returned by reference, so a
+   * refine/coarsen copies only the spine from root to target — O(depth), not
+   * O(nodes). This is what keeps per-tick adaptivity within the cadence budget.
+   */
+  rebuild(node, path, depth, op) {
+    if (depth === path.length) {
+      if (op === "refine") {
+        if (!isLeaf(node)) {
+          throw new RangeError("refine: target is not a leaf (already refined).");
+        }
+        return withChildren(node, this.rootCellSize);
+      }
+      if (!isInternal(node)) {
+        throw new RangeError("coarsen: target is not internal (nothing to collapse).");
+      }
+      const kids2 = node.children;
+      if (!kids2.every((k) => k !== null && isLeaf(k))) {
+        throw new RangeError(
+          "coarsen: not all children are leaves \u2014 collapse must be total (dyadic invariant)."
+        );
+      }
+      const { children: _drop, ...leaf } = node;
+      return Object.freeze({ ...leaf, children: null });
+    }
+    if (!isInternal(node)) {
+      throw new RangeError(
+        `${op}: path descends through a leaf at depth ${depth} (path longer than tree).`
+      );
+    }
+    const slot = path[depth];
+    if (!Number.isInteger(slot) || slot < 0 || slot >= CHILDREN_PER_NODE) {
+      throw new RangeError(`${op}: path slot ${slot} at depth ${depth} is not in [0,4).`);
+    }
+    const kids = node.children;
+    const newKids = kids.map(
+      (k, i) => i === slot ? this.rebuild(k, path, depth + 1, op) : k
+    );
+    return Object.freeze({ ...node, children: Object.freeze(newKids) });
+  }
+  // ── traversal & linearisation ──────────────────────────────────────────────
+  /**
+   * LEVEL-ORDER LINEARISATION — breadth-first, so each level is one contiguous
+   * run. This is the cache-friendly memory layout the per-tick governor loop
+   * walks: reading nodes in address order touches memory sequentially.
+   * Returns the nodes in linearisation order (root first).
+   */
+  linearise() {
+    const out = [];
+    const queue = [this.root];
+    for (let i = 0; i < queue.length; i++) {
+      const node = queue[i];
+      out.push(node);
+      if (isInternal(node)) {
+        for (const child of node.children) queue.push(child);
+      }
+    }
+    return Object.freeze(out);
+  }
+  /**
+   * Iterate the LEAVES (the nodes that carry the field) in linearisation order.
+   * The curvature estimator and the field operators run over exactly these.
+   */
+  leaves() {
+    return Object.freeze(this.linearise().filter(isLeaf));
+  }
+  /** The nodes at exactly `level`, in linearisation order. */
+  atLevel(level) {
+    if (!Number.isInteger(level) || level < 0) {
+      throw new RangeError(`atLevel: level must be an integer \u2265 0; got ${level}.`);
+    }
+    return Object.freeze(this.linearise().filter((n) => n.level === level));
+  }
+  /** The maximum depth of the tree (0 = root only). */
+  maxDepth() {
+    let max = 0;
+    for (const n of this.linearise()) if (n.level > max) max = n.level;
+    return max;
+  }
+  /** Total node count (internal + leaves). */
+  nodeCount() {
+    return this.linearise().length;
+  }
+  /** Leaf count — the number of field-carrying cells. */
+  leafCount() {
+    return this.leaves().length;
+  }
+  /**
+   * Look up the node addressed by `path` (slots from the root), or null if the
+   * path does not resolve. Bit-shift descent: each slot IS the child index.
+   */
+  at(path) {
+    let node = this.root;
+    for (const slot of path) {
+      if (!isInternal(node)) return null;
+      if (!Number.isInteger(slot) || slot < 0 || slot >= CHILDREN_PER_NODE) return null;
+      node = node.children[slot];
+    }
+    return node;
+  }
+};
+
+// ../engine/src/refinement/curvature.ts
+function discreteLaplacian(patch) {
+  const { values, dx, dim } = patch;
+  const neighbours = 2 * dim;
+  if (values.length !== neighbours + 1) {
+    throw new Error(
+      `discreteLaplacian: patch needs centre + ${neighbours} neighbours (${neighbours + 1} values), got ${values.length}`
+    );
+  }
+  if (!(dx > 0) || !Number.isFinite(dx)) {
+    throw new Error(`discreteLaplacian: dx must be positive finite, got ${dx}`);
+  }
+  const centre = values[0];
+  if (centre === void 0) {
+    throw new Error("discreteLaplacian: patch is empty");
+  }
+  let fluxSum = 0;
+  for (let j = 1; j <= neighbours; j++) {
+    fluxSum += (values[j] ?? 0) - centre;
+  }
+  return fluxSum / (dx * dx);
+}
+function curvatureLambda(patch, floor = AMPLITUDE_FLOOR) {
+  if (!(floor >= 0) || !Number.isFinite(floor)) {
+    throw new Error(`curvatureLambda: floor must be non-negative finite, got ${floor}`);
+  }
+  const lap = discreteLaplacian(patch);
+  const amp = Math.abs(patch.values[0] ?? 0);
+  const denom = amp + floor;
+  if (denom === 0) return 0;
+  return Math.abs(lap) / denom;
+}
+var AMPLITUDE_FLOOR = 1e-12;
+
+// ../engine/src/refinement/criterion.ts
+function decideRefinement(lambda, lambdaRef) {
+  if (!(lambda >= 0) || !Number.isFinite(lambda)) {
+    throw new Error(`decideRefinement: lambda must be \u2265 0 finite, got ${lambda}`);
+  }
+  if (!(lambdaRef > 0) || !Number.isFinite(lambdaRef)) {
+    throw new Error(`decideRefinement: lambdaRef must be > 0 finite, got ${lambdaRef}`);
+  }
+  const refineAt = REFINE_THRESHOLD * lambdaRef;
+  const coarsenAt = COARSEN_THRESHOLD * lambdaRef;
+  const decision = lambda > refineAt ? "refine" : lambda < coarsenAt ? "coarsen" : "hold";
+  return { decision, refineAt, coarsenAt };
+}
+
+// ../engine/src/refinement/prolongation.ts
+var PROLONGATION_WEIGHT = PHI_NEG2 / 3;
+function prolongateBlock(parents) {
+  if (parents.length !== 4) {
+    throw new RangeError(
+      `prolongateBlock: a refined block has exactly 4 parents, got ${parents.length}.`
+    );
+  }
+  for (let i = 0; i < 4; i++) {
+    if (!Number.isFinite(parents[i])) {
+      throw new RangeError(`prolongateBlock: parent[${i}] is not finite (${parents[i]}).`);
+    }
+  }
+  const w = PROLONGATION_WEIGHT;
+  const out = new Array(4);
+  for (let j = 0; j < 4; j++) {
+    const pj = parents[j];
+    let correction = 0;
+    for (let s = 0; s < 4; s++) {
+      if (s !== j) correction += parents[s] - pj;
+    }
+    out[j] = pj + w * correction;
+  }
+  return out;
+}
+function conservationResidual(parents) {
+  const children = prolongateBlock(parents);
+  const sumP = parents.reduce((a, b) => a + b, 0);
+  const sumC = children.reduce((a, b) => a + b, 0);
+  return Math.abs(sumC - sumP);
+}
+function relativeConservationResidual(parents) {
+  const scale = Math.max(1, ...parents.map((x) => Math.abs(x)));
+  return conservationResidual(parents) / scale;
+}
+
+// ../engine/src/refinement/restriction.ts
+var RESTRICTION_WEIGHT = PROLONGATION_WEIGHT;
+var SIBLINGS = 3;
+function restrictionWeights(slot) {
+  if (!Number.isInteger(slot) || slot < 0 || slot > SIBLINGS) {
+    throw new RangeError(`restrictionWeights: slot must be an integer in [0,4), got ${slot}.`);
+  }
+  const w = RESTRICTION_WEIGHT;
+  const diag = 1 - SIBLINGS * w;
+  const out = new Array(4);
+  for (let r = 0; r < 4; r++) out[r] = r === slot ? diag : w;
+  return out;
+}
+function restrictBlock(children) {
+  if (children.length !== 4) {
+    throw new RangeError(
+      `restrictBlock: a coarsened block has exactly 4 children, got ${children.length}.`
+    );
+  }
+  for (let i = 0; i < 4; i++) {
+    if (!Number.isFinite(children[i])) {
+      throw new RangeError(`restrictBlock: child[${i}] is not finite (${children[i]}).`);
+    }
+  }
+  const w = RESTRICTION_WEIGHT;
+  const diag = 1 - SIBLINGS * w;
+  const out = new Array(4);
+  for (let s = 0; s < 4; s++) {
+    let siblings = 0;
+    for (let r = 0; r < 4; r++) {
+      if (r !== s) siblings += children[r];
+    }
+    out[s] = diag * children[s] + w * siblings;
+  }
+  return out;
+}
+function restrictParent(children, slot) {
+  if (!Number.isInteger(slot) || slot < 0 || slot > SIBLINGS) {
+    throw new RangeError(`restrictParent: slot must be an integer in [0,4), got ${slot}.`);
+  }
+  return restrictBlock(children)[slot];
+}
+function restrictPartial(children, slots) {
+  const full = restrictBlock(children);
+  const out = children.slice();
+  for (const slot of slots) {
+    if (!Number.isInteger(slot) || slot < 0 || slot > SIBLINGS) {
+      throw new RangeError(`restrictPartial: slot must be an integer in [0,4), got ${slot}.`);
+    }
+    out[slot] = full[slot];
+  }
+  return out;
+}
+function roundTripDefect(parents) {
+  const w = RESTRICTION_WEIGHT;
+  if (parents.length !== 4) {
+    throw new RangeError(`roundTripDefect: expected 4 parents, got ${parents.length}.`);
+  }
+  for (let i = 0; i < 4; i++) {
+    if (!Number.isFinite(parents[i])) {
+      throw new RangeError(`roundTripDefect: parent[${i}] is not finite (${parents[i]}).`);
+    }
+  }
+  const diagP = 1 - SIBLINGS * w;
+  const prolonged = new Array(4);
+  for (let j = 0; j < 4; j++) {
+    let siblings = 0;
+    for (let s = 0; s < 4; s++) if (s !== j) siblings += parents[s];
+    prolonged[j] = diagP * parents[j] + w * siblings;
+  }
+  const restricted = restrictBlock(prolonged);
+  let maxDefect = 0;
+  for (let s = 0; s < 4; s++) {
+    maxDefect = Math.max(maxDefect, Math.abs(restricted[s] - parents[s]));
+  }
+  return maxDefect;
+}
+function relativeRoundTripDefect(parents) {
+  const scale = Math.max(1, ...parents.map((x) => Math.abs(x)));
+  return roundTripDefect(parents) / scale;
+}
+function energyRatio(children) {
+  const restricted = restrictBlock(children);
+  const n2 = (a) => a.reduce((s, x) => s + x * x, 0);
+  const before = n2(children);
+  if (before === 0) return 1;
+  return n2(restricted) / before;
+}
+function restrictionConservationResidual(children) {
+  const parents = restrictBlock(children);
+  const sumC = children.reduce((a, b) => a + b, 0);
+  const sumP = parents.reduce((a, b) => a + b, 0);
+  return Math.abs(sumP - sumC);
+}
+function relativeRestrictionResidual(children) {
+  const scale = Math.max(1, ...children.map((x) => Math.abs(x)));
+  return restrictionConservationResidual(children) / scale;
+}
+
+// ../engine/src/refinement/adaptiveMesh.ts
+var TWO_PI2 = 2 * Math.PI;
+var AdaptiveMesh = class {
+  _tree;
+  /** Field value at each leaf, aligned with _tree.leaves(). */
+  _values;
+  /** Guard against runaway depth in pathological fields (anti-thrash). */
+  _maxDepth;
+  /** The base level the mesh is seeded at (the coarsest it ever coarsens to). */
+  _baseLevel;
+  /**
+   * @param baseLevel  The mesh is seeded at a uniform grid this many levels
+   *                   deep, and never coarsens below it. This is REQUIRED: at
+   *                   the bare root (one cell spanning the whole 2π domain) the
+   *                   periodic face-neighbours of a leaf wrap to the leaf's own
+   *                   centre, so the flux-form Laplacian is identically zero and
+   *                   curvature can never be seen. A base level ≥ 1 makes the
+   *                   patch neighbours distinct — real AMR seeds a base grid for
+   *                   exactly this reason.
+   * @param maxDepth   Anti-thrash ceiling on total depth.
+   */
+  constructor(baseLevel = 2, maxDepth = 5) {
+    if (!Number.isInteger(baseLevel) || baseLevel < 1) {
+      throw new RangeError(`AdaptiveMesh: baseLevel must be an integer \u2265 1; got ${baseLevel}.`);
+    }
+    if (!Number.isInteger(maxDepth) || maxDepth < baseLevel) {
+      throw new RangeError(`AdaptiveMesh: maxDepth must be \u2265 baseLevel (${baseLevel}); got ${maxDepth}.`);
+    }
+    this._baseLevel = baseLevel;
+    this._maxDepth = maxDepth;
+    this._tree = this._seed(baseLevel);
+    this._values = this._tree.leaves().map(() => 0);
+  }
+  /** Build the uniform base grid: refine every leaf down to depth `level`. */
+  _seed(level) {
+    let tree = Octree.create();
+    for (let l = 0; l < level; l++) {
+      const paths = tree.leaves().map((leaf) => this._pathToIn(tree, leaf));
+      for (const p of paths) tree = tree.refine(p);
+    }
+    return tree;
+  }
+  /** The current tree (read-only). */
+  get tree() {
+    return this._tree;
+  }
+  /**
+   * Advance the mesh one step against the live field.
+   *
+   * @param fieldAt  Reads the field at a (u,v) point of the torus domain. The
+   *                 engine loop passes the ring read; tests may pass any field.
+   * @returns The measured snapshot after this step.
+   */
+  update(fieldAt) {
+    const leaves = this._tree.leaves();
+    const maxAmp = leaves.reduce((a, _l, i) => Math.max(a, Math.abs(this._values[i] ?? 0)), 0);
+    const lambdas = leaves.map(
+      (leaf, i) => this._leafLambda(leaf, this._values[i] ?? 0, fieldAt, maxAmp)
+    );
+    const maxLambda = lambdas.reduce((a, b) => Math.max(a, b), 0);
+    let refined = 0;
+    let coarsened = 0;
+    let conservationResidual2 = 0;
+    let restrictionResidual = 0;
+    if (maxLambda > 0) {
+      const decisions = leaves.map((leaf, i) => ({
+        leaf,
+        path: this._pathTo(leaf),
+        ...decideRefinement(lambdas[i], maxLambda)
+      }));
+      for (const d of decisions) {
+        if (d.decision !== "refine" || d.path === null) continue;
+        if (d.leaf.level >= this._maxDepth) continue;
+        const node = this._at(d.path);
+        if (!node || !isLeaf(node)) continue;
+        const childCentres = this._childCentreSamples(node, fieldAt);
+        conservationResidual2 = Math.max(
+          conservationResidual2,
+          relativeConservationResidual(childCentres)
+        );
+        const childValues = prolongateBlock(childCentres);
+        this._tree = this._tree.refine(d.path);
+        this._spliceValues(d.path, childValues);
+        refined++;
+      }
+      const coarsenVotes = /* @__PURE__ */ new Map();
+      for (const d of decisions) {
+        if (d.decision !== "coarsen" || d.path === null || d.path.length === 0) continue;
+        const parentPath = d.path.slice(0, -1);
+        if (parentPath.length < this._baseLevel) continue;
+        const key = parentPath.join(",");
+        const entry = coarsenVotes.get(key) ?? { parentPath, votes: 0, eligible: true };
+        entry.votes++;
+        coarsenVotes.set(key, entry);
+      }
+      for (const { parentPath, votes } of coarsenVotes.values()) {
+        if (votes < 4) continue;
+        const parent = this._at(parentPath);
+        if (!parent || isLeaf(parent)) continue;
+        if (!parent.children.every((c) => c && isLeaf(c))) continue;
+        const childValues = parent.children.map((c) => {
+          const idx = this._leafIndex(c);
+          return idx >= 0 ? this._values[idx] ?? 0 : 0;
+        });
+        restrictBlock(childValues);
+        restrictionResidual = Math.max(
+          restrictionResidual,
+          relativeRestrictionResidual(childValues)
+        );
+        this._tree = this._tree.coarsen(parentPath);
+        coarsened++;
+      }
+      if (coarsened > 0) this._resample(fieldAt);
+    }
+    this._resample(fieldAt);
+    return {
+      leaves: this._tree.leafCount(),
+      nodes: this._tree.nodeCount(),
+      depth: this._tree.maxDepth(),
+      maxLambda,
+      refined,
+      coarsened,
+      conservationResidual: conservationResidual2,
+      restrictionResidual,
+      refineThreshold: REFINE_THRESHOLD,
+      coarsenThreshold: COARSEN_THRESHOLD
+    };
+  }
+  /** Reset to the uniform base grid (the coarsest non-degenerate state). */
+  reset() {
+    this._tree = this._seed(this._baseLevel);
+    this._values = this._tree.leaves().map(() => 0);
+  }
+  // ── internals ──────────────────────────────────────────────────────────────
+  /**
+   * Curvature λ at a leaf centre, from its four face-neighbour samples.
+   * Neighbours are read from the field at the leaf's ±cell-size offsets (the
+   * conservative flux-form patch), with the domain treated as periodic in u.
+   *
+   * The λ normaliser is the FIELD'S OWN max amplitude (`maxAmp`), not the
+   * leaf's local |Ψ|. This is the scale-invariant choice: a localised feature
+   * sitting on a near-zero background (a Gaussian bump, a shock) would, under
+   * a local |Ψ|+floor normaliser, divide a real ∇²Ψ by ≈0 on the tails and
+   * send λ to ~1e9 there — refining the flat tails instead of the feature.
+   * Normalising by the field max makes λ dimensionless AND bounded, so the
+   * refine signal concentrates where curvature is genuinely large relative to
+   * the field's own scale. `curvatureLambda` is given `maxAmp` as its floor so
+   * the ratio is λ = |∇²Ψ| / (|Ψ_centre| + maxAmp).
+   */
+  _leafLambda(leaf, centre, fieldAt, maxAmp) {
+    const h = leaf.cell.size;
+    const uc = leaf.cell.u0 + h / 2;
+    const vc = leaf.cell.v0 + h / 2;
+    const wrap = (x) => (x % TWO_PI2 + TWO_PI2) % TWO_PI2;
+    const patch = {
+      values: [
+        centre,
+        fieldAt({ u: wrap(uc + h), v: vc }),
+        // +u
+        fieldAt({ u: wrap(uc - h), v: vc }),
+        // −u
+        fieldAt({ u: uc, v: vc + h }),
+        // +v
+        fieldAt({ u: uc, v: vc - h })
+        // −v
+      ],
+      dx: h,
+      dim: 2
+    };
+    return curvatureLambda(patch, maxAmp);
+  }
+  /** The slot-path from the root of the CURRENT tree to `target`. */
+  _pathTo(target) {
+    return this._pathToIn(this._tree, target);
+  }
+  /** The slot-path from the root of `tree` to `target`, or null if absent. */
+  _pathToIn(tree, target) {
+    const path = [];
+    let found = false;
+    const walk = (node) => {
+      if (found) return;
+      if (node === target) {
+        found = true;
+        return;
+      }
+      if (!isLeaf(node) && node.children) {
+        for (let s = 0; s < node.children.length; s++) {
+          path.push(s);
+          walk(node.children[s]);
+          if (found) return;
+          path.pop();
+        }
+      }
+    };
+    walk(tree.root);
+    return found ? path : null;
+  }
+  /** The node at `path` from the root, or null if the path does not resolve. */
+  _at(path) {
+    let node = this._tree.root;
+    for (const slot of path) {
+      if (isLeaf(node) || !node.children) return null;
+      node = node.children[slot];
+    }
+    return node;
+  }
+  /**
+   * The index of `target` within the CURRENT tree's leaves(), or −1 if it is
+   * not a current leaf. Identity match (leaves() returns the live node
+   * references), used to read a coarsening block's child values from the
+   * aligned `_values` array before the collapse drops them.
+   */
+  _leafIndex(target) {
+    const leaves = this._tree.leaves();
+    for (let i = 0; i < leaves.length; i++) {
+      if (leaves[i] === target) return i;
+    }
+    return -1;
+  }
+  /**
+   * Replace the leaf at `path` by its four refined children, splicing the
+   * prolongated child values into the aligned `_values` array.
+   */
+  _spliceValues(path, childValues) {
+    const leaves = this._tree.leaves();
+    let idx = -1;
+    for (let i = 0; i < leaves.length; i++) {
+      const p = this._pathTo(leaves[i]);
+      if (p !== null && p.length === path.length && p.every((s, j) => s === path[j])) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
+      this._values = this._tree.leaves().map(() => 0);
+      return;
+    }
+    const next = this._values.slice();
+    next.splice(idx, 1, ...childValues);
+    this._values = next;
+  }
+  /** Re-read every leaf value from the live field (mesh observes the field). */
+  _resample(fieldAt) {
+    this._values = this._tree.leaves().map(
+      (leaf) => fieldAt({ u: leaf.cell.u0 + leaf.cell.size / 2, v: leaf.cell.v0 + leaf.cell.size / 2 })
+    );
+  }
+  /**
+   * Sample the field at the four child-cell centres of `leaf` — the same
+   * geometric points sampleChildCentres reads once the node is internal, but
+   * computable while the node is still a leaf (pre-refine). Slot order matches
+   * subdivideCell: (du,dv) = (0,0),(0,1),(1,0),(1,1).
+   */
+  _childCentreSamples(leaf, fieldAt) {
+    const half = leaf.cell.size / 2;
+    const quarter = half / 2;
+    const { u0, v0 } = leaf.cell;
+    return [
+      fieldAt({ u: u0 + quarter, v: v0 + quarter }),
+      // 0: du=0 dv=0
+      fieldAt({ u: u0 + quarter, v: v0 + half + quarter }),
+      // 1: du=0 dv=1
+      fieldAt({ u: u0 + half + quarter, v: v0 + quarter }),
+      // 2: du=1 dv=0
+      fieldAt({ u: u0 + half + quarter, v: v0 + half + quarter })
+      // 3: du=1 dv=1
+    ];
+  }
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  AdaptiveMesh,
   C,
+  CADENCE_MS,
   CFL_LIMIT,
   CFL_STABILITY_BOUNDARY,
+  COARSEN_THRESHOLD,
   CONTINUATION,
   DensityField,
   LADDER,
@@ -1169,15 +1861,21 @@ function envelopeDensity(n) {
   PHI_NEG2,
   PHI_NEG26,
   PLANCK_LENGTH,
+  PROLONGATION_WEIGHT,
   Propagator,
+  REFINE_GRADING,
+  REFINE_THRESHOLD,
+  RESTRICTION_WEIGHT,
   STABLE_SCALES,
   Scaled,
+  TARGET_USAGE,
   UNRESOLVED,
   allScales,
   binetDefect,
   closureResidual,
   closureResidueMin,
   closureScore,
+  energyRatio,
   envelopeDensity,
   fibonacci,
   getScale,
@@ -1191,6 +1889,16 @@ function envelopeDensity(n) {
   metatronShellFlux,
   minimallyOpenFloor,
   octavePartners,
+  prolongateBlock,
+  relativeConservationResidual,
+  relativeRestrictionResidual,
+  relativeRoundTripDefect,
+  restrictBlock,
+  restrictParent,
+  restrictPartial,
+  restrictionConservationResidual,
+  restrictionWeights,
+  roundTripDefect,
   selfOverlap,
   spectralAmplitudes,
   spectralLines,

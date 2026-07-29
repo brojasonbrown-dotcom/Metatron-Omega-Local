@@ -35,6 +35,7 @@ import { MindBridge } from "./adapters/mind_bridge.ts";
 import { CognitiveLoop } from "./cognition/cognitive_loop.ts";
 import { ConceptRegistry } from "./cognition/concept_registry.ts";
 import { ConceptGlossary } from "./cognition/glossary.ts";
+import { Lexicon } from "./cognition/lexicon.ts";
 import { MemoryStore } from "./cognition/memory_store.ts";
 import { FractalNodeEngine } from "./fractal_node_engine.ts";
 
@@ -91,7 +92,13 @@ async function main(): Promise<void> {
   if (glossaryLoaded.quarantined) {
     console.warn(`[boot] corrupt glossary quarantined → ${glossaryLoaded.quarantined}; starting fresh.`);
   }
-  phase("memory", { concepts: registry.size, lifetimeThoughts: loaded.stableThoughtCount, glossary: glossary.size });
+  // M7 — the language front: the grounded relation graph beside the meanings.
+  const lexicon = new Lexicon(STATE_DIR, registry, glossary);
+  const lexiconLoaded = lexicon.load();
+  if (lexiconLoaded.quarantined) {
+    console.warn(`[boot] corrupt relations quarantined → ${lexiconLoaded.quarantined}; starting fresh.`);
+  }
+  phase("memory", { concepts: registry.size, lifetimeThoughts: loaded.stableThoughtCount, glossary: glossary.size, relations: lexicon.relationCount });
 
   // 3. Engine — highest resolution the ladder allows. [SPEC]
   // MIND_TARGET_SCALE: 192 (default, Human band) or 292 (Cosmic — 9 ladder
@@ -121,11 +128,11 @@ async function main(): Promise<void> {
   // 5. The mind + the bridge.
   const voice = new VoiceOut(store);
   const loop = new CognitiveLoop(
-    { engine, bus, registry, store, llm, voice, glossary },
+    { engine, bus, registry, store, llm, voice, glossary, lexicon },
     loaded.stableThoughtCount,
     loaded.episodes ?? []
   );
-  const bridge = new MindBridge({ bus, store, loop, registry, llm, glossary });
+  const bridge = new MindBridge({ bus, store, loop, registry, llm, glossary, lexicon, engine });
 
   store.journal({
     t: Date.now(),

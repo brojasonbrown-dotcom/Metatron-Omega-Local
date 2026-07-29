@@ -116,6 +116,40 @@ async function checkLoop() {
   loop.reset();
   const s3 = loop.state();
   checks.push(["reset zeroes drives", s3.drives.audio === 0 && s3.ticks === 0]);
+    // ── adaptive-mesh telemetry (Phases 1-4) — real, measured, live ──
+    const rf = s3.refinement;
+    checks.push(
+      ["refinement telemetry present", rf !== undefined && rf !== null],
+      ["mesh starts at base grid (16 leaves)", rf.leaves === 16 && rf.depth === 2],
+      ["thresholds exact (phi^-2 > phi^-4)", rf.refineThreshold > rf.coarsenThreshold],
+      ["conservation residual finite", Number.isFinite(rf.conservationResidual)],
+      // Phase-4 restriction (coarsen direction), wired live: the snapshot always
+      // carries the residual and it sits at the machine floor when the transfer
+      // conserves the integrated field (double stochasticity of R = P).
+      ["restriction residual present", typeof rf.restrictionResidual === "number"],
+      ["restriction residual finite & non-negative", Number.isFinite(rf.restrictionResidual) && rf.restrictionResidual >= 0],
+      ["restriction residual at machine floor", rf.restrictionResidual < 1e-12],
+    );
+    // The Phase-4 operators are exported through the bundle (dead code until
+    // wired): restrictBlock must conserve the block's integrated field exactly.
+    {
+      const E = require("../electron/engine-bundle.cjs");
+      const blk = [2, -1, 0.5, 3];
+      const out = E.restrictBlock(blk);
+      const sc = blk.reduce((a, b) => a + b, 0);
+      const sp = out.reduce((a, b) => a + b, 0);
+      checks.push(
+        ["restrictBlock exported from bundle", typeof E.restrictBlock === "function"],
+        ["restrictBlock conserves integrated field", Math.abs(sp - sc) < 1e-12],
+        ["energyRatio exported from bundle", typeof E.energyRatio === "function"],
+      );
+    }
+    const loop2 = new EngineLoop();
+    loop2.start();
+    await wait(300);
+    loop2.stop();
+    const sLive = loop2.state().refinement;
+    checks.push(["live mesh refines above base on curved seed", sLive.leaves > 16 && sLive.depth > 2]);
   for (const [name, ok] of checks) {
     if (!ok) failures++;
     console.log(`${ok ? "PASS" : "FAIL"}  engineLoop: ${name}`);
@@ -150,6 +184,15 @@ async function checkMindService() {
   checks.push(["stop requested", typeof stop === "object"]);
   await wait(800);
   checks.push(["child exited cleanly", events.some((f) => f.type === "mind.exit" && f.code === 0)]);
+  // the fixture's grandchild (the simulated ollama) must be stopped by the
+  // mind's OWN supervisor before exit — code null + a real signal is the
+  // honest signature of a kill, never a mocked "clean" code 0
+  const gc = events.find((f) => f.type === "shutdown.grandchild");
+  checks.push([
+    "ollama-style grandchild stopped by the mind's own supervisor",
+    gc !== undefined && gc.code === null && typeof gc.signal === "string",
+    gc ? ("signal=" + gc.signal) : "frame missing",
+  ]);
   checks.push(["state stopped after exit", svc.status().running === false]);
   const bad = svc.chat("after death");
   checks.push(["chat after stop honestly refused", bad.ok === false]);

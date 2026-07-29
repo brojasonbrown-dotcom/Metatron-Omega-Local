@@ -6,10 +6,33 @@
  */
 "use strict";
 
+const { spawn } = require("node:child_process");
+
 const emit = (frame) => process.stdout.write(JSON.stringify({ t: Date.now(), ...frame }) + "\n");
 
 emit({ type: "boot", phase: "start" });
 emit({ type: "boot", phase: "awake", tickMs: 146 });
+
+// Simulated ollama child (mirrors OllamaSupervisor's spawn shape): the real
+// mind spawns `ollama serve`; the fixture spawns a do-nothing child so the
+// host's tree-kill has a genuine grandchild PID to reap — the proof is the
+// "shutdown.grandchild" frame reporting the child's real exit signal.
+let grandchild = null;
+let stopping = false;
+
+function startGrandchild() {
+  if (grandchild) return;
+  grandchild = spawn(process.execPath, ["-e", "setInterval(()=>{},60000)"], {
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  // Auto-restart on crash — the supervisor's own policy in miniature.
+  grandchild.on("exit", () => {
+    grandchild = null;
+    if (!stopping) startGrandchild();
+  });
+}
+startGrandchild();
 
 let buf = "";
 process.stdin.on("data", (d) => {
@@ -26,7 +49,20 @@ process.stdin.on("data", (d) => {
     if (msg.type === "sensor.audio" || msg.type === "sensor.vision") { /* accepted silently */ }
     if (msg.type === "shutdown") {
       emit({ type: "boot", phase: "sleep" });
-      process.exit(0);
+      stopping = true;
+      const gc = grandchild;
+      if (gc) {
+        // Stop OUR child before exiting — the supervisor's stop() contract.
+        gc.once("exit", (code, signal) => {
+          emit({ type: "shutdown.grandchild", code, signal: signal ?? null });
+          process.exit(0);
+        });
+        gc.kill();
+        // if the child won't die, exit anyway after a short fuse
+        setTimeout(() => process.exit(1), 2_000).unref();
+      } else {
+        process.exit(0);
+      }
     }
   }
 });

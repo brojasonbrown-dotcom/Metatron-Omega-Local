@@ -41,6 +41,17 @@ export interface Concept {
    */
   semantic: Float64Array | null;
   reinforcement: number;
+  /**
+   * M6 — verified-prediction mastery: the φ-decayed mean of (measured − prior)
+   * gains across this concept's verified predictions. > 0 ⟺ the mind predicts
+   * this concept better than the φ-prior. This — not reinforcement — is the
+   * honest "learned" signal. [SPEC]
+   */
+  mastery: number;
+  /** M6 — number of predictions verified for this concept. */
+  verifications: number;
+  /** M6 — mean surprise (1 − R)^φ across verifications: how hard it still is. */
+  meanSurprise: number;
   readonly firstSeen: number;
   lastSeen: number;
   sourceTrace: string[];
@@ -249,6 +260,9 @@ export class ConceptRegistry {
       prototype: normalized,
       semantic: null,
       reinforcement: 1,
+      mastery: 0,
+      verifications: 0,
+      meanSurprise: 1,
       firstSeen: now,
       lastSeen: now,
       sourceTrace: [],
@@ -426,6 +440,60 @@ export class ConceptRegistry {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // M6 — Mastery: learning = verified prediction, not accretion
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Fold one verified prediction outcome into a concept's mastery. The mastery
+   * mean is updated by the PredictionLedger's own φ-decay (η = φ⁻²/(1+surprise)),
+   * so it RISES when predictions beat the φ-prior and FALLS when they fail —
+   * the honest, non-decorating learning signal. [SPEC]
+   */
+  recordMastery(id: string, next: { mastery: number; verifications: number; meanSurprise: number }): boolean {
+    const c = this._concepts.get(id);
+    if (!c) return false;
+    c.mastery = next.mastery;
+    c.verifications = next.verifications;
+    c.meanSurprise = next.meanSurprise;
+    return true;
+  }
+
+  /** M6 — a concept's current mastery proof (zero-state when never verified). */
+  masteryOf(id: string): { mastery: number; verifications: number; meanSurprise: number; learned: boolean } {
+    const c = this._concepts.get(id);
+    if (!c) return { mastery: 0, verifications: 0, meanSurprise: 1, learned: false };
+    return {
+      mastery: c.mastery,
+      verifications: c.verifications,
+      meanSurprise: c.meanSurprise,
+      learned: c.mastery > 0 && c.verifications >= 5,
+    };
+  }
+
+  /** M6 — serialize every concept's running mastery statistics. */
+  masteryProofs(): Record<string, { mastery: number; verifications: number; meanSurprise: number }> {
+    const out: Record<string, { mastery: number; verifications: number; meanSurprise: number }> = {};
+    for (const c of this._concepts.values()) {
+      if (c.verifications > 0) {
+        out[c.id] = { mastery: c.mastery, verifications: c.verifications, meanSurprise: c.meanSurprise };
+      }
+    }
+    return out;
+  }
+
+  /** M6 — restore mastery statistics onto already-restored concepts. */
+  restoreMastery(proofs: Readonly<Record<string, { mastery: number; verifications: number; meanSurprise: number }>>): void {
+    for (const [cid, p] of Object.entries(proofs)) {
+      const c = this._concepts.get(cid);
+      if (c) {
+        c.mastery = p.mastery;
+        c.verifications = p.verifications;
+        c.meanSurprise = p.meanSurprise;
+      }
+    }
+  }
+
   /** Evict the weakest (lowest reinforcement, oldest lastSeen) when over cap. */
   private _evictIfNeeded(): void {
     if (this._concepts.size <= this.maxConcepts) return;
@@ -459,6 +527,10 @@ export class ConceptRegistry {
         // Optional — omitted when unnamed; older saves simply lack it. [SPEC]
         ...(c.semantic !== null ? { semantic: encodeFieldBase64(c.semantic) } : {}),
         reinforcement: c.reinforcement,
+        mastery: c.mastery,
+        verifications: c.verifications,
+        meanSurprise: c.meanSurprise,
+        learned: c.mastery > 0 && c.verifications >= 5, // M6 — F₅ verifications
         firstSeen: c.firstSeen,
         lastSeen: c.lastSeen,
         sourceTrace: [...c.sourceTrace],
@@ -470,6 +542,8 @@ export class ConceptRegistry {
       stableThoughtCount,
       concepts,
       ...(episodes !== undefined ? { episodes: [...episodes] } : {}),
+      // M6 — always emit mastery proofs (empty map when nothing verified yet).
+      masteryProofs: this.masteryProofs(),
     };
   }
 
@@ -513,6 +587,9 @@ export class ConceptRegistry {
         prototype: proto.value,
         semantic,
         reinforcement: sc.reinforcement,
+        mastery: typeof sc.mastery === "number" ? sc.mastery : 0,
+        verifications: typeof sc.verifications === "number" ? sc.verifications : 0,
+        meanSurprise: typeof sc.meanSurprise === "number" ? sc.meanSurprise : 1,
         firstSeen: sc.firstSeen,
         lastSeen: sc.lastSeen,
         sourceTrace: [...sc.sourceTrace],
@@ -527,5 +604,9 @@ export class ConceptRegistry {
     for (const c of this._concepts.values()) {
       this._hnsw.add(c.id, c.prototype);
     }
+    // M6 — fold the top-level mastery proofs back onto their concepts (the
+    // per-concept fields already carried the same numbers; the map is the
+    // authoritative running-ledger form, kept for forward compatibility).
+    if (state.masteryProofs) this.restoreMastery(state.masteryProofs);
   }
 }

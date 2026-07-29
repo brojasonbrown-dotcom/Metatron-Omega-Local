@@ -109,6 +109,18 @@ export interface VerifyResponse {
   readonly reasoning: string;
 }
 
+/**
+ * Response contract for the `lexical` tool (M7): a word's dictionary entry —
+ * part of speech, a concrete gloss, and its typed relations to other words.
+ * This is the raw material the lexicon grows its grounded graph from. [SPEC]
+ */
+export interface LexicalResponse {
+  readonly word: string;
+  readonly pos: string;
+  readonly gloss: string;
+  readonly relations: Array<{ kind: "is-a" | "related-to" | "opposite-of" | "part-of"; to: string }>;
+}
+
 export function validateNameThis(raw: unknown): ValidationResult<NameThisResponse> {
   if (typeof raw !== "object" || raw === null) {
     return { ok: false, reason: "nameThis: payload is not an object" };
@@ -186,6 +198,43 @@ export function validateVerify(raw: unknown): ValidationResult<VerifyResponse> {
     return { ok: false, reason: `verify: verdict "${verdictRaw}" not in {valid,invalid,uncertain}` };
   }
   return { ok: true, value: { verdict, reasoning } };
+}
+
+const LEXICAL_RELATION_KINDS = new Set(["is-a", "related-to", "opposite-of", "part-of"]);
+
+export function validateLexical(raw: unknown): ValidationResult<LexicalResponse> {
+  if (typeof raw !== "object" || raw === null) {
+    return { ok: false, reason: "lexical: payload is not an object" };
+  }
+  const o = raw as Record<string, unknown>;
+  const word = isNonEmptyString(o["word"]) ? (o["word"] as string).trim().toLowerCase().slice(0, 64) : "";
+  if (word.length === 0) {
+    return { ok: false, reason: "lexical: word must be a non-empty string" };
+  }
+  const pos = isNonEmptyString(o["pos"]) ? (o["pos"] as string).trim().toLowerCase().slice(0, 24) : "";
+  if (!isNonEmptyString(o["gloss"])) {
+    return { ok: false, reason: "lexical: gloss must be a non-empty string" };
+  }
+  const gloss = (o["gloss"] as string).trim().slice(0, 500);
+  // Same echo guard as define: a parroted example is not a meaning. [FIX]
+  if (isMetaText(gloss)) {
+    return { ok: false, reason: `lexical: gloss is meta/echo text, not a meaning: "${gloss.slice(0, 60)}"` };
+  }
+  const relations: LexicalResponse["relations"] = [];
+  if (Array.isArray(o["relations"])) {
+    for (const r of o["relations"] as unknown[]) {
+      if (typeof r === "object" && r !== null) {
+        const ro = r as Record<string, unknown>;
+        const kind = isNonEmptyString(ro["kind"]) ? (ro["kind"] as string).trim().toLowerCase() : "";
+        const to = isNonEmptyString(ro["to"]) ? (ro["to"] as string).trim().toLowerCase().slice(0, 64) : "";
+        if (LEXICAL_RELATION_KINDS.has(kind) && to.length > 0 && to !== word) {
+          relations.push({ kind: kind as LexicalResponse["relations"][number]["kind"], to });
+        }
+      }
+      if (relations.length >= 8) break;
+    }
+  }
+  return { ok: true, value: { word, pos, gloss, relations } };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -273,6 +322,16 @@ export interface SerializedConcept {
   readonly firstSeen: number;
   readonly lastSeen: number;
   readonly sourceTrace: string[];
+  /**
+   * M6 — verified-prediction mastery for this concept. Absent in older saves
+   * (pre-M6 concepts have no proof — honest, they are simply "unproven").
+   * When present: mastery = φ-decayed mean gain vs the φ-prior; verifications =
+   * predictions checked; learned ⟺ mastery > 0 AND verifications ≥ F₅. [SPEC]
+   */
+  readonly mastery?: number;
+  readonly verifications?: number;
+  readonly meanSurprise?: number;
+  readonly learned?: boolean;
 }
 
 /** Full persisted snapshot of the mind's learned state. */
@@ -287,6 +346,19 @@ export interface SerializedMindState {
    * -time across restarts. [FIX — episode persistence]
    */
   readonly episodes?: string[];
+  /**
+   * M6 — per-concept mastery proofs, keyed by concept id. Optional: absent in
+   * older saves (no mastery was ever proven — honest "unproven"). Each entry is
+   * the running statistics of the concept's PredictionLedger. [SPEC]
+   */
+  readonly masteryProofs?: Record<string, SerializedMasteryProof>;
+}
+
+/** M6 — persisted running statistics of one concept's verified predictions. */
+export interface SerializedMasteryProof {
+  readonly mastery: number;
+  readonly verifications: number;
+  readonly meanSurprise: number;
 }
 
 /** Decode base64 → Float64Array and validate shape. */
@@ -374,6 +446,11 @@ export function validateMindState(raw: unknown): ValidationResult<SerializedMind
       firstSeen: co["firstSeen"] as number,
       lastSeen: co["lastSeen"] as number,
       sourceTrace: isStringArray(co["sourceTrace"]) ? (co["sourceTrace"] as string[]) : [],
+      // M6 — optional verified-prediction mastery (older saves lack it).
+      ...(isFiniteNumber(co["mastery"]) ? { mastery: co["mastery"] as number } : {}),
+      ...(isFiniteNumber(co["verifications"]) ? { verifications: co["verifications"] as number } : {}),
+      ...(isFiniteNumber(co["meanSurprise"]) ? { meanSurprise: co["meanSurprise"] as number } : {}),
+      ...(co["learned"] === true || co["learned"] === false ? { learned: co["learned"] as boolean } : {}),
     });
   }
   // Optional episodic Hopfield attractors: validate each base64 field, skip the
@@ -388,6 +465,28 @@ export function validateMindState(raw: unknown): ValidationResult<SerializedMind
       }
     }
   }
+  // M6 — per-concept mastery proofs: validate each entry, skip the malformed
+  // (defense in depth — never let one bad proof sink the snapshot).
+  let masteryProofs: Record<string, SerializedMasteryProof> | undefined;
+  if (typeof o["masteryProofs"] === "object" && o["masteryProofs"] !== null && !Array.isArray(o["masteryProofs"])) {
+    masteryProofs = {};
+    for (const [cid, p] of Object.entries(o["masteryProofs"] as Record<string, unknown>)) {
+      if (typeof p === "object" && p !== null) {
+        const po = p as Record<string, unknown>;
+        if (
+          isFiniteNumber(po["mastery"]) &&
+          isFiniteNumber(po["verifications"]) &&
+          isFiniteNumber(po["meanSurprise"])
+        ) {
+          masteryProofs[cid] = {
+            mastery: po["mastery"] as number,
+            verifications: po["verifications"] as number,
+            meanSurprise: po["meanSurprise"] as number,
+          };
+        }
+      }
+    }
+  }
   return {
     ok: true,
     value: {
@@ -396,6 +495,7 @@ export function validateMindState(raw: unknown): ValidationResult<SerializedMind
       stableThoughtCount: o["stableThoughtCount"] as number,
       concepts,
       ...(episodes !== undefined ? { episodes } : {}),
+      ...(masteryProofs !== undefined ? { masteryProofs } : {}),
     },
   };
 }

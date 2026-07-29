@@ -300,3 +300,46 @@ shape. Every substrate green:
 Regret discipline (A4): EMA and prototype tests assert the empirical residual
 stays within 4× the closed-form geometric bound (1−1/φ²)^t — a number with a
 theory, not a picture. Full suite now 119 pass / 2 skipped.
+
+---
+
+## S-series — Harmonic-Alignment Sandbox (2026-07-29)
+
+**Ask:** align engine resolution + base frequencies to φ / φ-powers "for
+stability", add all missing measurement parameters + full dimensional logic,
+compute the field at Planck-scale Hz while hardware scans ~3000×/sec, mash
+together many candidate algorithms and sandbox-test them.
+
+**Where:** `src/compute_engine/engine/sandbox/` (quarantined; zero engine touch).
+**Result:** 274/274 (241 engine + 33 sandbox). Full report: `sandbox/REPORT.md`.
+
+**Six candidates driven through the real Propagator:** A uniform-φ+delay
+(control) · B dyadic telescoping 2⁻ᵏ · C tempered-φ interval · D silver-ratio
+ablation · E Fibonacci harmonic · F uniform-φ no-delay.
+
+**Measured verdicts:**
+
+1. **φ-realignment is numerically INERT for stability.** The Propagator update is
+   dimensionless-Courant (ν=v·dt/dx); any conformal (δx,τ) rescale leaves the
+   dynamics bit-invariant (proven). All six candidates measured identical phase
+   error **6.21e-2**; the only ν-shifter is the golden-delay (A), which moves ν
+   *toward* the ν*=3/2 boundary — LESS margin, not more.
+2. **For exactness, dyadic (B) telescopes best** (bit-exact before `Scaled`),
+   Fibonacci (E) integer-exact second; both beat raw φ — and both cost ~1 ulp
+   (2.01e-16 @ n=15) through the base-10 `Scaled`. A real, measured interaction.
+3. **Planck-scale real-time is impossible by ~10⁴⁰×.** Highest hardware-resolvable
+   rung at 3000 Hz = **n=195**; ALL 18 dense-core rungs are 10³¹–10⁴³× over the
+   1500 Hz Nyquist. The dense core is a *sampled model*; the phase-accumulator
+   pattern holds sub-sample phase exactly where rungs are resolvable.
+4. **Dimensional layer delivered** (7-axis SI, exact integer exponents, provenance-
+   tainted) — the engine previously tracked magnitude+provenance only. It
+   **resolved the B2 open postulate**: the medium-coupling κ must be VOLUME (m³),
+   not the guessed "mass" (κ-as-mass makes √(ρ_I·κ) dimensionally malformed).
+   **Missing-parameter census:** mass, energy, charge, curvature/κ, temperature
+   ladders all genuinely absent from `ScaleRecord`.
+
+**Net:** the productive version of the request is (a) adopt the dimensional layer,
+(b) add mass/energy φⁿ-ladders as POSTULATE, (c) reframe "highest stable scale"
+as n=195 not n=1, (d) choose coarse-grain sub-grids on exactness evidence (dyadic)
+rather than φ-resonance. The φ-alignment-for-stability hypothesis is falsified
+by the conformal-invariance measurement.

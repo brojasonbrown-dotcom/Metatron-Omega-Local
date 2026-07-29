@@ -40,6 +40,9 @@ export interface MindBridgeDeps {
   readonly registry: ConceptRegistry;
   readonly llm: import("./llm_tool.ts").LlmTool;
   readonly glossary?: import("./../cognition/glossary.ts").ConceptGlossary;
+  readonly lexicon?: import("./../cognition/lexicon.ts").Lexicon;
+  /** Engine for live auto-scaling telemetry (depth / nodes / tick cost). */
+  readonly engine?: import("./../fractal_node_engine.ts").FractalNodeEngine;
 }
 
 /** The subset of journal kinds forwarded to the host (the rest is noise). */
@@ -52,6 +55,9 @@ export class MindBridge {
   private readonly _deps: MindBridgeDeps;
   private _onShutdown: (() => void) | null = null;
   private _attached = false;
+  /** Live telemetry push: re-emits `state` on a cadence so the host panel's
+   *  mind counters (ticks / thoughts / concepts) stay live between thoughts. */
+  private _stateTimer: NodeJS.Timeout | null = null;
 
   constructor(deps: MindBridgeDeps) {
     this._deps = deps;
@@ -102,21 +108,38 @@ export class MindBridge {
     });
     rl.on("close", () => {
       // stdin closed = host gone → sleep gracefully (same as Ctrl+C).
+      this._stopStatePush();
       if (this._onShutdown) this._onShutdown();
     });
+
+    // Push live state so the host panel reflects the running mind without
+    // polling. ~2 Hz is well under the cognitive cadence and costs one frame.
+    this._stateTimer = setInterval(() => this.state(), 500);
+    this._stateTimer.unref();
 
     this._emit({ type: "bridge", phase: "attached" });
   }
 
+  private _stopStatePush(): void {
+    if (this._stateTimer) {
+      clearInterval(this._stateTimer);
+      this._stateTimer = null;
+    }
+  }
+
   /** Current mind state, on demand. */
   state(): void {
-    const { bus, loop, registry } = this._deps;
+    const { bus, loop, registry, lexicon, engine } = this._deps;
     this._emit({
       type: "state",
       ticks: loop.tickCount,
       stableThoughts: loop.stableThoughtCount,
       concepts: registry.size,
       bus: bus.stats(),
+      // M7 — the language front: how many grounded words / relations it holds.
+      ...(lexicon ? { lexicon: { words: lexicon.wordCount, relations: lexicon.relationCount } } : {}),
+      // Auto-scaling: the depth the governor settled on + the measured tick cost.
+      ...(engine ? { scaling: engine.get_scaling_telemetry() } : {}),
     });
   }
 
@@ -127,7 +150,7 @@ export class MindBridge {
    * Also feeds the question into the sensory stream (the mind hears it).
    */
   private async _answerQuery(id: string, text: string, facts: string): Promise<void> {
-    const { registry, llm, bus } = this._deps;
+    const { registry, llm, bus, lexicon } = this._deps;
     try {
       const queryField = encodeText(text);
       // CORRELATE the question: route its words through label-grounded
@@ -167,26 +190,45 @@ export class MindBridge {
       const clearsMargin = !runnerUp || topMatch.resonance - runnerUp.resonance >= MARGIN;
       if (glossary && topMatch && topMatch.resonance >= 0.3819660112501051 && clearsMargin) {
         const learned = glossary.get(topMatch.concept.id);
-        if (learned) {
-          const spine = facts.trim().length > 0 ? `${facts.trim()}\n\n` : "";
-          this._emit({
-            type: "answer",
-            id,
-            text: `${spine}ψ (learned): ${learned.definition}`,
-            grounded: [...new Set(concepts.map((c) => c.labels[0] ?? "unnamed"))],
-            source: "glossary",
-            confidence: learned.confidence,
-            elapsedMs: 0,
-          });
-          return;
-        }
+          if (learned) {
+            const spine = facts.trim().length > 0 ? `${facts.trim()}
+
+` : "";
+            // M7 — the language front enriches the dictionary answer with the
+            // word's grounded relations + part of speech when it knows them.
+            const word = topMatch.concept.labels[0] ?? "";
+            const binding = lexicon && word.length > 0 ? lexicon.resolve(word) : null;
+            const relTail =
+              binding && binding.relations.length > 0
+                ? ` [${binding.relations.slice(0, 4).map((r) => `${r.kind} ${r.to}`).join("; ")}]`
+                : "";
+            this._emit({
+              type: "answer",
+              id,
+              text: `${spine}ψ (learned): ${learned.definition}${relTail}`,
+              grounded: [...new Set(concepts.map((c) => c.labels[0] ?? "unnamed"))],
+              source: "glossary",
+              confidence: learned.confidence,
+              ...(binding ? { pos: binding.pos, relations: binding.relations, wordMastery: { mastery: binding.mastery, verifications: binding.verifications, learned: binding.learned } } : {}),
+              elapsedMs: 0,
+            });
+            return;
+          }
       }
 
-      // M4 — Hopfield prediction: the episode this question most strongly
-      // reactivates (one-step modern-Hopfield recall, previously telemetry).
+      // M6 — Hopfield prediction: the episode this question most strongly
+      // reactivates, scored as GAIN vs the φ-prior (never a bare resonance —
+      // a prediction is only meaningful against the baseline it must beat).
       let prediction: number | null = null;
+      let predictionBaseline: number | null = null;
       const recall = this._deps.loop.episodes.retrieve(queryField);
-      if (recall.ok) prediction = recall.resonance;
+      if (recall.ok) {
+        predictionBaseline = 0.6180339887498949; // φ⁻¹ — the unconditioned prior
+        prediction = recall.resonance - predictionBaseline;
+      }
+      // M6 — the mastery of the concept this question resolves to: the honest
+      // "has the mind actually learned this" signal (verified, not accreted).
+      const mastery = topMatch ? this._deps.registry.masteryOf(topMatch.concept.id) : null;
 
       // glossary context enriches the LLM prompt (learned meanings in play)
       const glossaryContext = glossary
@@ -246,6 +288,8 @@ export class MindBridge {
                 certificate,
                 verification,
                 prediction,
+                predictionBaseline,
+                mastery,
                 elapsedMs: out.elapsedMs,
               });
               return;
@@ -269,6 +313,8 @@ export class MindBridge {
           certificate,
           verification,
           prediction,
+          predictionBaseline,
+          mastery,
           elapsedMs: out.elapsedMs,
         });
       } else {

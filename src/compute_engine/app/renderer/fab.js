@@ -19,6 +19,7 @@
 
   let stabTimer = null;
   let mindStatus = null; // last status() snapshot
+  let lastEngineState = null; // last engine.state() — lets a mind push re-render
   const mindInfo = () => (mindStatus && mindStatus.info) || {};
 
   const flashError = (btn, reason) => {
@@ -37,6 +38,7 @@
     if (panel.classList.contains("hidden")) return;
     const inv = s.invariants;
     const c = s.certificates;
+    const rf = s.refinement; // live adaptive-mesh snapshot (Phases 1-4)
     panelBody.innerHTML = [
       row("loop", s.running ? "RUNNING" : "STOPPED"),
       row("ticks", String(s.ticks)),
@@ -64,11 +66,45 @@
       row("roots", `{${c.roots[0]}, ${c.roots[1].toFixed(6)}}`),
       row("conservative", String(c.conservative)),
       row("ν limit / boundary", `${c.cflLimit} / ${c.cflBoundary.toFixed(3)}`),
+      // REFINEMENT — the live adaptive mesh (Phases 1-4). Guarded: an old
+      // bundle without refinement telemetry degrades to an honest dash, never
+      // a fabricated zero.
+      ...(rf
+        ? [
+            `<div class="stab-sec">REFINEMENT (adaptive mesh)</div>`,
+            row("mesh leaves / depth", `${rf.leaves} / ${rf.depth}`),
+            row("mesh nodes", String(rf.nodes)),
+            row("max curvature λ", sci(rf.maxLambda)),
+            row("refined / coarsened", `${rf.refined} / ${rf.coarsened}`),
+            row("prolong residual", sci(rf.conservationResidual)),
+            // The two transfer directions, each measured live: prolongation =
+            // refine (parent→child), restriction = coarsen (child→parent, the
+            // Phase-4 Galerkin adjoint). Both conserve Σ to ~1e-16 when exact.
+            // Guarded: an old bundle without restriction telemetry degrades to
+            // an honest dash, never a fabricated zero.
+            ...(typeof rf.restrictionResidual === "number"
+              ? [row("restrict residual", sci(rf.restrictionResidual))]
+              : [row("restrict residual", "— no telemetry —")]),
+            row("thresholds φ⁻² / φ⁻⁴", `${rf.refineThreshold.toFixed(3)} / ${rf.coarsenThreshold.toFixed(3)}`),
+          ]
+        : [`<div class="stab-sec">REFINEMENT (adaptive mesh)</div>`, row("mesh", "— no telemetry —")]),
       `<div class="stab-sec">MIND (v14 cognition)</div>`,
       row("state", mindStatus ? mindStatus.state : "stopped"),
       row("ticks", String(mindInfo().ticks ?? 0)),
       row("stable thoughts", String(mindInfo().stableThoughts ?? 0)),
       row("concepts", String(mindInfo().concepts ?? 0)),
+      // Auto-scaling: the governor settles the fractal-tree depth on measured
+      // tick cost; this is the honest live value (never modelled).
+      ...(mindInfo().scaling
+        ? [
+            row("auto-scale depth", `${mindInfo().scaling.depth} / ${mindInfo().scaling.maxDepth}`),
+            row("engine nodes", String(mindInfo().scaling.nodes)),
+            row("tick cost (EMA)", `${(mindInfo().scaling.emaTickMs ?? 0).toFixed(1)} ms`),
+          ]
+        : []),
+      ...(mindInfo().lexicon
+        ? [row("lexicon", `${mindInfo().lexicon.words} words · ${mindInfo().lexicon.relations} relations`)]
+        : []),
       row("ollama", mindInfo().ollama ?? (mindStatus && mindStatus.running ? "warming…" : "—")),
       row("restarts", String(mindStatus ? mindStatus.restarts : 0)),
     ].join("");
@@ -76,7 +112,11 @@
 
   async function refreshState() {
     try {
-      renderState(await window.ava.engine.state());
+      const s = await window.ava.engine.state();
+      lastEngineState = s;
+      renderState(s);
+      // Keep the mind section honest too — a missed event never leaves it stale.
+      renderMind(await window.ava.mind.status());
     } catch { /* main busy — next poll retries */ }
   }
 
@@ -140,8 +180,15 @@
     }
     // keep the panel honest without polling
     if (f.type === "state") {
-      mindStatus = { ...(mindStatus || {}), running: true, state: "awake", info: { ...mindInfo(), ticks: f.ticks, stableThoughts: f.stableThoughts, concepts: f.concepts } };
+      mindStatus = { ...(mindStatus || {}), running: true, state: "awake",
+        info: { ...mindInfo(), ticks: f.ticks, stableThoughts: f.stableThoughts, concepts: f.concepts,
+          ...(f.lexicon ? { lexicon: f.lexicon } : {}), ...(f.scaling ? { scaling: f.scaling } : {}) } };
       btnMind.classList.add("active");
+      // The panel reads mindStatus on its own 500 ms poll — re-render now so the
+      // open panel reflects this push immediately rather than a beat later.
+      if (!panel.classList.contains("hidden")) {
+        try { renderState({ ...(lastEngineState || {}), running: true }); } catch { /* engine state not cached yet */ }
+      }
     }
   });
 

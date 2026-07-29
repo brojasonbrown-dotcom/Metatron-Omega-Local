@@ -40,7 +40,7 @@ export interface DriveState {
 }
 
 /** What the mind decides to do about a stable thought. */
-export type MindAction = "name" | "define" | "relate" | "verify" | "none";
+export type MindAction = "name" | "define" | "relate" | "verify" | "lexical" | "none";
 
 /** Recognition summary handed to the arbiter by the cognitive loop. */
 export interface RecognitionInput {
@@ -52,6 +52,16 @@ export interface RecognitionInput {
   readonly reinforcement: number;
   /** Number of labels attached to the matched concept (0 if unknown). */
   readonly labelCount: number;
+  /** M6 — verified surprise (1 - R)^phi of the prediction that produced this thought. */
+  readonly surprise?: number;
+  /** M6 — verified prediction gain vs the phi-prior. */
+  readonly predictionGain?: number;
+  /**
+   * M7 — true when the concept already has a glossary gloss (a define ran).
+   * A defined concept with ≥ 1 label is the candidate for the lexical
+   * instrument: grow its grounded relation graph (is-a/part-of/...). [SPEC]
+   */
+  readonly defined?: boolean;
 }
 
 /** φ-proportional weights for curiosity: φ⁻¹, φ⁻², φ⁻³. [SPEC] */
@@ -154,7 +164,18 @@ export class DriveArbiter {
       return recognition.labelCount >= 2 ? "relate" : "define";
     }
 
+    // M7 — a DEFINED concept with labels is language the mind already holds:
+    // grow its grounded relation graph with the lexical instrument. This is the
+    // language front deepening — words the mind knows the meaning of now learn
+    // how they connect (is-a / part-of / opposite-of / related-to). [SPEC]
+    if (recognition.defined === true && recognition.labelCount >= 1) return "lexical";
+
     if (this._needStructure) return "verify";
+
+    // M6 — a concept the mind still cannot PREDICT is worth verifying even when
+    // no structure pressure fires: surprise above the coherence threshold means
+    // the prediction failed badly, and verification is how mastery is earned.
+    if (!bootstrap && (recognition.surprise ?? 0) >= COHERENCE_THRESHOLD) return "verify";
 
     return bootstrap ? "define" : "none"; // bootstrap always exercises a tool. [SPEC]
   }

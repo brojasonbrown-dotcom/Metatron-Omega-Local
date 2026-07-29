@@ -57,6 +57,10 @@ class EngineLoop {
     this._visionDrive = 0; // …of the vision channel
     this._audioLevel = 0;
     this._visionLevel = 0;
+    // The live adaptive mesh (Phases 1-4): a curvature-driven observer on the
+    // ring field. It samples the SAME field the invariants read, refines where
+    // the measured curvature is large, and reports real telemetry to the panel.
+    this._mesh = new E.AdaptiveMesh();
     this._seedField();
   }
 
@@ -69,6 +73,20 @@ class EngineLoop {
       Math.sin(TWO_PI * 3 * (i * dx + dt)) + 0.5 * Math.sin(TWO_PI * 7 * (i * dx + dt)));
     this._E0 = this._energy(this._present);
   }
+
+  /**
+   * Read the live ring field at a (u,v) point of the torus parameter domain.
+   * The mesh refines the (u,v) domain [0,2pi)^2; the engine's live field is a
+   * 1D periodic ring of N nodes. The honest read maps u -> the nearest ring
+   * node (the same conservative read the invariants use): v is a degenerate
+   * coordinate for a ring and is ignored. Bound once so the mesh can call it.
+   */
+  _fieldAt = ({ u }) => {
+    const TWO_PI = 2 * Math.PI;
+    const w = ((u % TWO_PI) + TWO_PI) % TWO_PI;
+    const idx = Math.min(this._nodes - 1, Math.floor((w / TWO_PI) * this._nodes));
+    return this._present[idx];
+  };
 
   _energy(u) {
     let e = 0;
@@ -100,6 +118,12 @@ class EngineLoop {
     this._ticks = 0;
     this._audioDrive = 0;
     this._visionDrive = 0;
+    this._mesh.reset();
+    // Invalidate the cached mesh snapshot: state() serves _meshSnap if present,
+    // so without clearing it a reset would report the PRE-reset (refined) tree
+    // until the next tick. Clearing forces state() to recompute from the
+    // freshly-reset base grid — the panel reads honest post-reset telemetry.
+    this._meshSnap = undefined;
     return this.state();
   }
 
@@ -127,6 +151,9 @@ class EngineLoop {
     this._past = this._present;
     this._present = next;
     this._ticks++;
+    // Advance the adaptive mesh on the NEW field (the mesh observes the field;
+    // it never feeds back into the propagator).
+    this._meshSnap = this._mesh.update(this._fieldAt);
   }
 
   /** The four invariants, computed fresh from the live field. */
@@ -163,6 +190,11 @@ class EngineLoop {
       invariants: inv,
       drives: { audio: this._audioDrive, vision: this._visionDrive },
       levels: { audio: this._audioLevel, vision: this._visionLevel },
+      // Live adaptive-mesh telemetry (Phases 1-4): real measured leaves,
+      // depth, curvature, refine/coarsen counts, conservation residual. If
+      // the loop has not ticked yet, take the snapshot now so the panel
+      // shows honest values even before start.
+      refinement: this._meshSnap ?? (this._meshSnap = this._mesh.update(this._fieldAt)),
       certificates: {
         lambda: this._memory.lambda,
         roots: [z1, z2],

@@ -36,6 +36,8 @@ import { HopfieldMemory } from "./hopfield.ts";
 import type { MemoryStore } from "./memory_store.ts";
 import { ThoughtTracker, type Thought } from "./thought.ts";
 import type { ConceptGlossary } from "./glossary.ts";
+import type { Lexicon } from "./lexicon.ts";
+import { verifyPrediction } from "./prediction_ledger.ts";
 
 /** Tick period: 1000/φ⁴ ≈ 146 ms. [SPEC] */
 export const TICK_MS = 146;
@@ -61,6 +63,8 @@ export interface CognitiveLoopDeps {
   readonly voice: VoiceOut;
   /** M4 — dictionary-quality memory. Optional: run_mind.ts needs no change. */
   readonly glossary?: ConceptGlossary;
+  /** M7 — the grounded language front. Optional: run_mind.ts needs no change. */
+  readonly lexicon?: Lexicon;
 }
 
 export class CognitiveLoop {
@@ -195,6 +199,27 @@ export class CognitiveLoop {
     const { registry, store } = this._deps;
     this._stableThoughtCount++;
 
+    // M6 — PREDICT before recognizing: what does the mind's own episodic memory
+    // expect this field to resonate with? This is the anticipation. Then the
+    // field is recognized (the measurement) and the prediction is VERIFIED
+    // against the φ-prior. Learning is the gain, never the accretion. [SPEC]
+    const masteryPrior = registry.masteryOf(
+      registry.nearest(thought.field, 1)[0]?.concept.id ?? ""
+    );
+    const { outcome, next: masteryNext } = verifyPrediction(masteryPrior, this._episodes, thought.field);
+    store.journal({
+      t: Date.now(),
+      kind: "prediction",
+      data: {
+        thought: thought.id,
+        predicted: outcome.predicted,
+        measured: outcome.measured,
+        baseline: 0.6180339887498949, // φ⁻¹ — the prior, stated honestly
+        gain: outcome.gain,
+        surprise: outcome.surprise,
+      },
+    });
+
     // RECOGNIZE by resonance.
     const obs = registry.observe(
       thought.field,
@@ -202,6 +227,22 @@ export class CognitiveLoop {
       `thought:${thought.sources.join("+") || "internal"}`
     );
     thought.labels = [...obs.concept.labels];
+
+    // M6 — fold the verified gain onto the concept the thought resolved to.
+    registry.recordMastery(obs.concept.id, masteryNext);
+    store.journal({
+      t: Date.now(),
+      kind: "verification",
+      data: {
+        thought: thought.id,
+        concept: obs.concept.id,
+        gain: outcome.gain,
+        mastery: masteryNext.mastery,
+        verifications: masteryNext.verifications,
+        learned: masteryNext.learned,
+        meanSurprise: masteryNext.meanSurprise,
+      },
+    });
 
     // EPISODIC: retain the distinct attractor and recall what it echoes. [MATH]
     this._episodes.store(thought.field);
@@ -222,6 +263,10 @@ export class CognitiveLoop {
         // Associative recall: the stored episode this thought most strongly
         // reactivates, and its resonance — the mind noticing a rhyme across time.
         association: association.ok ? association.resonance : null,
+        // M6 — the honest learning signal: verified prediction gain + mastery.
+        predictionGain: outcome.gain,
+        mastery: masteryNext.mastery,
+        learned: masteryNext.learned,
         scores: {
           signal: score.signalScore,
           persistence: score.persistenceScore,
@@ -239,6 +284,10 @@ export class CognitiveLoop {
         topResonance: obs.resonance,
         reinforcement: obs.concept.reinforcement,
         labelCount: obs.concept.labels.length,
+        surprise: outcome.surprise, // M6 — verified broken expectation
+        predictionGain: outcome.gain, // M6 — verified gain vs the φ-prior
+        // M7 — has this concept been defined? (gates the lexical instrument)
+        defined: this._deps.glossary?.get(obs.concept.id) !== undefined,
       },
       this._stableThoughtCount,
       this._totalReinforcement()
@@ -329,6 +378,9 @@ export class CognitiveLoop {
         break;
       case "verify":
         void this._actVerify(thought); // mathstral has its own in-flight guard
+        break;
+      case "lexical":
+        await this._actLexical(thought, obs);
         break;
       case "none":
         break;
@@ -537,6 +589,64 @@ export class CognitiveLoop {
       data: { tool: "relate", a, b, relation: out.value.relation, strength: out.value.strength, elapsedMs: out.elapsedMs },
     });
     this._learnText(out.value.relation, "relate", thought.id);
+  }
+
+  /**
+   * M7 — defined concept → phi produces its dictionary entry (pos + gloss +
+   * typed relations) → the lexicon's grounded graph grows. The gloss refreshes
+   * the M4 glossary; each relation becomes an edge hardened by the pair's
+   * MEASURED geometry (never a hand-picked weight). This is the language front
+   * learning how its known words connect. [SPEC]
+   */
+  private async _actLexical(thought: Thought, obs: ObserveResult): Promise<void> {
+    const { llm, store, lexicon } = this._deps;
+    const word = obs.concept.labels[0];
+    if (!word || !lexicon) return; // nothing to lexicalize / front not attached
+
+    store.journal({ t: Date.now(), kind: "tool.call", data: { tool: "lexical", word, thought: thought.id } });
+    const out = await llm.lexical(word);
+    if (!out.ok) {
+      store.journal({
+        t: Date.now(),
+        kind: "tool.fail",
+        data: { tool: "lexical", word, thought: thought.id, reason: out.reason },
+      });
+      return;
+    }
+
+    // Part of speech + the refined gloss onto the M4 glossary (newest wins).
+    if (out.value.pos.length > 0) lexicon.recordPos(word, out.value.pos);
+    this._deps.glossary?.learn({
+      conceptId: obs.concept.id,
+      definition: out.value.gloss,
+      related: [word, ...out.value.relations.map((r) => r.to)],
+      source: "define",
+      confidence: 0.5,
+    });
+
+    // Each typed relation becomes a grounded edge — but only when the target
+    // word is ALSO grounded (a relation to an unknown word is not language),
+    // and the edge's strength is the pair's measured co-occurrence resonance.
+    let edges = 0;
+    for (const rel of out.value.relations) {
+      const measured = lexicon.measurePairResonance(word, rel.to);
+      if (lexicon.assertRelation(word, rel.to, rel.kind, measured) !== null) edges++;
+    }
+
+    store.journal({
+      t: Date.now(),
+      kind: "tool.ok",
+      data: {
+        tool: "lexical",
+        word,
+        pos: out.value.pos,
+        gloss: out.value.gloss.slice(0, 160),
+        relations: out.value.relations,
+        groundedEdges: edges,
+        elapsedMs: out.elapsedMs,
+      },
+    });
+    this._learnText(out.value.gloss, "lexical", thought.id);
   }
 
   /** Structural thought → mathstral verifies a real numeric claim about it. */

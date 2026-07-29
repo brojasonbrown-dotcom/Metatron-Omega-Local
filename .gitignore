@@ -18,3 +18,14 @@ __pycache__/
 **/__pycache__/
 *.egg-info/
 **/*.egg-info/
+
+# mind private state (journal + learned memory) — local only, never commit
+**/mind_state/
+# Ava internal tooling memory — local only
+.ava/
+# editor / scratch
+**/.obsidian/
+.obsidian/
+sandbox/
+backup/
+*.canvas

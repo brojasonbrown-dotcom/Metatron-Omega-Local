@@ -19,10 +19,12 @@
 import { PHI } from "./../core/constants.ts";
 import {
   validateDefine,
+  validateLexical,
   validateNameThis,
   validateRelate,
   validateVerify,
   type DefineResponse,
+  type LexicalResponse,
   type NameThisResponse,
   type RelateResponse,
   type ValidationResult,
@@ -94,6 +96,22 @@ export class LlmTool {
       `Reply ONLY with JSON: {"verdict": "valid" or "invalid" or "uncertain", ` +
       `"reasoning": "one or two sentences"}.`;
     return this._callJson(MATHSTRAL_MODEL, prompt, validateVerify);
+  }
+
+  /**
+   * phi: produce a word's dictionary entry — part of speech, a concrete gloss,
+   * and its typed relations to other words (M7, the language front). The
+   * relations this returns become candidate edges in the lexicon's grounded
+   * graph, each hardened by the pair's MEASURED geometry. [SPEC]
+   */
+  async lexical(word: string): Promise<ToolOutcome<LexicalResponse>> {
+    const prompt =
+      `Give the dictionary entry for the word "${word}".\n` +
+      `Rules: "pos" is its part of speech (noun/verb/adjective/...). ` +
+      `"gloss" is what "${word}" concretely IS or DOES — real facts about the word itself, never a description of your own reply. ` +
+      `"relations" lists up to 8 other real words with their connection: kind is one of "is-a", "related-to", "opposite-of", "part-of".\n` +
+      `Reply ONLY with JSON: {"word": "${word}", "pos": "noun", "gloss": "<the actual meaning>", "relations": [{"kind": "is-a", "to": "<word>"}]}.`;
+    return this._callJson(PHI_MODEL, prompt, validateLexical);
   }
 
   /**

@@ -32,6 +32,8 @@ export interface JournalEntry {
     | "name.suppressed"
     | "voice"
     | "learn"
+    | "prediction"
+    | "verification"
     | "snapshot"
     | "error"
     | "shutdown";

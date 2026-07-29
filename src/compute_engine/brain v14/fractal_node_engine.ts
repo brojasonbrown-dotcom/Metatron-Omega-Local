@@ -536,6 +536,26 @@ export class FractalNodeEngine {
   }
 
   /**
+   * Live scaling telemetry for the host panel: the auto-scaled tree depth,
+   * total nodes, and the measured tick cost the governor scales on. Read-only;
+   * computed from the live tree, never modelled. [SPEC]
+   */
+  get_scaling_telemetry(): {
+    depth: number;
+    nodes: number;
+    emaTickMs: number;
+    maxDepth: number;
+  } {
+    const stats = this._root_node.get_tree_stats();
+    return {
+      depth: this._treeDepth,
+      nodes: stats.total_nodes,
+      emaTickMs: this._emaTickMs,
+      maxDepth: this.hardware_governor.budget.max_depth,
+    };
+  }
+
+  /**
    * Reset the engine to its initial state.
    *
    * Re-initializes the tree, clears flow channels, resets tick count, and

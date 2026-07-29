@@ -72,7 +72,7 @@ class MindService {
     this._restarts = 0;
     this._stopping = false;
     this._lastError = null;
-    this._info = { ticks: 0, stableThoughts: 0, concepts: 0, ollama: null, models: [] };
+    this._info = { ticks: 0, stableThoughts: 0, concepts: 0, ollama: null, models: [], lexicon: null, scaling: null };
     this._listener = null; // (frame) => void — wired to webContents.send
     this._buf = "";
     this._pendingQueries = new Map(); // id → resolve(frame)
@@ -115,6 +115,8 @@ class MindService {
       this._info.ticks = frame.ticks ?? this._info.ticks;
       this._info.stableThoughts = frame.stableThoughts ?? this._info.stableThoughts;
       this._info.concepts = frame.concepts ?? this._info.concepts;
+      if (frame.lexicon) this._info.lexicon = frame.lexicon;
+      if (frame.scaling) this._info.scaling = frame.scaling;
     } else if (frame.type === "fatal") {
       this._lastError = String(frame.message ?? "fatal boot error");
       this._state = "degraded";
