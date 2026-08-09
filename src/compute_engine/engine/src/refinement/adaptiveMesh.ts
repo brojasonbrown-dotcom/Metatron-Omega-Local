@@ -77,6 +77,28 @@ export interface MeshSnapshot {
   /** The exact thresholds the criterion is running (φ⁻², φ⁻⁴). */
   readonly refineThreshold: number;
   readonly coarsenThreshold: number;
+  /**
+   * The live leaf geometry — one entry per field-carrying leaf (aligned with
+   * tree.leaves()), each carrying its (u,v) centre in the [0,2π)² torus domain,
+   * its dyadic depth, cell size and measured curvature λ. This is what lets the
+   * panel render the REAL refined mesh (every node where it actually is), never
+   * a reconstructed guess. Computed live each update.
+   */
+  readonly leafNodes: readonly MeshLeaf[];
+}
+
+/** One rendered leaf of the adaptive mesh — its true geometry + measured λ. */
+export interface MeshLeaf {
+  /** Cell centre in the torus domain, u ∈ [0, 2π). */
+  readonly u: number;
+  /** Cell centre in the torus domain, v ∈ [0, 2π). */
+  readonly v: number;
+  /** Dyadic cell size (domain fraction). */
+  readonly size: number;
+  /** Tree depth of this leaf (0 = root). */
+  readonly depth: number;
+  /** Measured scale-invariant curvature λ at this leaf (≥ 0). */
+  readonly lambda: number;
 }
 
 /**
@@ -232,6 +254,22 @@ export class AdaptiveMesh {
     //    CURRENT field (the mesh observes; it does not carry its own state).
     this._resample(fieldAt);
 
+    // 4. Capture the live leaf geometry for the renderer (the REAL mesh, not
+    //    counts). λ is the per-leaf value measured in step 1; a leaf refined
+    //    after that read carries its parent's measured λ as its honest best.
+    const curLeaves = this._tree.leaves();
+    const leafNodes: MeshLeaf[] = curLeaves.map((leaf) => {
+      const h = leaf.cell.size;
+      const idx = this._leafIndex(leaf);
+      return {
+        u: leaf.cell.u0 + h / 2,
+        v: leaf.cell.v0 + h / 2,
+        size: h,
+        depth: leaf.level,
+        lambda: idx >= 0 ? (lambdas[idx] ?? 0) : 0,
+      };
+    });
+
     return {
       leaves: this._tree.leafCount(),
       nodes: this._tree.nodeCount(),
@@ -243,6 +281,7 @@ export class AdaptiveMesh {
       restrictionResidual,
       refineThreshold: REFINE_THRESHOLD,
       coarsenThreshold: COARSEN_THRESHOLD,
+      leafNodes,
     };
   }
 
