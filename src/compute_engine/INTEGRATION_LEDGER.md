@@ -159,8 +159,8 @@ Scaled φ-power helper (arbitrary n, exact) — NOT to the stable-only `getScale
 - [x] **M1** — unified strict gate (tsconfig.base.json + vitest workspace); 757 green
 - [x] **Option B** — v14 to zero strict errors (913→0); both typechecks exit 0
 - [x] **M2** — engine public API barrel + 7 layer aggregators + runtime proof; 759 green
-- [ ] **M4** — single-source constants + shared Scaled φ-power helper (arbitrary n)
-- [ ] **M5** — fractal_node ↔ octree composition + dual-registry reconciler
+- [x] **M4** — single-source PLANCK_LENGTH/SPEED_OF_LIGHT from engine CODATA (the only real divergence; φ-family already Float64-identical). PLANCK_FREQUENCY now derived c/ℓ_P.
+- [x] **M5** — dual-registry reconciler `engine/src/core/scaleReconciler.ts` (nearestStableRung / scaleLengthAt / scaleFrequencyAt / reconciliationResidual / stableRecordAt) + 8-test proof; 767 green. **Finding:** fractal_node↔octree direct composition is a CATEGORY ERROR — FractalNode recurses over the scale ladder (flat 1D field), Octree refines a 2D toroidal (u,v) domain; different trees over different spaces. The reconciler is the correct bridge.
 - [ ] **M6** — unified barrel surface + docs + final gate
 
 **Invariant throughout:** after EVERY file, `npm run typecheck` exit 0 AND
