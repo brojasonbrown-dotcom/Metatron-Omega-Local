@@ -1,24 +1,20 @@
 {
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "strict": true,
-    "skipLibCheck": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2022"],
-    "types": ["node"]
+    "types": ["node", "vitest/globals"]
   },
   "include": [
     "*.ts",
     "core/**/*.ts",
     "adapters/**/*.ts",
     "cognition/**/*.ts",
+    "parallel/**/*.ts",
     "schemas/**/*.ts",
     "tests/**/*.ts"
   ],
-  "exclude": ["dist", "node_modules", "blobs", "manifests", "mind_state", "mind_inbox"]
+  "exclude": ["dist", "node_modules", "blobs", "manifests", "mind_state", "mind_inbox", "_archive", "formal"]
 }

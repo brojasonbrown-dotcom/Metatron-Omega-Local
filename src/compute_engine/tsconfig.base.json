@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "_comment": "RHUFT unified STRICT base (Option B). The SOUNDNESS CORE is identical for every tree — engine and brain v14. Each tree extends this and sets ONLY its own module/moduleResolution/types (engine=NodeNext; v14=ESNext+bundler for its Node>=25 type-stripping runtime). Do NOT relax any flag here per-tree: the whole point of Option B is that soundness is uniform.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  }
+}
