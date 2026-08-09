@@ -749,8 +749,8 @@ export class F7_Thermodynamic implements FrameworkEngine {
     const thermalDiffusivity = 1.0 / PHI;
     const thermalDiffusion = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const prev = i > 0 ? field_state[i - 1] : field_state[N - 1];
-      const next = i < N - 1 ? field_state[i + 1] : field_state[0];
+      const prev = i > 0 ? at(field_state, i - 1) : at(field_state, N - 1);
+      const next = i < N - 1 ? at(field_state, i + 1) : at(field_state, 0);
       const laplacian = next - 2.0 * at(field_state, i) + prev; // discrete ∇²
       thermalDiffusion[i] = thermalDiffusivity * laplacian;
     }
@@ -760,7 +760,7 @@ export class F7_Thermodynamic implements FrameworkEngine {
     const kappa = 1.0 / (PHI * PI);
     const friction = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const prevEntropy = i > 0 ? probabilities[i - 1] : probabilities[N - 1];
+      const prevEntropy = i > 0 ? at(probabilities, i - 1) : at(probabilities, N - 1);
       const entropyGrad = Math.abs(at(probabilities, i) - prevEntropy);
       friction[i] = kappa * entropyGrad;
     }
@@ -842,8 +842,8 @@ export class F1_Septenary implements FrameworkEngine {
     // Level 1: Pattern — feature extraction (local gradient detection)
     const level1 = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const prev = i > 0 ? level0[i - 1] : level0[N - 1];
-      const next = i < N - 1 ? level0[i + 1] : level0[0];
+      const prev = i > 0 ? at(level0, i - 1) : at(level0, N - 1);
+      const next = i < N - 1 ? at(level0, i + 1) : at(level0, 0);
       const gradient = (next - prev) / 2.0; // central difference
       // φ-scaled feature enhancement
       level1[i] = gradient * PHI_INV;
@@ -883,7 +883,7 @@ export class F1_Septenary implements FrameworkEngine {
     // Level 4: Narrative — temporal sequence (causal prediction: next = current + trend)
     const level4 = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const prev = i > 0 ? level3[i - 1] : level3[N - 1];
+      const prev = i > 0 ? at(level3, i - 1) : at(level3, N - 1);
       const trend = at(level3, i) - prev; // first-order trend
       // Predict next value with φ-scaled confidence
       const prediction = at(level3, i) + trend * PHI_INV;
@@ -1675,8 +1675,8 @@ export class L4_Sensory implements MemoryEngine {
     // Salience = information gradient = |∇input| (discrete derivative)
     const salience = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const prev = i > 0 ? pattern[i - 1] : pattern[N - 1];
-      const next = i < N - 1 ? pattern[i + 1] : pattern[0];
+      const prev = i > 0 ? at(pattern, i - 1) : at(pattern, N - 1);
+      const next = i < N - 1 ? at(pattern, i + 1) : at(pattern, 0);
       const gradient = (next - prev) / 2.0; // central difference
       salience[i] = Math.abs(gradient);
     }

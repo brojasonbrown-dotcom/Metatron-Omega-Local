@@ -155,7 +155,7 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
   }
   const latticeValues = new Float64Array(NUM_NODES);
   for (let i = 0; i < NUM_NODES; i++) {
-    latticeValues[i] = input[i % N];
+    latticeValues[i] = at(input, i % N);
   }
   for (let iter = 0; iter < 3; iter++) {
     const newValues = new Float64Array(NUM_NODES);
@@ -171,7 +171,7 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
       newValues[i] = sum / degree;
     }
     for (let i = 0; i < NUM_NODES; i++) {
-      latticeValues[i] = newValues[i];
+      latticeValues[i] = at(newValues, i);
     }
   }
   const result = new Float64Array(N);
@@ -238,13 +238,13 @@ function computeF5_ColorMusic(input: Float64Array, fieldState: Float64Array): Fl
   const C = 2.99792458e8;
   const massFreqConversion = (C * C) / H;
   const harmonicSeries = new Float64Array(N);
-  const baseFreq = at(magnitudes, 0) > 0 ? magnitudes[0] : 1.0;
+  const baseFreq = at(magnitudes, 0) > 0 ? at(magnitudes, 0) : 1.0;
   for (let n = 0; n < N; n++) {
     harmonicSeries[n] = baseFreq * Math.pow(PHI, -n);
   }
   const colorWeights = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const freq = at(magnitudes, i) > 0 ? magnitudes[i] : 1e-300;
+    const freq = at(magnitudes, i) > 0 ? at(magnitudes, i) : 1e-300;
     const wavelengthNm = (C / freq) * 1e9;
     const peakWavelength = 550.0;
     const sigma = 100.0;
@@ -292,7 +292,7 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
   const letterIndices = new Int32Array(N);
   for (let i = 0; i < N; i++) letterIndices[i] = i % NUM_LETTERS;
   const gematriaValues = new Float64Array(NUM_LETTERS);
-  for (let i = 0; i < NUM_LETTERS; i++) gematriaValues[i] = HEBREW_GEMATRIA[i];
+  for (let i = 0; i < NUM_LETTERS; i++) gematriaValues[i] = at(HEBREW_GEMATRIA, i);
   const permutationMatrix: number[][] = [];
   for (let i = 0; i < NUM_LETTERS; i++) {
     permutationMatrix[i] = [];
@@ -384,15 +384,15 @@ function computeF7_Thermodynamic(input: Float64Array, fieldState: Float64Array):
   const thermalDiffusivity = 1.0 / PHI;
   const thermalDiffusion = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const prev = i > 0 ? fieldState[i - 1] : fieldState[N - 1];
-    const next = i < N - 1 ? fieldState[i + 1] : fieldState[0];
+    const prev = i > 0 ? at(fieldState, i - 1) : at(fieldState, N - 1);
+    const next = i < N - 1 ? at(fieldState, i + 1) : at(fieldState, 0);
     const laplacian = next - 2.0 * at(fieldState, i) + prev;
     thermalDiffusion[i] = thermalDiffusivity * laplacian;
   }
   const kappa = 1.0 / (PHI * PI);
   const friction = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const prevEntropy = i > 0 ? probabilities[i - 1] : probabilities[N - 1];
+    const prevEntropy = i > 0 ? at(probabilities, i - 1) : at(probabilities, N - 1);
     const entropyGrad = Math.abs(at(probabilities, i) - prevEntropy);
     friction[i] = kappa * entropyGrad;
   }
@@ -418,8 +418,8 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
   levelOutputs.push(level0);
   const level1 = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const prev = i > 0 ? level0[i - 1] : level0[N - 1];
-    const next = i < N - 1 ? level0[i + 1] : level0[0];
+    const prev = i > 0 ? at(level0, i - 1) : at(level0, N - 1);
+    const next = i < N - 1 ? at(level0, i + 1) : at(level0, 0);
     const gradient = (next - prev) / 2.0;
     level1[i] = gradient * PHI_INV;
   }
@@ -452,7 +452,7 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
   levelOutputs.push(level3);
   const level4 = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const prev = i > 0 ? level3[i - 1] : level3[N - 1];
+    const prev = i > 0 ? at(level3, i - 1) : at(level3, N - 1);
     const trend = at(level3, i) - prev;
     const prediction = at(level3, i) + trend * PHI_INV;
     const predictionError = at(level3, i) - prediction;
@@ -550,8 +550,8 @@ function computeL1_Pattern(input: Float64Array): Float64Array {
   const N = input.length;
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const prev = i > 0 ? input[i - 1] : input[N - 1];
-    const next = i < N - 1 ? input[i + 1] : input[0];
+    const prev = i > 0 ? at(input, i - 1) : at(input, N - 1);
+    const next = i < N - 1 ? at(input, i + 1) : at(input, 0);
     const gradient = (next - prev) / 2.0;
     result[i] = gradient * PHI_INV;
   }
@@ -562,8 +562,8 @@ function computeL2_Hebbian(input: Float64Array): Float64Array {
   const N = input.length;
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const prev = i > 0 ? input[i - 1] : input[N - 1];
-    const next = i < N - 1 ? input[i + 1] : input[0];
+    const prev = i > 0 ? at(input, i - 1) : at(input, N - 1);
+    const next = i < N - 1 ? at(input, i + 1) : at(input, 0);
     const correlation = at(input, i) * (prev + next) / 2.0;
     result[i] = correlation * PHI_NEG2;
   }
@@ -589,8 +589,8 @@ function computeL4_Sensory(input: Float64Array): Float64Array {
   const N = input.length;
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const prev = i > 0 ? input[i - 1] : input[N - 1];
-    const next = i < N - 1 ? input[i + 1] : input[0];
+    const prev = i > 0 ? at(input, i - 1) : at(input, N - 1);
+    const next = i < N - 1 ? at(input, i + 1) : at(input, 0);
     const laplacian = next - 2.0 * at(input, i) + prev;
     result[i] = laplacian * PHI_NEG2;
   }
