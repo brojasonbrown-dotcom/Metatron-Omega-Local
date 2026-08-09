@@ -52,25 +52,36 @@ __export(engine_entry_exports, {
   closureResidual: () => closureResidual,
   closureResidueMin: () => closureResidueMin,
   closureScore: () => closureScore,
+  complexityFromPower: () => complexityFromPower,
+  dominantBinND: () => dominantBinND,
   dominantModeIndex: () => dominantModeIndex,
   eigenSpectrum: () => eigenSpectrum,
   energyRatio: () => energyRatio,
   envelopeDensity: () => envelopeDensity,
   fibonacci: () => fibonacci,
+  gaussLegendreRadial: () => gaussLegendreRadial,
   getScale: () => getScale,
   goldenPairSum: () => goldenPairSum,
   initialCondition: () => initialCondition,
+  inverseRadialTransform: () => inverseRadialTransform,
+  inversionResidual: () => inversionResidual,
   isClosed: () => isClosed,
   isRung: () => isRung,
   isStable: () => isStable,
+  isStableRung: () => isStableRung,
   ladderNeighbors: () => ladderNeighbors,
   lucas: () => lucas,
   lucasResidue: () => lucasResidue,
   metatronShellFlux: () => metatronShellFlux,
   minimallyOpenFloor: () => minimallyOpenFloor,
   nearestRung: () => nearestRung,
+  nearestStableRung: () => nearestStableRung,
   octavePartners: () => octavePartners,
+  powerSpectrum: () => powerSpectrum,
+  probeCartesian: () => probeCartesian,
   prolongateBlock: () => prolongateBlock,
+  radialTransform: () => radialTransform,
+  reconciliationResidual: () => reconciliationResidual,
   relativeConservationResidual: () => relativeConservationResidual,
   relativeRestrictionResidual: () => relativeRestrictionResidual,
   relativeRoundTripDefect: () => relativeRoundTripDefect,
@@ -80,13 +91,20 @@ __export(engine_entry_exports, {
   restrictionConservationResidual: () => restrictionConservationResidual,
   restrictionWeights: () => restrictionWeights,
   roundTripDefect: () => roundTripDefect,
+  scaleFrequencyAt: () => scaleFrequencyAt,
+  scaleLengthAt: () => scaleLengthAt,
+  scaleTimeAt: () => scaleTimeAt,
   selfOverlap: () => selfOverlap,
   spectralAmplitudes: () => spectralAmplitudes,
   spectralLines: () => spectralLines,
   spectralWeightSum: () => spectralWeightSum,
+  spectrumND: () => spectrumND,
+  sphericalBesselJ: () => sphericalBesselJ,
+  stableRecordAt: () => stableRecordAt,
   stableScalesUpTo: () => stableScalesUpTo,
   surfaceArea: () => surfaceArea,
-  torusForScale: () => torusForScale
+  torusForScale: () => torusForScale,
+  unitaryPrefactor: () => unitaryPrefactor
 });
 module.exports = __toCommonJS(engine_entry_exports);
 
@@ -374,6 +392,50 @@ function allScales() {
   return STABLE_SCALES.map((n) => getScale(n));
 }
 var CONTINUATION = stableScalesUpTo(293).filter((n) => !STABLE_SCALES.includes(n)).map((n) => getScale(n));
+
+// ../engine/src/core/scaleReconciler.ts
+var MAX_STABLE_RUNG = 125;
+function nearestStableRung(n) {
+  if (!Number.isInteger(n)) throw new RangeError(`nearestStableRung: non-integer ${n}`);
+  const rungs = stableScalesUpTo(Math.max(n, MAX_STABLE_RUNG));
+  if (rungs.length === 0) return null;
+  let best = null;
+  let bestDist = Infinity;
+  for (const r of rungs) {
+    const dist = Math.abs(r - n);
+    if (dist < bestDist || dist === bestDist && best !== null && r < best) {
+      best = r;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+function isStableRung(n) {
+  return isStable(n);
+}
+function scaleLengthAt(n) {
+  if (!Number.isInteger(n)) throw new RangeError(`scaleLengthAt: non-integer ${n}`);
+  return Scaled.from(PLANCK_LENGTH).mul(Scaled.phiPow(n, PHI));
+}
+function scaleTimeAt(n) {
+  if (!Number.isInteger(n)) throw new RangeError(`scaleTimeAt: non-integer ${n}`);
+  return Scaled.from(PLANCK_TIME).mul(Scaled.phiPow(n, PHI));
+}
+function scaleFrequencyAt(n) {
+  const L = scaleLengthAt(n);
+  return Scaled.from(C).div(L);
+}
+function reconciliationResidual(n) {
+  const nearest = nearestStableRung(n);
+  if (nearest === null) return 1;
+  if (nearest === n) return 0;
+  const above = stableScalesUpTo(nearest + 40).find((r) => r > nearest) ?? nearest + 14;
+  const gap = Math.max(1, above - nearest);
+  return Math.abs(n - nearest) / gap;
+}
+function stableRecordAt(n) {
+  return isStable(n) ? getScale(n) : null;
+}
 
 // ../engine/src/analysis/resolutionLadder.ts
 var RESOLUTION_LADDER = Object.freeze([
@@ -750,6 +812,132 @@ var MemoryKernel = class _MemoryKernel {
 
 // ../engine/src/analysis/eigenmodes.ts
 var TWO_PI2 = 2 * Math.PI;
+var _fftBuf = new Float64Array(0);
+function _fftInPlace(a, size) {
+  for (let i = 1, j = 0; i < size; i++) {
+    let bit = size >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      const ir = 2 * i, jr = 2 * j;
+      const tr = a[ir], ti = a[ir + 1];
+      a[ir] = a[jr];
+      a[ir + 1] = a[jr + 1];
+      a[jr] = tr;
+      a[jr + 1] = ti;
+    }
+  }
+  for (let len = 2; len <= size; len <<= 1) {
+    const half = len >> 1;
+    const theta = -TWO_PI2 / len;
+    const alpha = -2 * Math.sin(0.5 * theta) ** 2;
+    const beta = Math.sin(theta);
+    for (let i = 0; i < size; i += len) {
+      let cwr = 1, cwi = 0;
+      for (let m = 0; m < half; m++) {
+        const e = 2 * (i + m), o = 2 * (i + m + half);
+        const or_ = a[o], oi = a[o + 1];
+        const vr = or_ * cwr - oi * cwi;
+        const vi = or_ * cwi + oi * cwr;
+        a[o] = a[e] - vr;
+        a[o + 1] = a[e + 1] - vi;
+        a[e] = a[e] + vr;
+        a[e + 1] = a[e + 1] + vi;
+        const nwr = cwr + alpha * cwr - beta * cwi;
+        cwi = cwi + alpha * cwi + beta * cwr;
+        cwr = nwr;
+      }
+    }
+  }
+}
+function rawDftComplex(re, im, n) {
+  const { are, aim, bre, bim, m } = _chirps(n);
+  const fa = new Float64Array(2 * m);
+  for (let i = 0; i < n; i++) {
+    const xr = re[i], xi = im[i];
+    fa[2 * i] = xr * are[i] - xi * aim[i];
+    fa[2 * i + 1] = xr * aim[i] + xi * are[i];
+  }
+  const fb = new Float64Array(2 * m);
+  for (let i = 0; i < m; i++) {
+    fb[2 * i] = bre[i];
+    fb[2 * i + 1] = bim[i];
+  }
+  _fftInPlace(fa, m);
+  _fftInPlace(fb, m);
+  for (let i = 0; i < m; i++) {
+    const ar = fa[2 * i], ai = fa[2 * i + 1];
+    const br = fb[2 * i], bi = fb[2 * i + 1];
+    fa[2 * i] = ar * br - ai * bi;
+    fa[2 * i + 1] = ar * bi + ai * br;
+  }
+  for (let i = 0; i < 2 * m; i += 2) fa[i + 1] = -fa[i + 1];
+  _fftInPlace(fa, m);
+  const ore = new Float64Array(n), oim = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    const cr = fa[2 * k] / m, ci = -fa[2 * k + 1] / m;
+    ore[k] = are[k] * cr - aim[k] * ci;
+    oim[k] = are[k] * ci + aim[k] * cr;
+  }
+  return { re: ore, im: oim };
+}
+var _chirpCache = /* @__PURE__ */ new Map();
+function _chirps(n) {
+  let c = _chirpCache.get(n);
+  if (c) return c;
+  let m = 1;
+  while (m < 2 * n - 1) m <<= 1;
+  const are = new Float64Array(m), aim = new Float64Array(m);
+  const bre = new Float64Array(m), bim = new Float64Array(m);
+  for (let i = 0; i < n; i++) {
+    const ang = Math.PI * i * i / n;
+    are[i] = Math.cos(ang);
+    aim[i] = -Math.sin(ang);
+    bre[i] = Math.cos(ang);
+    bim[i] = Math.sin(ang);
+    if (i > 0) {
+      bre[m - i] = bre[i];
+      bim[m - i] = bim[i];
+    }
+  }
+  c = { are, aim, bre, bim, m };
+  _chirpCache.set(n, c);
+  return c;
+}
+function _dftReal(field, n) {
+  const { are, aim, bre, bim, m } = _chirps(n);
+  const fa = new Float64Array(2 * m);
+  for (let i = 0; i < n; i++) {
+    const v = field[i];
+    fa[2 * i] = v * are[i];
+    fa[2 * i + 1] = v * aim[i];
+  }
+  const fb = new Float64Array(2 * m);
+  for (let i = 0; i < m; i++) {
+    fb[2 * i] = bre[i];
+    fb[2 * i + 1] = bim[i];
+  }
+  _fftInPlace(fa, m);
+  _fftInPlace(fb, m);
+  for (let i = 0; i < m; i++) {
+    const ar = fa[2 * i], ai = fa[2 * i + 1];
+    const br = fb[2 * i], bi = fb[2 * i + 1];
+    fa[2 * i] = ar * br - ai * bi;
+    fa[2 * i + 1] = ar * bi + ai * br;
+  }
+  for (let i = 0; i < 2 * m; i += 2) fa[i + 1] = -fa[i + 1];
+  _fftInPlace(fa, m);
+  const re = new Float64Array(n), im = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    const cr = fa[2 * k] / m, ci = -fa[2 * k + 1] / m;
+    re[k] = are[k] * cr - aim[k] * ci;
+    im[k] = are[k] * ci + aim[k] * cr;
+  }
+  return { re, im };
+}
+function rawDftReal(field, n) {
+  return _dftReal(field, n);
+}
 function eigenSpectrum(field) {
   const n = field.length;
   if (!Number.isInteger(n) || n < 2) {
@@ -763,17 +951,12 @@ function eigenSpectrum(field) {
     }
     total += v * v;
   }
+  const { re: RE, im: IM } = _dftReal(field, n);
   const half = Math.floor(n / 2);
   const modes = [];
   for (let k = 0; k <= half; k++) {
-    let re = 0;
-    let im = 0;
-    for (let i = 0; i < n; i++) {
-      const ang = TWO_PI2 * k * i / n;
-      const v = field[i];
-      re += v * Math.cos(ang);
-      im -= v * Math.sin(ang);
-    }
+    const re = RE[k];
+    const im = IM[k];
     const fold = k === 0 || n % 2 === 0 && k === half ? 1 : 2;
     const energy = fold * (re * re + im * im) / n;
     const phiWeight = Math.pow(PHI, -k);
@@ -803,6 +986,374 @@ function eigenSpectrum(field) {
 function dominantModeIndex(field) {
   const s = eigenSpectrum(field);
   return s.dominant ? s.dominant.k : 0;
+}
+
+// ../engine/src/analysis/spectralND.ts
+var TWO_PI3 = 2 * Math.PI;
+function _checkDims(dims) {
+  if (dims.length < 1) throw new RangeError("spectralND: need at least one axis.");
+  let total = 1;
+  for (let d = 0; d < dims.length; d++) {
+    const n = dims[d];
+    if (!Number.isInteger(n) || n < 1) {
+      throw new RangeError(`spectralND: axis ${d} must have \u2265 1 node; got ${n}.`);
+    }
+    total *= n;
+    if (!Number.isFinite(total) || total > 1 << 26) {
+      throw new RangeError(`spectralND: grid product overflow at axis ${d} (dims ${dims}).`);
+    }
+  }
+  if (total < 2) throw new RangeError("spectralND: grid must hold \u2265 2 nodes.");
+  return total;
+}
+function spectrumND(field, dims) {
+  const total = _checkDims(dims);
+  if (field.length !== total) {
+    throw new RangeError(`spectralND: field length ${field.length} \u2260 grid product ${total} (dims ${dims}).`);
+  }
+  const re = new Float64Array(total);
+  const im = new Float64Array(total);
+  let realEnergy = 0;
+  for (let i = 0; i < total; i++) {
+    const v = field[i];
+    if (!Number.isFinite(v)) throw new RangeError(`spectralND: non-finite field value at node ${i}.`);
+    re[i] = v;
+    realEnergy += v * v;
+  }
+  let perAxisResidual = 0;
+  const ndim = dims.length;
+  for (let d = 0; d < ndim; d++) {
+    const n = dims[d];
+    if (n === 1) continue;
+    let span = 1;
+    for (let j = d + 1; j < ndim; j++) span *= dims[j];
+    const lines = total / n;
+    const tre = new Float64Array(n), tim = new Float64Array(n);
+    for (let line = 0; line < lines; line++) {
+      const outer = Math.floor(line / span);
+      const inner = line % span;
+      const base = outer * (n * span) + inner;
+      for (let i = 0; i < n; i++) {
+        const idx = base + i * span;
+        tre[i] = re[idx];
+        tim[i] = im[idx];
+      }
+      const out = d === 0 ? rawDftReal(tre, n) : rawDftComplex(tre, tim, n);
+      for (let k = 0; k < n; k++) {
+        const idx = base + k * span;
+        re[idx] = out.re[k];
+        im[idx] = out.im[k];
+      }
+    }
+    realEnergy *= n;
+  }
+  let spectralRaw = 0;
+  for (let k = 0; k < total; k++) {
+    spectralRaw += re[k] * re[k] + im[k] * im[k];
+  }
+  const parsevalResidual = Math.abs(spectralRaw - realEnergy);
+  perAxisResidual = Math.max(perAxisResidual, parsevalResidual);
+  return {
+    dims: [...dims],
+    re,
+    im,
+    realEnergy,
+    spectralEnergy: spectralRaw,
+    // already scaled to match realEnergy
+    parsevalResidual,
+    perAxisResidual,
+    nodes: total
+  };
+}
+function powerSpectrum(spec) {
+  const n = spec.nodes;
+  const p = new Float64Array(n);
+  for (let k = 0; k < n; k++) p[k] = spec.re[k] * spec.re[k] + spec.im[k] * spec.im[k];
+  return p;
+}
+function dominantBinND(spec) {
+  let best = -1, bestIdx = 0;
+  for (let k = 0; k < spec.nodes; k++) {
+    const e = spec.re[k] * spec.re[k] + spec.im[k] * spec.im[k];
+    if (e > best) {
+      best = e;
+      bestIdx = k;
+    }
+  }
+  const idx = new Array(spec.dims.length);
+  let rest = bestIdx;
+  for (let d = spec.dims.length - 1; d >= 0; d--) {
+    const n = spec.dims[d];
+    idx[d] = rest % n;
+    rest = Math.floor(rest / n);
+  }
+  return idx;
+}
+function unitaryPrefactor(ndim) {
+  return Math.pow(TWO_PI3, -ndim / 2);
+}
+
+// ../engine/src/analysis/radialTransform.ts
+function sphericalBesselJ(l, x) {
+  if (!Number.isInteger(l) || l < 0) throw new RangeError(`sphericalBesselJ: order must be an integer \u2265 0; got ${l}.`);
+  if (x < 0) throw new RangeError(`sphericalBesselJ: argument must be \u2265 0; got ${x}.`);
+  if (x === 0) return l === 0 ? 1 : 0;
+  if (x < 0.5 + 0.5 * l) {
+    let term = 1;
+    for (let i = 1; i <= l; i++) term *= x / (2 * i + 1);
+    let sum = 1;
+    let tk = 1;
+    for (let k = 1; k <= 40; k++) {
+      tk *= -(x * x) / (2 * k * (2 * (l + k) + 1));
+      sum += tk;
+      if (Math.abs(tk) < 1e-18 * Math.abs(sum)) break;
+    }
+    return term * sum;
+  }
+  if (x >= l + 1) {
+    let jm = Math.sin(x) / x;
+    if (l === 0) return jm;
+    let jc2 = Math.sin(x) / (x * x) - Math.cos(x) / x;
+    if (l === 1) return jc2;
+    for (let m = 1; m < l; m++) {
+      const jn = (2 * m + 1) / x * jc2 - jm;
+      jm = jc2;
+      jc2 = jn;
+    }
+    return jc2;
+  }
+  const start = l + 20 + Math.ceil(x);
+  let jp = 0;
+  let jc = 1e-30;
+  let jTarget = 0;
+  let j0raw = 0;
+  for (let m = start; m >= 1; m--) {
+    const jn = (2 * m + 1) / x * jc - jp;
+    jp = jc;
+    jc = jn;
+    if (m === l + 1) jTarget = jn;
+    if (m === 1) j0raw = jn;
+    if (!Number.isFinite(jc)) {
+      jc *= 1e-30;
+      jp *= 1e-30;
+      jTarget *= 1e-30;
+      j0raw *= 1e-30;
+    }
+  }
+  const exactJ0 = Math.sin(x) / x;
+  return jTarget * (exactJ0 / j0raw);
+}
+function gaussLegendreRadial(rmax, n) {
+  if (rmax <= 0) throw new RangeError("gaussLegendreRadial: Rmax must be > 0.");
+  if (!Number.isInteger(n) || n < 2) throw new RangeError("gaussLegendreRadial: need \u2265 2 points.");
+  const r = new Float64Array(n), w = new Float64Array(n);
+  const m = Math.floor((n + 1) / 2);
+  const eps = 1e-15;
+  for (let i = 0; i < m; i++) {
+    let z = Math.cos(Math.PI * (i + 0.75) / (n + 0.5));
+    let z1 = 0, pp = 0;
+    do {
+      let p1 = 1, p2 = 0;
+      for (let j = 0; j < n; j++) {
+        const p3 = p2;
+        p2 = p1;
+        p1 = ((2 * j + 1) * z * p2 - j * p3) / (j + 1);
+      }
+      pp = n * (z * p1 - p2) / (z * z - 1);
+      z1 = z;
+      z = z1 - p1 / pp;
+    } while (Math.abs(z - z1) > eps);
+    const xl = 0, xu = rmax;
+    const xm = 0.5 * (xu + xl), xr = 0.5 * (xu - xl);
+    r[i] = xm - xr * z;
+    r[n - 1 - i] = xm + xr * z;
+    w[i] = xr * 2 / ((1 - z * z) * pp * pp);
+    w[n - 1 - i] = w[i];
+  }
+  return { r, w };
+}
+var SQRT_2_OVER_PI = Math.sqrt(2 / Math.PI);
+function _splineInterp(r, ur, n) {
+  if (n < 4) {
+    return (x) => {
+      let j = 0;
+      while (j < n - 2 && r[j + 1] < x) j++;
+      const r0 = r[j], r1 = r[j + 1];
+      const t = r1 > r0 ? Math.min(1, Math.max(0, (x - r0) / (r1 - r0))) : 0;
+      return ur[j] * (1 - t) + ur[j + 1] * t;
+    };
+  }
+  const y2 = new Float64Array(n);
+  const u = new Float64Array(n);
+  y2[0] = 0;
+  u[0] = 0;
+  for (let i = 1; i < n - 1; i++) {
+    const sig = (r[i] - r[i - 1]) / (r[i + 1] - r[i - 1]);
+    const p = sig * y2[i - 1] + 2;
+    y2[i] = (sig - 1) / p;
+    u[i] = (6 * ((ur[i + 1] - ur[i]) / (r[i + 1] - r[i]) - (ur[i] - ur[i - 1]) / (r[i] - r[i - 1])) / (r[i + 1] - r[i - 1]) - sig * u[i - 1]) / p;
+  }
+  y2[n - 1] = 0;
+  for (let k = n - 2; k >= 0; k--) y2[k] = y2[k] * y2[k + 1] + u[k];
+  return (x) => {
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) {
+      const mid = hi + lo >> 1;
+      if (r[mid] > x) hi = mid;
+      else lo = mid;
+    }
+    const h = r[hi] - r[lo];
+    if (h <= 0) return ur[lo];
+    const a = (r[hi] - x) / h, b = (x - r[lo]) / h;
+    return a * ur[lo] + b * ur[hi] + ((a * a * a - a) * y2[lo] + (b * b * b - b) * y2[hi]) * (h * h) / 6;
+  };
+}
+function radialTransform(r, ur, l, k, rmax) {
+  const n = r.length;
+  if (ur.length !== n) throw new RangeError("radialTransform: r and ur length mismatch.");
+  if (n < 2) throw new RangeError("radialTransform: need \u2265 2 radial samples.");
+  const nq = Math.max(64, 4 * n);
+  const g = gaussLegendreRadial(rmax, nq);
+  const uOf = _splineInterp(r, ur, n);
+  const uq = new Float64Array(nq);
+  for (let i = 0; i < nq; i++) uq[i] = uOf(g.r[i]);
+  const kk = Array.from(k);
+  const uk = new Float64Array(kk.length);
+  for (let a = 0; a < kk.length; a++) {
+    const kv = kk[a];
+    let acc = 0;
+    for (let i = 0; i < nq; i++) {
+      const x = g.r[i];
+      acc += g.w[i] * uq[i] * sphericalBesselJ(l, kv * x) * x * x;
+    }
+    uk[a] = SQRT_2_OVER_PI * acc;
+  }
+  return { l, k: Float64Array.from(kk), uk, nodes: n, rmax };
+}
+function inverseRadialTransform(spec, r) {
+  const out = new Float64Array(r.length);
+  const k = spec.k;
+  for (let a = 0; a < r.length; a++) {
+    const rv = r[a];
+    let acc = 0;
+    for (let i = 0; i < k.length; i++) {
+      const kv = k[i];
+      const wk = i === 0 ? (k[1] - k[0]) / 2 : i === k.length - 1 ? (k[i] - k[i - 1]) / 2 : (k[i + 1] - k[i - 1]) / 2;
+      acc += wk * spec.uk[i] * sphericalBesselJ(spec.l, kv * rv) * kv * kv;
+    }
+    out[a] = SQRT_2_OVER_PI * acc;
+  }
+  return out;
+}
+function inversionResidual(r, ur, l, k, rmax) {
+  const spec = radialTransform(r, ur, l, k, rmax);
+  const back = inverseRadialTransform(spec, r);
+  let worst = 0;
+  for (let i = 0; i < r.length; i++) {
+    worst = Math.max(worst, Math.abs(back[i] - ur[i]));
+  }
+  return worst;
+}
+
+// ../engine/src/analysis/complexityProbe.ts
+function complexityFromPower(power) {
+  const modes = power.length;
+  if (modes < 1) throw new RangeError("complexityFromPower: empty spectrum.");
+  let total = 0;
+  for (let k = 0; k < modes; k++) {
+    const p = power[k];
+    if (!Number.isFinite(p) || p < 0) throw new RangeError(`complexityFromPower: bad power at mode ${k}.`);
+    total += p;
+  }
+  if (total <= 0) {
+    return {
+      nodes: modes,
+      modes,
+      totalPower: 0,
+      entropy: 0,
+      entropyNorm: 0,
+      participation: 0,
+      flatness: 0,
+      centroid: 0,
+      spread: 0,
+      skew: 0,
+      kurtosis: 0,
+      rank99: 0,
+      dominantMode: 0,
+      dominantFraction: 0
+    };
+  }
+  let entropy = 0, sumSq = 0, logSum = 0, nz = 0;
+  let centroid = 0, dominant = 0, dominantMode = 0;
+  for (let k = 0; k < modes; k++) {
+    const p = power[k] / total;
+    if (p > 0) {
+      entropy -= p * Math.log(p);
+      logSum += Math.log(p);
+      nz++;
+    }
+    sumSq += p * p;
+    centroid += k * p;
+    const raw = power[k];
+    if (raw > dominant) {
+      dominant = raw;
+      dominantMode = k;
+    }
+  }
+  const participation = sumSq > 0 ? 1 / sumSq : 0;
+  let hasZero = false;
+  let logSumAll = 0;
+  for (let k = 0; k < modes; k++) {
+    const p = power[k];
+    if (p <= 0) {
+      hasZero = true;
+      break;
+    }
+    logSumAll += Math.log(p);
+  }
+  const geoMean = hasZero ? 0 : Math.exp(logSumAll / modes);
+  const arithMean = total / modes;
+  const flatness = arithMean > 0 ? geoMean / arithMean : 0;
+  let spread = 0, m3 = 0, m4 = 0;
+  for (let k = 0; k < modes; k++) {
+    const p = power[k] / total;
+    const d = k - centroid;
+    spread += p * d * d;
+    m3 += p * d * d * d;
+    m4 += p * d * d * d * d;
+  }
+  const sd = Math.sqrt(spread);
+  const skew = sd > 0 ? m3 / (sd * sd * sd) : 0;
+  const kurtosis = spread > 0 ? m4 / (spread * spread) : 0;
+  const sorted = Float64Array.from(power).sort((a, b) => b - a);
+  let acc = 0, rank99 = 0;
+  for (let k = 0; k < modes; k++) {
+    acc += sorted[k];
+    rank99 = k + 1;
+    if (acc >= 0.99 * total) break;
+  }
+  return {
+    nodes: modes,
+    modes,
+    totalPower: total,
+    entropy,
+    entropyNorm: modes > 1 ? entropy / Math.log(modes) : 0,
+    participation,
+    flatness,
+    centroid,
+    spread: sd,
+    skew,
+    kurtosis,
+    rank99,
+    dominantMode,
+    dominantFraction: dominant / total
+  };
+}
+function probeCartesian(field, dims) {
+  const d = dims ?? [field.length];
+  const spec = spectrumND(field, d);
+  const report = complexityFromPower(powerSpectrum(spec));
+  return { ...report, nodes: spec.nodes };
 }
 
 // ../engine/src/dynamics/propagation.ts
@@ -1661,7 +2212,7 @@ function relativeRestrictionResidual(children) {
 }
 
 // ../engine/src/refinement/adaptiveMesh.ts
-var TWO_PI3 = 2 * Math.PI;
+var TWO_PI4 = 2 * Math.PI;
 var AdaptiveMesh = class {
   _tree;
   /** Field value at each leaf, aligned with _tree.leaves(). */
@@ -1826,7 +2377,7 @@ var AdaptiveMesh = class {
     const h = leaf.cell.size;
     const uc = leaf.cell.u0 + h / 2;
     const vc = leaf.cell.v0 + h / 2;
-    const wrap = (x) => (x % TWO_PI3 + TWO_PI3) % TWO_PI3;
+    const wrap = (x) => (x % TWO_PI4 + TWO_PI4) % TWO_PI4;
     const patch = {
       values: [
         centre,
@@ -1976,25 +2527,36 @@ var AdaptiveMesh = class {
   closureResidual,
   closureResidueMin,
   closureScore,
+  complexityFromPower,
+  dominantBinND,
   dominantModeIndex,
   eigenSpectrum,
   energyRatio,
   envelopeDensity,
   fibonacci,
+  gaussLegendreRadial,
   getScale,
   goldenPairSum,
   initialCondition,
+  inverseRadialTransform,
+  inversionResidual,
   isClosed,
   isRung,
   isStable,
+  isStableRung,
   ladderNeighbors,
   lucas,
   lucasResidue,
   metatronShellFlux,
   minimallyOpenFloor,
   nearestRung,
+  nearestStableRung,
   octavePartners,
+  powerSpectrum,
+  probeCartesian,
   prolongateBlock,
+  radialTransform,
+  reconciliationResidual,
   relativeConservationResidual,
   relativeRestrictionResidual,
   relativeRoundTripDefect,
@@ -2004,11 +2566,18 @@ var AdaptiveMesh = class {
   restrictionConservationResidual,
   restrictionWeights,
   roundTripDefect,
+  scaleFrequencyAt,
+  scaleLengthAt,
+  scaleTimeAt,
   selfOverlap,
   spectralAmplitudes,
   spectralLines,
   spectralWeightSum,
+  spectrumND,
+  sphericalBesselJ,
+  stableRecordAt,
   stableScalesUpTo,
   surfaceArea,
-  torusForScale
+  torusForScale,
+  unitaryPrefactor
 });

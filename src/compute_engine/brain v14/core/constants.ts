@@ -19,7 +19,7 @@ import type { Float64, FrameworkCharacteristic, MemoryThreshold, ScaleIndex, Sca
 // and SPEED_OF_LIGHT was 2.998e8 (2.52e-5 error). We now re-export the engine's
 // CODATA-2022 values so the whole mind layer inherits proven precision.
 // ───────────────────────────────────────────────────────────────────────────────
-import { PLANCK_LENGTH as ENGINE_PLANCK_LENGTH, C as ENGINE_C } from "../../engine/src/core/constants.js";
+import { PLANCK_LENGTH as ENGINE_PLANCK_LENGTH, C as ENGINE_C } from "../../engine/src/core/constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. Golden Ratio & Powers

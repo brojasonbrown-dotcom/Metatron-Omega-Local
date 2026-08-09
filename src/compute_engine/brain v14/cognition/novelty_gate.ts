@@ -56,10 +56,16 @@ export class NoveltyGate {
    * @param enabled  Master switch. Default false → learn-everything (today).
    * @param threshold  Salience threshold in standard deviations. Default 2.0.
    */
+  private readonly _enabled: boolean;
+  private readonly _threshold: number;
+
   constructor(
-    private readonly _enabled: boolean = false,
-    private readonly _threshold: number = DEFAULT_NOVELTY_THRESHOLD,
-  ) {}
+    enabled: boolean = false,
+    threshold: number = DEFAULT_NOVELTY_THRESHOLD,
+  ) {
+    this._enabled = enabled;
+    this._threshold = threshold;
+  }
 
   get enabled(): boolean {
     return this._enabled;

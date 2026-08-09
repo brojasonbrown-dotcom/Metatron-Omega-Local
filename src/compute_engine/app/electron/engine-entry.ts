@@ -4,6 +4,20 @@
  * Imports point DOWNWARD into the engine's DAG; nothing here is engine code.
  */
 export { getScale, allScales, CONTINUATION } from "../../engine/src/core/scaleTable.ts";
+// ── Dual-registry reconciler (M5) — the engine↔mind scale bridge ────────────
+// The canonical scale-axis reconciler: nearest Lucas-stable rung for any n, the
+// exact scale law L(n)/T(n)/f(n) at ARBITRARY n (not just stable rungs), the
+// reconciliation residual, and the provenance-tagged stable record. This is what
+// lets the panel report the mind's scale navigation on the engine's exact math.
+export {
+  nearestStableRung,
+  isStableRung,
+  scaleLengthAt,
+  scaleTimeAt,
+  scaleFrequencyAt,
+  reconciliationResidual,
+  stableRecordAt,
+} from "../../engine/src/core/scaleReconciler.ts";
 export {
   lucas,
   fibonacci,
@@ -61,6 +75,32 @@ export {
   dominantModeIndex,
 } from "../../engine/src/analysis/eigenmodes.ts";
 export type { Eigenmode, Spectrum } from "../../engine/src/analysis/eigenmodes.ts";
+// ── Multidimensional spectral layer (analysis) ───────────────────────────────
+// The certified multidimensional stack: n-D Cartesian FFT (separable, Parseval
+// -certified), the spherical-Bessel/Hankel radial transform (cubic-spline
+// quadrature, inversion-certified), and the complexity probe that reads a
+// field's true modal occupancy (entropy / participation / flatness / moments).
+// All pure, all computed live from the field — nothing canned.
+export {
+  spectrumND,
+  powerSpectrum,
+  dominantBinND,
+  unitaryPrefactor,
+} from "../../engine/src/analysis/spectralND.ts";
+export type { SpectrumND } from "../../engine/src/analysis/spectralND.ts";
+export {
+  sphericalBesselJ,
+  radialTransform,
+  inverseRadialTransform,
+  inversionResidual,
+  gaussLegendreRadial,
+} from "../../engine/src/analysis/radialTransform.ts";
+export type { RadialSpectrum } from "../../engine/src/analysis/radialTransform.ts";
+export {
+  probeCartesian,
+  complexityFromPower,
+} from "../../engine/src/analysis/complexityProbe.ts";
+export type { ComplexityReport } from "../../engine/src/analysis/complexityProbe.ts";
 export {
   Propagator,
   CFL_LIMIT,
