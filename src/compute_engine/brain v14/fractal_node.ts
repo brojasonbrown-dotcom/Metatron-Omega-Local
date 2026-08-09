@@ -562,7 +562,7 @@ export class FractalNode {
         const padded = new Float64Array(fieldSize);
         const copyLen = Math.min(surfaceField.length, fieldSize);
         for (let i = 0; i < copyLen; i++) {
-          padded[i] = surfaceField[i];
+          padded[i] = at(surfaceField, i);
         }
         surfaceField = padded;
       }

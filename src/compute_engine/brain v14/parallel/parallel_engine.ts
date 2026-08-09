@@ -353,7 +353,7 @@ export class ParallelEngine {
         node._state = {
           ...node._state,
           field_state: newField,
-          coherence: row[OFF_COHERENCE],
+          coherence: at(row, OFF_COHERENCE),
           energy_density: row[OFF_ENERGY],
         };
       }

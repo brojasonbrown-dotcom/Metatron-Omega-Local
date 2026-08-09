@@ -281,7 +281,7 @@ export class MembraneStabilizer {
     // ΔΨ[i] = -(Ψ[i] - Ψ[i-1]) · correction_factor for i > 0.
     // ΔΨ[0] = -(Ψ[0] - Ψ[N-1]) · correction_factor (toroidal wrap-around). [SPEC]
     for (let i = 0; i < N; i++) {
-      const prev: number = i > 0 ? field_state[i - 1] : field_state[N - 1];
+      const prev: number = i > 0 ? at(field_state, i - 1) : at(field_state, N - 1);
       const gradient: number = at(field_state, i) - prev;
       // Gentle correction: push field back toward previous value.
       corrected[i] = at(field_state, i) - gradient * correction_factor;

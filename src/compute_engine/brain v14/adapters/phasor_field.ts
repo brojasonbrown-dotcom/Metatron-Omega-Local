@@ -297,7 +297,7 @@ export function permute(v: Float64Array, steps: number): Float64Array {
   const out = new Float64Array(HV_SIZE);
   for (let k = 0; k < n; k++) {
     const src = ((k - s) % n + n) % n; // component k takes from k − s
-    out[2 * k] = v[2 * src];
+    out[2 * k] = at(v, 2 * src);
     out[2 * k + 1] = v[2 * src + 1];
   }
   return out;

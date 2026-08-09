@@ -281,7 +281,7 @@ export function reinforceField(
   const len = Math.min(oldField.length, incoming.length);
   const out = new Float64Array(oldField.length);
   for (let i = 0; i < oldField.length; i++) {
-    out[i] = oldField[i];
+    out[i] = at(oldField, i);
   }
   for (let i = 0; i < len; i++) {
     out[i] = at(oldField, i) * (1.0 - eta) + at(incoming, i) * eta;
@@ -309,7 +309,7 @@ export function blendFields(a: Float64Array, b: Float64Array, w: number): Float6
   const weight = w < 0 ? 0 : w > 1 ? 1 : w;
   const len = Math.min(a.length, b.length);
   const out = new Float64Array(a.length);
-  for (let i = 0; i < a.length; i++) out[i] = a[i];
+  for (let i = 0; i < a.length; i++) out[i] = at(a, i);
   for (let i = 0; i < len; i++) {
     out[i] = at(a, i) * (1.0 - weight) + at(b, i) * weight;
   }

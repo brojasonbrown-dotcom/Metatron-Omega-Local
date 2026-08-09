@@ -152,7 +152,7 @@ export function flattenTree(root: FractalNode): FlatTree {
     const src = node.state.field_state;
     const base = index * ROW_SIZE;
     const n = Math.min(src.length, FIELD_SIZE);
-    for (let i = 0; i < n; i++) fields[base + i] = src[i];
+    for (let i = 0; i < n; i++) fields[base + i] = at(src, i);
     fields[base + OFF_COHERENCE] = node.state.coherence;
     fields[base + OFF_ENERGY] = node.state.energy_density;
   }
