@@ -143,7 +143,7 @@ export class InterdimensionalFlow {
       if (packets.length === 0) continue;
 
       const [sourceStr, targetDir] = key.split("->");
-      const [targetStr, direction] = targetDir.split(":");
+      const [targetStr, direction] = (targetDir ?? "").split(":");
       const source = Number(sourceStr) as ScaleIndex;
       const target = Number(targetStr) as ScaleIndex;
 

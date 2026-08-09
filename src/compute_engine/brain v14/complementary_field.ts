@@ -142,7 +142,7 @@ export class ComplementaryField {
     const result = new Float64Array(this._data.length);
     for (let i = 0; i < this.size; i++) {
       result[2 * i] = at(this._data, 2 * i + 1);     // + ← -
-      result[2 * i + 1] = this._data[2 * i];     // - ← +
+      result[2 * i + 1] = at(this._data, 2 * i);     // - ← +
     }
     return new ComplementaryField(result);
   }

@@ -205,7 +205,7 @@ export class HnswIndex {
     let improved = true;
     while (improved) {
       improved = false;
-      const neighbors = layer < currNode!.neighbors.length ? currNode!.neighbors[layer] : [];
+      const neighbors = layer < currNode!.neighbors.length ? at(currNode!.neighbors, layer) : [];
       for (const nbId of neighbors) {
         const nb = this._nodes.get(nbId);
         if (!nb || nb.deleted) continue;
@@ -251,7 +251,7 @@ export class HnswIndex {
       if (c.dist > furthest.dist && results.length >= ef) break;
 
       const cNode = this._nodes.get(c.id);
-      const neighbors = cNode && layer < cNode.neighbors.length ? cNode.neighbors[layer] : [];
+      const neighbors = cNode && layer < cNode.neighbors.length ? at(cNode.neighbors, layer) : [];
       for (const nbId of neighbors) {
         if (visited.has(nbId)) continue;
         visited.add(nbId);

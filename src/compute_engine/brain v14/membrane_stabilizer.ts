@@ -358,7 +358,7 @@ export class MembraneStabilizer {
     for (let i = 0; i < field_state.length; i++) {
       mean_mag += Math.abs(at(field_state, i));
       const prev: number =
-        i > 0 ? field_state[i - 1] : field_state[field_state.length - 1];
+        i > 0 ? at(field_state, i - 1) : at(field_state, field_state.length - 1);
       grad_mag += Math.abs(at(field_state, i) - prev);
     }
 

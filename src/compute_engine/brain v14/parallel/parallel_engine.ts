@@ -37,6 +37,7 @@ import {
   type FlatTree,
 } from "./layout.ts";
 import type { NodeWorkerData } from "./node_worker.ts";
+import { at } from "../core/indexing.ts";
 
 /** Below this many nodes, serial is faster (no dispatch latency). [SPEC] */
 const PARALLEL_THRESHOLD = 512;
@@ -354,7 +355,7 @@ export class ParallelEngine {
           ...node._state,
           field_state: newField,
           coherence: at(row, OFF_COHERENCE),
-          energy_density: row[OFF_ENERGY],
+          energy_density: at(row, OFF_ENERGY),
         };
       }
     }
