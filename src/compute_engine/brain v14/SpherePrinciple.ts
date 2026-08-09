@@ -33,6 +33,7 @@ import {
 import {
   PerfectionDeficit, computePerfectionDeficit, computeIdealSmoothField, computeCornerDefect,
 } from "./PerfectionDeficit.ts";
+import { at } from "./core/indexing.ts";
 
 /** [SPEC] Float64 type alias for epistemic clarity. */
 type Float64 = number;
@@ -409,7 +410,7 @@ export class SpherePrinciple {
     let sumT = 0.0, sumE = 0.0, sumTE = 0.0, sumT2 = 0.0;
     const n = entries.length;
     for (let i = 0; i < n; i++) {
-      const [t, e] = entries[i];
+      const [t, e] = at(entries, i);
       sumT += t; sumE += e.epsilon; sumTE += t * e.epsilon; sumT2 += t * t;
     }
     const meanT = sumT / n, meanE = sumE / n;

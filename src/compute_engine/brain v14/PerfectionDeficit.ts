@@ -30,6 +30,7 @@ import {
   complexMagnitudes,
   angularCoherence,
 } from "./sphere_geometry.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -558,7 +559,7 @@ export class PerfectionDeficit {
     let sumT2 = 0.0;
     const n = entries.length;
     for (let i = 0; i < n; i++) {
-      const [t, e] = entries[i];
+      const [t, e] = at(entries, i);
       sumT += t;
       sumE += e;
       sumTE += t * e;

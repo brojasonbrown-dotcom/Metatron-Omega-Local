@@ -352,8 +352,8 @@ export class DimensionalStability {
       for (let i = 0; i < n; i++) {
         if (i !== p && i !== q) {
           const aip = at(at(M, i), p), aiq = at(at(M, i), q);
-          at(M, i)[p] = (c * aip - s * aiq) as Float64; at(M, p)[i] = at(M, i)[p];
-          at(M, i)[q] = (s * aip + c * aiq) as Float64; at(M, q)[i] = at(M, i)[q];
+          at(M, i)[p] = (c * aip - s * aiq) as Float64; at(M, p)[i] = at(at(M, i), p);
+          at(M, i)[q] = (s * aip + c * aiq) as Float64; at(M, q)[i] = at(at(M, i), q);
         }
       }
       for (let i = 0; i < n; i++) {
@@ -523,7 +523,7 @@ export class DimensionalStability {
    * [MATH] [S_{00}, S_{11}, ..., S_{66}]
    */
   getStabilityVector(): Float64[] {
-    return Array.from({ length: DIMENSION_COUNT }, (_, i) => at(this.tensor, i)[i]);
+    return Array.from({ length: DIMENSION_COUNT }, (_, i) => at(at(this.tensor, i), i));
   }
 }
 
