@@ -25,6 +25,14 @@ export {
   METATRON_SHELL,
   UNRESOLVED,
 } from "../../engine/src/core/constants.ts";
+// The φ-graded resolution ladder (analysis/resolutionLadder.ts): the canonical
+// Fibonacci node counts the sensory ring can switch between, all ν = 0.5 stable.
+export {
+  RESOLUTION_LADDER,
+  MAX_RESOLUTION,
+  nearestRung,
+  isRung,
+} from "../../engine/src/analysis/resolutionLadder.ts";
 export { Scaled } from "../../engine/src/core/provenance.ts";
 export {
   torusForScale,
@@ -44,6 +52,15 @@ export {
   spectralAmplitudes,
 } from "../../engine/src/geometry/lattice.ts";
 export { MemoryKernel } from "../../engine/src/dynamics/memoryKernel.ts";
+// ── Super-resolution spectral eigenmodes (analysis) ─────────────────────────
+// The exact DFT eigen-decomposition of the live ring field — resolves the
+// field's structure in the basis where the ring Laplacian is diagonal. Pure,
+// Parseval-certified, computed live each tick.
+export {
+  eigenSpectrum,
+  dominantModeIndex,
+} from "../../engine/src/analysis/eigenmodes.ts";
+export type { Eigenmode, Spectrum } from "../../engine/src/analysis/eigenmodes.ts";
 export {
   Propagator,
   CFL_LIMIT,
@@ -57,7 +74,7 @@ export { envelopeDensity, DensityField } from "../../engine/src/information/dens
 // and AdaptiveMesh — the live curvature-driven observer the stability panel
 // reports. All real, measured; nothing canned.
 export { AdaptiveMesh } from "../../engine/src/refinement/adaptiveMesh.ts";
-export type { MeshSnapshot } from "../../engine/src/refinement/adaptiveMesh.ts";
+export type { MeshSnapshot, MeshLeaf } from "../../engine/src/refinement/adaptiveMesh.ts";
 export {
   REFINE_GRADING,
   REFINE_THRESHOLD,

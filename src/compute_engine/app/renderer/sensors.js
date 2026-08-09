@@ -56,11 +56,48 @@ const CamSensor = (() => {
   let timer = null;
   let canvas = null;
   let g2d = null;
+  let activeLabel = null;
+
+  /**
+   * Acquire a video stream, falling back across every camera when the
+   * default is busy. The common failure here is NotReadableError ("Device
+   * in use") — another app holds the default camera exclusively, but a
+   * second camera is often free. We try the plain request first (happy
+   * path, unchanged), then walk the enumerated videoinput devices in
+   * order, skipping any that fail, until one yields a stream. The last
+   * error is re-thrown honestly when every device is unavailable.
+   */
+  async function acquireVideo() {
+    const base = { width: { ideal: 1280 }, height: { ideal: 720 } };
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: base });
+      const track = s.getVideoTracks()[0];
+      activeLabel = track && track.label ? track.label : null;
+      return s;
+    } catch (firstErr) {
+      // Only a "busy / not readable" failure is worth a device walk; a
+      // denial (NotAllowedError) or no-camera (NotFoundError) is final.
+      if (firstErr && firstErr.name !== "NotReadableError" && firstErr.name !== "OverconstrainedError") throw firstErr;
+    }
+    let devices = [];
+    try {
+      devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput");
+    } catch { /* enumeration failed — fall through to rethrow the original */ }
+    let lastErr = null;
+    for (const dev of devices) {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ video: { ...base, deviceId: { exact: dev.deviceId } } });
+        activeLabel = dev.label || (s.getVideoTracks()[0] && s.getVideoTracks()[0].label) || null;
+        return s;
+      } catch (err) {
+        lastErr = err; // this device busy too — try the next
+      }
+    }
+    throw lastErr ?? new DOMException("Device in use", "NotReadableError");
+  }
 
   async function start(videoEl, onLevel) {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-    });
+    stream = await acquireVideo();
     videoEl.srcObject = stream;
     await videoEl.play();
     canvas = document.createElement("canvas");
@@ -91,9 +128,10 @@ const CamSensor = (() => {
     videoEl.srcObject = null;
     canvas = null;
     g2d = null;
+    activeLabel = null;
   }
 
-  return { start, stop, get active() { return timer !== null; } };
+  return { start, stop, get active() { return timer !== null; }, get deviceLabel() { return activeLabel; } };
 })();
 
 window.AvaSensors = { MicSensor, CamSensor };

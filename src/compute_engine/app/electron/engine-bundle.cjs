@@ -29,6 +29,7 @@ __export(engine_entry_exports, {
   CONTINUATION: () => CONTINUATION,
   DensityField: () => DensityField,
   LADDER: () => LADDER,
+  MAX_RESOLUTION: () => MAX_RESOLUTION,
   METATRON_SHELL: () => METATRON_SHELL,
   MemoryKernel: () => MemoryKernel,
   PHI: () => PHI,
@@ -40,6 +41,7 @@ __export(engine_entry_exports, {
   Propagator: () => Propagator,
   REFINE_GRADING: () => REFINE_GRADING,
   REFINE_THRESHOLD: () => REFINE_THRESHOLD,
+  RESOLUTION_LADDER: () => RESOLUTION_LADDER,
   RESTRICTION_WEIGHT: () => RESTRICTION_WEIGHT,
   STABLE_SCALES: () => STABLE_SCALES,
   Scaled: () => Scaled,
@@ -50,6 +52,8 @@ __export(engine_entry_exports, {
   closureResidual: () => closureResidual,
   closureResidueMin: () => closureResidueMin,
   closureScore: () => closureScore,
+  dominantModeIndex: () => dominantModeIndex,
+  eigenSpectrum: () => eigenSpectrum,
   energyRatio: () => energyRatio,
   envelopeDensity: () => envelopeDensity,
   fibonacci: () => fibonacci,
@@ -57,12 +61,14 @@ __export(engine_entry_exports, {
   goldenPairSum: () => goldenPairSum,
   initialCondition: () => initialCondition,
   isClosed: () => isClosed,
+  isRung: () => isRung,
   isStable: () => isStable,
   ladderNeighbors: () => ladderNeighbors,
   lucas: () => lucas,
   lucasResidue: () => lucasResidue,
   metatronShellFlux: () => metatronShellFlux,
   minimallyOpenFloor: () => minimallyOpenFloor,
+  nearestRung: () => nearestRung,
   octavePartners: () => octavePartners,
   prolongateBlock: () => prolongateBlock,
   relativeConservationResidual: () => relativeConservationResidual,
@@ -368,6 +374,29 @@ function allScales() {
   return STABLE_SCALES.map((n) => getScale(n));
 }
 var CONTINUATION = stableScalesUpTo(293).filter((n) => !STABLE_SCALES.includes(n)).map((n) => getScale(n));
+
+// ../engine/src/analysis/resolutionLadder.ts
+var RESOLUTION_LADDER = Object.freeze([
+  55,
+  89,
+  144,
+  233,
+  377,
+  610
+]);
+var MIN_RESOLUTION = RESOLUTION_LADDER[0];
+var MAX_RESOLUTION = RESOLUTION_LADDER[RESOLUTION_LADDER.length - 1];
+function isRung(n) {
+  return RESOLUTION_LADDER.includes(n);
+}
+function nearestRung(n) {
+  if (!Number.isFinite(n)) return MIN_RESOLUTION;
+  let best = MIN_RESOLUTION;
+  for (const r of RESOLUTION_LADDER) {
+    if (Math.abs(r - n) <= Math.abs(best - n)) best = r;
+  }
+  return best;
+}
 
 // ../engine/src/geometry/torus.ts
 var wrapAngle = (theta) => {
@@ -718,6 +747,63 @@ var MemoryKernel = class _MemoryKernel {
     }
   }
 };
+
+// ../engine/src/analysis/eigenmodes.ts
+var TWO_PI2 = 2 * Math.PI;
+function eigenSpectrum(field) {
+  const n = field.length;
+  if (!Number.isInteger(n) || n < 2) {
+    throw new RangeError(`eigenSpectrum: field must have \u2265 2 nodes; got ${n}.`);
+  }
+  let total = 0;
+  for (let i = 0; i < n; i++) {
+    const v = field[i];
+    if (!Number.isFinite(v)) {
+      throw new RangeError(`eigenSpectrum: non-finite field value at node ${i}.`);
+    }
+    total += v * v;
+  }
+  const half = Math.floor(n / 2);
+  const modes = [];
+  for (let k = 0; k <= half; k++) {
+    let re = 0;
+    let im = 0;
+    for (let i = 0; i < n; i++) {
+      const ang = TWO_PI2 * k * i / n;
+      const v = field[i];
+      re += v * Math.cos(ang);
+      im -= v * Math.sin(ang);
+    }
+    const fold = k === 0 || n % 2 === 0 && k === half ? 1 : 2;
+    const energy = fold * (re * re + im * im) / n;
+    const phiWeight = Math.pow(PHI, -k);
+    modes.push({
+      k,
+      eigenvalue: -4 * Math.sin(Math.PI * k / n) ** 2,
+      energy,
+      amplitude: Math.sqrt(energy),
+      phiWeight,
+      weighted: energy * phiWeight
+    });
+  }
+  const specTotal = modes.reduce((a, m) => a + m.energy, 0);
+  let dominant = null;
+  for (let k = 1; k < modes.length; k++) {
+    const m = modes[k];
+    if (m.energy > 1e-12 && (dominant === null || m.energy > dominant.energy)) dominant = m;
+  }
+  return {
+    nodes: n,
+    modes,
+    totalEnergy: specTotal,
+    parsevalResidual: Math.abs(specTotal - total),
+    dominant
+  };
+}
+function dominantModeIndex(field) {
+  const s = eigenSpectrum(field);
+  return s.dominant ? s.dominant.k : 0;
+}
 
 // ../engine/src/dynamics/propagation.ts
 var CFL_LIMIT = 1;
@@ -1575,7 +1661,7 @@ function relativeRestrictionResidual(children) {
 }
 
 // ../engine/src/refinement/adaptiveMesh.ts
-var TWO_PI2 = 2 * Math.PI;
+var TWO_PI3 = 2 * Math.PI;
 var AdaptiveMesh = class {
   _tree;
   /** Field value at each leaf, aligned with _tree.leaves(). */
@@ -1689,6 +1775,18 @@ var AdaptiveMesh = class {
       if (coarsened > 0) this._resample(fieldAt);
     }
     this._resample(fieldAt);
+    const curLeaves = this._tree.leaves();
+    const leafNodes = curLeaves.map((leaf) => {
+      const h = leaf.cell.size;
+      const idx = this._leafIndex(leaf);
+      return {
+        u: leaf.cell.u0 + h / 2,
+        v: leaf.cell.v0 + h / 2,
+        size: h,
+        depth: leaf.level,
+        lambda: idx >= 0 ? lambdas[idx] ?? 0 : 0
+      };
+    });
     return {
       leaves: this._tree.leafCount(),
       nodes: this._tree.nodeCount(),
@@ -1699,7 +1797,8 @@ var AdaptiveMesh = class {
       conservationResidual: conservationResidual2,
       restrictionResidual,
       refineThreshold: REFINE_THRESHOLD,
-      coarsenThreshold: COARSEN_THRESHOLD
+      coarsenThreshold: COARSEN_THRESHOLD,
+      leafNodes
     };
   }
   /** Reset to the uniform base grid (the coarsest non-degenerate state). */
@@ -1727,7 +1826,7 @@ var AdaptiveMesh = class {
     const h = leaf.cell.size;
     const uc = leaf.cell.u0 + h / 2;
     const vc = leaf.cell.v0 + h / 2;
-    const wrap = (x) => (x % TWO_PI2 + TWO_PI2) % TWO_PI2;
+    const wrap = (x) => (x % TWO_PI3 + TWO_PI3) % TWO_PI3;
     const patch = {
       values: [
         centre,
@@ -1854,6 +1953,7 @@ var AdaptiveMesh = class {
   CONTINUATION,
   DensityField,
   LADDER,
+  MAX_RESOLUTION,
   METATRON_SHELL,
   MemoryKernel,
   PHI,
@@ -1865,6 +1965,7 @@ var AdaptiveMesh = class {
   Propagator,
   REFINE_GRADING,
   REFINE_THRESHOLD,
+  RESOLUTION_LADDER,
   RESTRICTION_WEIGHT,
   STABLE_SCALES,
   Scaled,
@@ -1875,6 +1976,8 @@ var AdaptiveMesh = class {
   closureResidual,
   closureResidueMin,
   closureScore,
+  dominantModeIndex,
+  eigenSpectrum,
   energyRatio,
   envelopeDensity,
   fibonacci,
@@ -1882,12 +1985,14 @@ var AdaptiveMesh = class {
   goldenPairSum,
   initialCondition,
   isClosed,
+  isRung,
   isStable,
   ladderNeighbors,
   lucas,
   lucasResidue,
   metatronShellFlux,
   minimallyOpenFloor,
+  nearestRung,
   octavePartners,
   prolongateBlock,
   relativeConservationResidual,

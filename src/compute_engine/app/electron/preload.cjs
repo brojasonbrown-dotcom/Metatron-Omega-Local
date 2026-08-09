@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld("ava", {
     stop: () => ipcRenderer.invoke("ava:engine:stop"),
     reset: () => ipcRenderer.invoke("ava:engine:reset"),
     state: () => ipcRenderer.invoke("ava:engine:state"),
-    /** Ring resolution: 64 | 144 | 256 nodes (honest restart at the new scale). */
+    /** Ring resolution: a φ-graded ladder rung (honest restart at the new scale). */
     setNodes: (n) => ipcRenderer.invoke("ava:engine:nodes", n),
   },
 
@@ -38,6 +38,19 @@ contextBridge.exposeInMainWorld("ava", {
     chat: (text) => ipcRenderer.invoke("ava:mind:chat", text),
     /** The grounded-answer path: a synchronous, context-grounded mind reply. */
     query: (text, facts) => ipcRenderer.invoke("ava:mind:query", text, facts),
+    /** M9 — the switchable language instrument: honest availability + switching. */
+    instrumentGet: () => ipcRenderer.invoke("ava:mind:instrument:get"),
+    instrumentSet: (instrument, model) => ipcRenderer.invoke("ava:mind:instrument:set", instrument, model),
+    /** The Ollama off-switch: cold stop/start of the local instrument (frees RAM). */
+    ollamaSet: (enabled) => ipcRenderer.invoke("ava:mind:ollama:set", enabled),
+    /** Runtime K3 key entry — the token is sent once, never echoed back. */
+    k3SetKey: (apiKey) => ipcRenderer.invoke("ava:mind:k3:setKey", apiKey),
+    /** Force-depth override (Phase 4): depth 1..9 pins the floor, null = auto. */
+    setScaling: (depth) => ipcRenderer.invoke("ava:mind:scaling", depth),
+    /** P6-D — the learning-mode dial: EFFICIENT | TRAINING | REPLAY (live). */
+    setMode: (mode) => ipcRenderer.invoke("ava:mind:mode", mode),
+    /** P6-E — teach one domain corpus; returns the honest per-corpus verdict. */
+    teachCorpus: (corpus) => ipcRenderer.invoke("ava:mind:teach", corpus),
     /** Subscribe to mind events (journal relays, boot, state, exits). */
     onEvent: (cb) => {
       const listener = (_e, frame) => cb(frame);

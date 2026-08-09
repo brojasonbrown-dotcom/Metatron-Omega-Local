@@ -10,7 +10,13 @@ title AVA Build Pipeline
 
 REM This IDE exports ELECTRON_RUN_AS_NODE=1, which silently turns Electron
 REM into plain Node. Clear it for the whole pipeline.
-set "ELECTRON_RUN_AS_NODE="
+set "ELECTRON_RUN_AS_NODE="
+
+REM ── Kimi (K3) API key ──────────────────────────────────────────────────────
+REM Personal-use key, written here by the UI's "set" action so the instrument
+REM survives restarts. Plaintext by request. Remove this line to revoke.
+if not defined KIMI_K3_API_KEY set "KIMI_K3_API_KEY=sk-otsg4Bpo5EhkFYmqohEIFBBxF3yFvBiUcSGcsbxvNUDb6xMQ"
+
 
 echo.
 echo  ═══ AVA BUILD PIPELINE ═══
@@ -29,6 +35,9 @@ call npm run bundle:engine || goto :fail
 
 echo  [2/5] smoke tests (chat + sensory codec + engine loop)…
 call node scripts\smoke.mjs || goto :fail
+
+echo  [2b/5] clearing stale output (orphaned minds lock app.asar)…
+call node scripts\clean-release.mjs
 
 echo  [3/5] pack (unpacked verification build)…
 call npx electron-builder --dir || goto :fail

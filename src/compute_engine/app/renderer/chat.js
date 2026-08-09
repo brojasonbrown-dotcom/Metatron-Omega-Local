@@ -15,8 +15,19 @@ function addBubble(text, kind) {
   div.className = `msg ${kind}`;
   div.textContent = text;
   log.appendChild(div);
-  log.scrollTop = log.scrollHeight;
+  scrollIfPinned();
   return div;
+}
+
+// Auto-scroll ONLY when the user is already at (or near) the bottom. If they've
+// scrolled up to read an earlier reply, a new message must NOT yank them down.
+function isPinnedToBottom() {
+  const threshold = 80; // px of slack that still counts as "at the bottom"
+  return log.scrollHeight - log.scrollTop - log.clientHeight <= threshold;
+}
+
+function scrollIfPinned() {
+  if (isPinnedToBottom()) log.scrollTop = log.scrollHeight;
 }
 
 function autoresize() {
@@ -40,8 +51,7 @@ async function send() {
     if (r.ok) {
       if (r.via === "mind+engine") {
         typing.classList.add("mind-answer");
-        typing.textContent =
-          r.answer + (Array.isArray(r.grounded) && r.grounded.length ? `\n\n[grounded: ${r.grounded.join(", ")}]` : "");
+        typing.textContent = r.answer; // grounding footer removed (was [grounded: ...])
       } else {
         typing.textContent = r.answer;
       }
@@ -56,7 +66,7 @@ async function send() {
   } finally {
     sendBtn.disabled = false;
     input.focus();
-    log.scrollTop = log.scrollHeight;
+    scrollIfPinned();
   }
 }
 

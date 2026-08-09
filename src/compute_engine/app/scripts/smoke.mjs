@@ -143,6 +143,26 @@ async function checkLoop() {
         ["restrictBlock conserves integrated field", Math.abs(sp - sc) < 1e-12],
         ["energyRatio exported from bundle", typeof E.energyRatio === "function"],
       );
+      // ── eigenmodes, resolution ladder, mesh leaf geometry ──
+      const spec = E.eigenSpectrum(Array.from({ length: 144 }, (_, i) => Math.sin((2 * Math.PI * 3 * i) / 144)));
+      checks.push(
+        ["eigenSpectrum exported", typeof E.eigenSpectrum === "function"],
+        ["eigenmode tone lands in bin 3", spec.dominant && spec.dominant.k === 3],
+        ["parseval conserves energy", spec.parsevalResidual < 1e-9],
+        ["resolution ladder exported", Array.isArray(E.RESOLUTION_LADDER) && E.RESOLUTION_LADDER.includes(610)],
+        ["nearestRung snaps 256 to 233", E.nearestRung(256) === 233],
+        ["isRung 377 true / 256 false", E.isRung(377) === true && E.isRung(256) === false],
+      );
+      const meshSnap2 = loop.state().refinement;
+      checks.push(
+        ["mesh leafNodes present + aligned", Array.isArray(meshSnap2.leafNodes) && meshSnap2.leafNodes.length === meshSnap2.leaves],
+        ["leaf coords in torus domain", meshSnap2.leafNodes.every((l) => l.u >= 0 && l.u < 2 * Math.PI && l.size > 0)],
+      );
+      for (const rung of E.RESOLUTION_LADDER) {
+        const l2 = new EngineLoop({ nodes: rung });
+        const st = l2.state();
+        checks.push([`rung ${rung} nu=0.5 spectrum signed-drift`, Math.abs(st.courant - 0.5) < 1e-9 && st.spectrum.nodes === rung && typeof st.invariants.driftSigned === "number"]);
+      }
     }
     const loop2 = new EngineLoop();
     loop2.start();

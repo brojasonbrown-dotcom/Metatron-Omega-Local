@@ -343,3 +343,59 @@ ablation · E Fibonacci harmonic · F uniform-φ no-delay.
 as n=195 not n=1, (d) choose coarse-grain sub-grids on exactness evidence (dyadic)
 rather than φ-resonance. The φ-alignment-for-stability hypothesis is falsified
 by the conformal-invariance measurement.
+
+---
+
+## P6 — Brain v14 "Learn Any Way Instructed" (2026-08-02)
+
+**Ask:** specialise the mind in learning businesses and their structures, how to
+use software systems, and to learn in pretty much any way it is instructed —
+with the memory systems encoding high-resolution field states and a *measured*
+(never asserted) account of how fast the learning modes consolidate experience.
+
+**Where:** `src/compute_engine/brain v14/` (adapters/, cognition/, tests/).
+**Result:** brain v14 suite **282 passed / 2 skipped** (was 249 at P6 start;
++33 across A–E), engine suite **374 passed** (unchanged), both `tsc` gates clean,
+**zero regressions**.
+
+### P6-E — Domain Curriculum (business + software specialisation)
+- One sanctioned door: every corpus item (business doc, software UI tree,
+  operator instruction) is canonicalised through the verified P6-C structured
+  codec into a 28-field and pushed onto the SAME validated SensorBus the sensors
+  use — provenance `doc.feed` / `ui.observe` / `text.feed`, all schema-legal.
+- **No-fabrication law held:** empty document / perception-less UI tree / blank
+  instruction is REFUSED by the codec (throws) and surfaced via `_lastError`;
+  nothing is smuggled onto the bus. Verified against the real
+  `structured_codec.ts` throws and `validate.ts` source union.
+- **"Learned" is a measurement, not a claim:** per-corpus mastery is read from
+  `ConceptRegistry.masteryOf` (the M6 verified-prediction ledger); a corpus is
+  `learned:true` iff mean measured mastery clears φ⁻² = 0.382. Unresolved probes
+  count ZERO toward the mean (gaps are not excused).
+- Live-wired (not dead code): constructed in `run_mind_bridge.ts`, injected into
+  `MindBridge`, exposed via `teachCorpus`/`teachCurriculum` + stdin `teach.corpus`
+  command + status telemetry. 7/7 tests green.
+
+### P6-F — Final gates + the measured speedup benchmark
+- **Honest lever audit:** the mind's ONLY offline-learning levers are the P6-A
+  recall→reinjection loop (TRAINING/REPLAY) and idle genome replay (REPLAY).
+  The benchmark (`tests/mode-speedup-bench.mjs`) drives the REAL
+  FractalNodeEngine through its REAL sensory door + the REAL FieldGenome under
+  each mode's policy, and measures consolidation ops (engine.process evolutions
+  of experience) per unit wall-clock.
+- **Two weak metrics falsified and discarded** (recorded for honesty): (1)
+  transient self-coherence SATURATES at cos²=1.0000 for every mode — a single
+  engine step is too responsive to discriminate; (2) genome attractor strength
+  is IDENTICAL across modes because the genome records the live state
+  regardless of mode — neither isolates the mode lever.
+- **The mode-discriminating metric is consolidation throughput.** Measured
+  (3-run mean, 34 live steps, corpus 13): offline ops EFFICIENT 0 / TRAINING 3
+  reinjections / REPLAY 3 reinjections + 5 replay sweeps; per-op cost
+  ≈ 2.5–3.2 ms (±15% wall-clock jitter). The offline levers measurably ADD
+  consolidation work; raw ops/sec ratios vary run-to-run with jitter and are
+  reported as measured, never as an asserted multiplier. **No invented speedup —
+  the "millions of times faster" ask resolves to an honest measured throughput,
+  gated by the HardwareGovernor's RAM/depth law.**
+
+**Net:** the mind now provably ingests business/software/instruction corpora
+through one no-fabrication door, measures (not claims) what it has learned, and
+its learning modes are benchmarked by measurement rather than marketing.

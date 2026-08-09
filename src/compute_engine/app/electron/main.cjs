@@ -16,6 +16,7 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const { respond } = require("./responder.cjs");
 const { EngineLoop } = require("./engineLoop.cjs");
 const { MindService } = require("./mindService.cjs");
+const { persistK3Key } = require("./k3KeyStore.cjs");
 const sensory = require("./sensory.cjs");
 
 let engineLoop = new EngineLoop();
@@ -142,6 +143,28 @@ ipcMain.handle("ava:mind:stop", () => mind.stop());
 ipcMain.handle("ava:mind:status", () => mind.status());
 ipcMain.handle("ava:mind:chat", (_e, text) => mind.chat(text));
 ipcMain.handle("ava:mind:query", (_e, text, facts) => mind.query(text, facts));
+// M9 — the switchable language instrument (K3 ⟷ any installed Ollama model).
+ipcMain.handle("ava:mind:instrument:get", () => mind.instrumentGet());
+ipcMain.handle("ava:mind:instrument:set", (_e, instrument, model) => mind.instrumentSet(instrument, model));
+// The Ollama off-switch — cold stop/start of the local instrument (frees RAM).
+ipcMain.handle("ava:mind:ollama:set", (_e, enabled) => mind.ollamaSet(enabled));
+  // The operator's force-depth override (Phase 4) — pins the engine governor's
+  // shrink floor (1..9) or releases it to auto (null). Live; no restart.
+  ipcMain.handle("ava:mind:scaling", (_e, depth) => mind.setScaling(depth));
+    // P6-D — the learning-mode dial (EFFICIENT/TRAINING/REPLAY). Live; no restart.
+    ipcMain.handle("ava:mind:mode", (_e, mode) => mind.setMode(mode));
+    // P6-E — teach one domain corpus; returns the honest per-corpus verdict.
+    ipcMain.handle("ava:mind:teach", (_e, corpus) => mind.teachCorpus(corpus));
+// Runtime K3 key entry — the token travels host→mind once, never echoed back.
+// On success it is also persisted (process.env + setx + the launcher bats) so
+// the instrument survives restarts — personal-use build, plaintext by request.
+ipcMain.handle("ava:mind:k3:setKey", async (_e, apiKey) => {
+  const r = await mind.k3SetKey(apiKey);
+  if (r && r.ok && typeof apiKey === "string" && apiKey.trim()) {
+    persistK3Key(apiKey);
+  }
+  return r;
+});
 
 // Engine loop IPC: start/stop/reset/state — the live simulation service.
 ipcMain.handle("ava:engine:start", () => engineLoop.start());
@@ -149,7 +172,8 @@ ipcMain.handle("ava:engine:stop", () => engineLoop.stop());
 ipcMain.handle("ava:engine:reset", () => engineLoop.reset());
 ipcMain.handle("ava:engine:state", () => engineLoop.state());
 ipcMain.handle("ava:engine:nodes", (_e, n) => {
-  if (![64, 144, 256].includes(n)) throw new RangeError(`nodes must be 64, 144, or 256; got ${n}`);
+  const E = require("./engine-bundle.cjs");
+  if (!Number.isInteger(n) || !E.isRung(n)) throw new RangeError(`nodes must be a ladder rung ${E.RESOLUTION_LADDER.join("/")}; got ${n}`);
   return setLoopNodes(n);
 });
 

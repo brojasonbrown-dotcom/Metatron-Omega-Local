@@ -72,11 +72,19 @@ class MindService {
     this._restarts = 0;
     this._stopping = false;
     this._lastError = null;
-    this._info = { ticks: 0, stableThoughts: 0, concepts: 0, ollama: null, models: [], lexicon: null, scaling: null };
+    this._info = { ticks: 0, stableThoughts: 0, concepts: 0, ollama: null, models: [], lexicon: null, scaling: null, instrument: null, learningMode: null, curriculum: null };
     this._listener = null; // (frame) => void — wired to webContents.send
     this._buf = "";
     this._pendingQueries = new Map(); // id → resolve(frame)
+    this._pendingInstrument = new Map(); // id → resolve(frame)
+    this._pendingScaling = new Map(); // id → resolve(frame)
+    this._pendingMode = new Map(); // id → resolve(frame)
+    this._pendingTeach = new Map(); // id → resolve(frame)
     this._querySeq = 0;
+    this._instrumentSeq = 0;
+    this._scalingSeq = 0;
+    this._modeSeq = 0;
+    this._teachSeq = 0;
   }
 
   /** Static capability check — no process needed. */
@@ -103,6 +111,46 @@ class MindService {
         return;
       }
     }
+    // synchronous instrument replies resolve their pending request first
+    if (frame.type === "instrument" && frame.id) {
+      const resolve = this._pendingInstrument.get(frame.id);
+      if (resolve) {
+        this._pendingInstrument.delete(frame.id);
+        resolve(frame);
+        // keep the cached status honest after a get/set
+        if (frame.ok) this._info.instrument = { active: frame.active, ollamaModel: frame.ollamaModel, ollamaEnabled: frame.ollamaEnabled, instruments: frame.instruments };
+        return;
+      }
+    }
+    // scaling.set replies resolve their pending request first (id-keyed)
+    if (frame.type === "scaling.set" && frame.id) {
+      const resolve = this._pendingScaling.get(frame.id);
+      if (resolve) {
+        this._pendingScaling.delete(frame.id);
+        resolve(frame);
+        if (frame.ok && frame.scaling) this._info.scaling = frame.scaling;
+        return;
+      }
+    }
+    // mode.set replies resolve their pending request first (id-keyed)
+    if (frame.type === "mode.set" && frame.id) {
+      const resolve = this._pendingMode.get(frame.id);
+      if (resolve) {
+        this._pendingMode.delete(frame.id);
+        resolve(frame);
+        if (frame.ok) this._info.learningMode = { mode: frame.mode, reinjectionEnabled: frame.reinjectionEnabled, replaySweeps: frame.replaySweeps, replayDefers: frame.replayDefers };
+        return;
+      }
+    }
+    // teach.corpus replies resolve their pending request first (id-keyed)
+    if (frame.type === "teach.corpus" && frame.id) {
+      const resolve = this._pendingTeach.get(frame.id);
+      if (resolve) {
+        this._pendingTeach.delete(frame.id);
+        resolve(frame);
+        return;
+      }
+    }
     // state tracking from the frame stream itself
     if (frame.type === "boot") {
       if (frame.phase === "awake") this._state = "awake";
@@ -111,12 +159,20 @@ class MindService {
         this._info.models = frame.models ?? [];
         if (!frame.running) this._state = "degraded";
       }
+      if (frame.phase === "instrument") {
+        this._info.instrument = { active: frame.active, ollamaModel: frame.ollamaModel, instruments: null };
+      }
     } else if (frame.type === "state") {
       this._info.ticks = frame.ticks ?? this._info.ticks;
       this._info.stableThoughts = frame.stableThoughts ?? this._info.stableThoughts;
       this._info.concepts = frame.concepts ?? this._info.concepts;
       if (frame.lexicon) this._info.lexicon = frame.lexicon;
       if (frame.scaling) this._info.scaling = frame.scaling;
+      if (frame.learningMode) this._info.learningMode = frame.learningMode;
+      if (frame.curriculum) this._info.curriculum = frame.curriculum;
+      if (frame.instrument) {
+        this._info.instrument = { ...(this._info.instrument || {}), active: frame.instrument.active, ollamaModel: frame.instrument.ollamaModel };
+      }
     } else if (frame.type === "fatal") {
       this._lastError = String(frame.message ?? "fatal boot error");
       this._state = "degraded";
@@ -269,7 +325,7 @@ class MindService {
         } else resolve({ ok: false, error: String(frame.reason ?? "query failed") });
       });
       try {
-        this._proc.stdin.write(JSON.stringify({ type: "query", id, text: String(text).slice(0, 500), facts }) + "\n");
+        this._proc.stdin.write(JSON.stringify({ type: "query", id, text: String(text).slice(0, 1000), facts }) + "\n");
       } catch (err) {
         clearTimeout(timer);
         this._pendingQueries.delete(id);
@@ -286,6 +342,196 @@ class MindService {
         JSON.stringify({ type: kind === "audio" ? "sensor.audio" : "sensor.vision", field, ...extra }) + "\n",
       );
     } catch { /* transient — next frame retries */ }
+  }
+
+  /**
+   * M9 — the switchable language instrument. Ask the mind for the honest
+   * availability snapshot: which instruments are reachable (K3 token present /
+   * Ollama serving), which Ollama models are installed, and which is active.
+   */
+  instrumentGet(timeoutMs = 8_000) {
+    return this._instrumentRequest({ type: "instrument.get" }, timeoutMs);
+  }
+
+  /**
+   * M9 — switch the active language instrument. `instrument` is "ollama"|"k3";
+   * for ollama, `model` picks which installed model serves. Replies ok:false
+   * with the reason when the target is unreachable / the model uninstalled —
+   * the active instrument is left untouched.
+   */
+  instrumentSet(instrument, model, timeoutMs = 15_000) {
+    const frame = { type: "instrument.set", instrument: String(instrument) };
+    if (model) frame.model = String(model);
+    return this._instrumentRequest(frame, timeoutMs);
+  }
+
+  /**
+   * The Ollama off-switch. `enabled=false` cold-stops the local server (frees
+   * the model memory); `enabled=true` cold-starts it (ensureRunning + warm).
+   * Persisted by the router, so the choice survives a mind restart.
+   */
+  ollamaSet(enabled, timeoutMs = 30_000) {
+    return this._instrumentRequest({ type: "ollama.set", enabled: !!enabled }, timeoutMs);
+  }
+
+  /**
+   * Set/replace the K3 bearer token at runtime (no restart). The token is a
+   * secret: it travels host→mind once and is never echoed back — the reply's
+   * availability snapshot reports only whether a key is now present.
+   */
+  k3SetKey(apiKey, timeoutMs = 15_000) {
+    return this._instrumentRequest({ type: "k3.setKey", apiKey: String(apiKey ?? "") }, timeoutMs);
+  }
+
+  /**
+   * The operator's force-depth override (Phase 4). `depth` pins the governor's
+   * shrink floor (1..9); `null` releases it to measured auto-scale. Replies
+   * ok:false with the reason when the mind rejects the depth — the engine's
+   * current depth is left untouched. Resolves {ok, depth, scaling}.
+   */
+  setScaling(depth, timeoutMs = 30_000) {
+    return this._scalingRequest({ type: "scaling.set", depth: depth === null || depth === undefined ? null : Number(depth) }, timeoutMs);
+  }
+
+  /** Shared id-keyed scaling request/response (mirrors _instrumentRequest). */
+  _scalingRequest(payload, timeoutMs) {
+    if (!this._proc || this._state !== "awake") {
+      return Promise.resolve({ ok: false, error: `mind is ${this._state}` });
+    }
+    const id = `scale${++this._scalingSeq}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this._pendingScaling.delete(id);
+        resolve({ ok: false, error: `scaling request timed out after ${timeoutMs}ms` });
+      }, timeoutMs);
+      this._pendingScaling.set(id, (frame) => {
+        clearTimeout(timer);
+        if (frame.ok) {
+          resolve({ ok: true, depth: frame.depth ?? null, scaling: frame.scaling ?? null });
+        } else {
+          resolve({ ok: false, error: String(frame.reason ?? "scaling request failed") });
+        }
+      });
+      try {
+        this._proc.stdin.write(JSON.stringify({ id, ...payload }) + "\n");
+      } catch (err) {
+        clearTimeout(timer);
+        this._pendingScaling.delete(id);
+        resolve({ ok: false, error: String(err && err.message ? err.message : err) });
+      }
+    });
+  }
+
+  /** Shared id-keyed instrument request/response (mirrors query()). */
+  _instrumentRequest(payload, timeoutMs) {
+    if (!this._proc || this._state !== "awake") {
+      return Promise.resolve({ ok: false, error: `mind is ${this._state}` });
+    }
+    const id = `inst${++this._instrumentSeq}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this._pendingInstrument.delete(id);
+        resolve({ ok: false, error: `instrument request timed out after ${timeoutMs}ms` });
+      }, timeoutMs);
+      this._pendingInstrument.set(id, (frame) => {
+        clearTimeout(timer);
+        if (frame.ok) {
+          resolve({
+            ok: true,
+            active: frame.active,
+            ollamaModel: frame.ollamaModel,
+            ollamaEnabled: frame.ollamaEnabled,
+            instruments: frame.instruments ?? [],
+          });
+        } else {
+          resolve({ ok: false, error: String(frame.reason ?? "instrument request failed") });
+        }
+      });
+      try {
+        this._proc.stdin.write(JSON.stringify({ id, ...payload }) + "\n");
+      } catch (err) {
+        clearTimeout(timer);
+        this._pendingInstrument.delete(id);
+        resolve({ ok: false, error: String(err && err.message ? err.message : err) });
+      }
+    });
+  }
+  /**
+   * P6-D — the learning-mode dial. `mode` is EFFICIENT | TRAINING | REPLAY; the
+   * loop flips its consolidation governor and journals mode.change. Resolves
+   * {ok, mode, reinjectionEnabled, replaySweeps, replayDefers} or {ok:false,
+   * error} when the mind rejects the mode (leaving it unchanged).
+   */
+  setMode(mode, timeoutMs = 30_000) {
+    return this._modeRequest({ type: "mode.set", mode: String(mode) }, timeoutMs);
+  }
+
+  /** Shared id-keyed mode request/response (mirrors _scalingRequest). */
+  _modeRequest(payload, timeoutMs) {
+    if (!this._proc || this._state !== "awake") {
+      return Promise.resolve({ ok: false, error: `mind is ${this._state}` });
+    }
+    const id = `mode${++this._modeSeq}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this._pendingMode.delete(id);
+        resolve({ ok: false, error: `mode request timed out after ${timeoutMs}ms` });
+      }, timeoutMs);
+      this._pendingMode.set(id, (frame) => {
+        clearTimeout(timer);
+        if (frame.ok) {
+          resolve({ ok: true, mode: frame.mode, reinjectionEnabled: frame.reinjectionEnabled, replaySweeps: frame.replaySweeps, replayDefers: frame.replayDefers });
+        } else {
+          resolve({ ok: false, error: String(frame.reason ?? "mode request failed") });
+        }
+      });
+      try {
+        this._proc.stdin.write(JSON.stringify({ id, ...payload }) + "\n");
+      } catch (err) {
+        clearTimeout(timer);
+        this._pendingMode.delete(id);
+        resolve({ ok: false, error: String(err && err.message ? err.message : err) });
+      }
+    });
+  }
+
+  /**
+   * P6-E — teach one domain corpus (business doc / software UI / instruction)
+   * through the curriculum adapter. Resolves {ok, result} where result is the
+   * honest per-corpus verdict (frames fed + measured mastery + learned flag),
+   * or {ok:false, error} when the mind refuses (no curriculum wired / bad shape).
+   */
+  teachCorpus(corpus, timeoutMs = 30_000) {
+    return this._teachRequest({ type: "teach.corpus", corpus }, timeoutMs);
+  }
+
+  /** Shared id-keyed teach request/response (mirrors _scalingRequest). */
+  _teachRequest(payload, timeoutMs) {
+    if (!this._proc || this._state !== "awake") {
+      return Promise.resolve({ ok: false, error: `mind is ${this._state}` });
+    }
+    const id = `teach${++this._teachSeq}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this._pendingTeach.delete(id);
+        resolve({ ok: false, error: `teach request timed out after ${timeoutMs}ms` });
+      }, timeoutMs);
+      this._pendingTeach.set(id, (frame) => {
+        clearTimeout(timer);
+        if (frame.ok) {
+          resolve({ ok: true, result: frame.result ?? null });
+        } else {
+          resolve({ ok: false, error: String(frame.reason ?? "teach request failed") });
+        }
+      });
+      try {
+        this._proc.stdin.write(JSON.stringify({ id, ...payload }) + "\n");
+      } catch (err) {
+        clearTimeout(timer);
+        this._pendingTeach.delete(id);
+        resolve({ ok: false, error: String(err && err.message ? err.message : err) });
+      }
+    });
   }
 }
 

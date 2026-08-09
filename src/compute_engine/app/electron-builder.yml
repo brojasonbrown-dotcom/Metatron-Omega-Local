@@ -23,6 +23,8 @@ files:
 # EXCLUDED (deliberately): blobs/ (5.4 GB re-pullable model weights — a
 # machine-level resource), node_modules/ + dist/ + tests/ (dev-only),
 # mind_state/ (learned state starts fresh per machine, auto-created).
+# parallel/ MUST ship: fractal_node_engine.ts imports ParallelEngine at
+# module scope, so a package without it crashes the mind on boot (P3).
 extraResources:
   - from: "../brain v14"
     to: "brain v14"
@@ -30,6 +32,7 @@ extraResources:
       - "*.ts"
       - adapters/**
       - cognition/**
+      - parallel/**
       - schemas/**
       - core/**
       - manifests/**

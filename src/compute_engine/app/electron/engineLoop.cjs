@@ -37,13 +37,16 @@ const TWO_PI = 2 * Math.PI;
 
 class EngineLoop {
   /**
-   * @param {{nodes?: number}} [opts] — ring resolution: 64 (default), 144
-   * (F_12) or 256. Higher = finer spatial resolution of the same physics.
+   * @param {{nodes?: number}} [opts] — ring resolution: a rung of the φ-graded
+   * RESOLUTION_LADDER (default the coarsest rung). Higher = finer spatial
+   * resolution of the same physics; ν = 0.5 at every rung.
    */
   constructor(opts = {}) {
-    const nodes = opts.nodes ?? 64;
-    if (!Number.isInteger(nodes) || nodes < 8) {
-      throw new RangeError(`EngineLoop: nodes must be an integer ≥ 8, got ${nodes}`);
+    const nodes = opts.nodes ?? E.RESOLUTION_LADDER[0];
+    if (!Number.isInteger(nodes) || !E.isRung(nodes)) {
+      throw new RangeError(
+        `EngineLoop: nodes must be a resolution-ladder rung ${JSON.stringify(E.RESOLUTION_LADDER)}; got ${nodes}`,
+      );
     }
     this._nodes = nodes;
     this._dx = 1 / nodes;
@@ -124,6 +127,7 @@ class EngineLoop {
     // until the next tick. Clearing forces state() to recompute from the
     // freshly-reset base grid — the panel reads honest post-reset telemetry.
     this._meshSnap = undefined;
+    this._spectrumSnap = undefined; // same honesty for the eigenmode cache
     return this.state();
   }
 
@@ -154,6 +158,8 @@ class EngineLoop {
     // Advance the adaptive mesh on the NEW field (the mesh observes the field;
     // it never feeds back into the propagator).
     this._meshSnap = this._mesh.update(this._fieldAt);
+    // Super-resolution eigenmode spectrum of the NEW field, computed live.
+    this._spectrumSnap = E.eigenSpectrum(this._present);
   }
 
   /** The four invariants, computed fresh from the live field. */
@@ -174,8 +180,44 @@ class EngineLoop {
     const coherence = denom === 0 ? 0 : Math.min(1, (dot / denom) ** 2);
     const closure = sumAbs === 0 ? 0 : Math.abs(sum) / sumAbs;
     const E = this._energy(u);
-    const drift = this._E0 > 0 ? Math.abs(Math.log(E / this._E0)) : 0;
-    return { coherence, closure, drift, burden: E };
+    // SIGNED drift: log(E/E0) keeps the gain/loss direction — positive = the
+    // scheme injected energy, negative = it dissipated. The old |log| hid the
+    // sign, so a dissipating field read identically to a gaining one (the
+    // "leak" ambiguity). drift stays the magnitude for the certificate bound;
+    // driftSigned is the honest direction.
+    const signedLog = this._E0 > 0 ? Math.log(E / this._E0) : 0;
+    const drift = Math.abs(signedLog);
+    // burden is per-node normalised (E / nodes) so it is comparable across
+    // resolutions — a raw Σu² scales with node count (64→40, 256→160), which
+    // reads as "massive" purely because there are more nodes, not because the
+    // field is hotter. The per-node value is resolution-independent.
+    const burdenPerNode = E / this._nodes;
+    return { coherence, closure, drift, driftSigned: signedLog, burden: E, burdenPerNode };
+  }
+
+  /**
+   * The live eigenmode spectrum, trimmed for the panel: the strongest modes by
+   * energy (the chartable head of the spectrum) plus the conservation cert.
+   * Computed on demand if the loop has not ticked yet (honest pre-start read).
+   */
+  _spectrum() {
+    const snap = this._spectrumSnap ?? (this._spectrumSnap = E.eigenSpectrum(this._present));
+    // Top modes by energy, DC excluded unless it is the only content; the
+    // panel renders these as the super-resolution spectral lines. 24 is enough
+    // to show the golden envelope without shipping 300 bars over IPC each poll.
+    const top = snap.modes
+      .slice(1) // drop DC (the spatial mean) — the structure lives in k ≥ 1
+      .slice()
+      .sort((a, b) => b.energy - a.energy)
+      .slice(0, 24)
+      .sort((a, b) => a.k - b.k); // re-ascending for a left→right frequency axis
+    return {
+      nodes: snap.nodes,
+      totalEnergy: snap.totalEnergy,
+      parsevalResidual: snap.parsevalResidual,
+      dominantK: snap.dominant ? snap.dominant.k : 0,
+      modes: top,
+    };
   }
 
   state() {
@@ -187,6 +229,8 @@ class EngineLoop {
       uptimeMs: this._startedAt && this.running ? Date.now() - this._startedAt : 0,
       nodes: this._nodes,
       courant: this._prop.courant(this._dx, this._dt),
+      // The φ-graded ladder the panel offers (the only stable resolutions).
+      resolutionLadder: E.RESOLUTION_LADDER,
       invariants: inv,
       drives: { audio: this._audioDrive, vision: this._visionDrive },
       levels: { audio: this._audioLevel, vision: this._visionLevel },
@@ -195,6 +239,11 @@ class EngineLoop {
       // the loop has not ticked yet, take the snapshot now so the panel
       // shows honest values even before start.
       refinement: this._meshSnap ?? (this._meshSnap = this._mesh.update(this._fieldAt)),
+      // Super-resolution eigenmode spectrum of the live field. Trimmed to the
+      // strongest modes so the 500 ms IPC poll stays light (a 610-node field
+      // resolves 306 modes; the panel charts the top of the spectrum, where
+      // the energy actually is). parsevalResidual is the conservation cert.
+      spectrum: this._spectrum(),
       certificates: {
         lambda: this._memory.lambda,
         roots: [z1, z2],
