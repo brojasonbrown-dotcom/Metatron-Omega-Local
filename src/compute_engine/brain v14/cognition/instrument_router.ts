@@ -131,9 +131,9 @@ export class InstrumentRouter implements LanguageInstrument {
   private readonly _ollama: LlmTool;
   private readonly _k3: KimiK3Tool;
   private readonly _ollamaBaseUrl: string;
-  private readonly _ollamaBaseUrlNow?: () => string;
+  private readonly _ollamaBaseUrlNow: (() => string) | undefined;
   private readonly _stateDir: string;
-  private readonly _store?: MemoryStore;
+  private readonly _store: MemoryStore | undefined;
   /**
    * The split-instrument facade the CognitiveLoop actually queries (M10): Kimi
    * answers when its toggle is ON, Ollama always runs the thought methods, and

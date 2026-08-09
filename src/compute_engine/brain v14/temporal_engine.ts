@@ -127,7 +127,7 @@ export class TemporalEngine {
   getLastRecord(nodeId: string): TemporalRecord | null {
     const records = this._history.get(nodeId);
     if (!records || records.length === 0) return null;
-    return records[records.length - 1];
+    return at(records, records.length - 1);
   }
 
   /**
@@ -137,7 +137,7 @@ export class TemporalEngine {
     const records = this._history.get(nodeId);
     if (!records) return null;
     for (let i = records.length - 1; i >= 0; i--) {
-      if (at(records, i).tick === tick) return records[i];
+      if (at(records, i).tick === tick) return at(records, i);
     }
     return null;
   }
@@ -148,7 +148,7 @@ export class TemporalEngine {
   getPreviousRecord(nodeId: string): TemporalRecord | null {
     const records = this._history.get(nodeId);
     if (!records || records.length < 2) return null;
-    return records[records.length - 2];
+    return at(records, records.length - 2);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

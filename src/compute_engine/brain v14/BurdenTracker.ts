@@ -352,7 +352,7 @@ export class BurdenTracker {
   getLastResult(nodeId: string): BurdenResult | null {
     const history = this._history.get(nodeId);
     if (!history || history.length === 0) return null;
-    return history[history.length - 1];
+    return at(history, history.length - 1);
   }
 
   /** [SPEC] Get all burden results for a node. */

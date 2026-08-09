@@ -410,7 +410,7 @@ export class ScaleMapper {
     if (idx < 0 || idx >= SCALE_INDICES.length - 1) {
       return null;
     }
-    return SCALE_INDICES[idx + 1];
+    return at(SCALE_INDICES, idx + 1);
   }
 
   /**
@@ -421,7 +421,7 @@ export class ScaleMapper {
     if (idx <= 0) {
       return null;
     }
-    return SCALE_INDICES[idx - 1];
+    return at(SCALE_INDICES, idx - 1);
   }
 
   /**

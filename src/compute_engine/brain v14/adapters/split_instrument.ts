@@ -61,7 +61,7 @@ export interface SplitInstrumentDeps {
    */
   readonly ollamaAvailable: () => boolean;
   /** Optional journal sink — every failover is audited. */
-  readonly store?: MemoryStore;
+  readonly store?: MemoryStore | undefined;
 }
 
 export class SplitInstrument implements LanguageInstrument {
