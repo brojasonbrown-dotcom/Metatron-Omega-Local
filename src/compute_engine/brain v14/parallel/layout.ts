@@ -148,7 +148,7 @@ export function flattenTree(root: FractalNode): FlatTree {
   // Seed each node's row from its current field state, plus its current
   // coherence/energy so a read-back before any compute is still valid.
   for (let index = 0; index < nodeCount; index++) {
-    const node = order[index];
+    const node = at(order, index);
     const src = node.state.field_state;
     const base = index * ROW_SIZE;
     const n = Math.min(src.length, FIELD_SIZE);

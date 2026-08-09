@@ -99,8 +99,8 @@ export function sphericalHarmonicProjection(
       let sum = 0.0;
       for (let i = 0; i < numPoints; i++) {
         const x = at(points, 3 * i);
-        const y = points[3 * i + 1];
-        const z = points[3 * i + 2];
+        const y = at(points, 3 * i + 1);
+        const z = at(points, 3 * i + 2);
         const Ylm = _realSphericalHarmonic(l, m, x, y, z);
         sum += at(field, i) * Ylm * at(weights, i);
       }

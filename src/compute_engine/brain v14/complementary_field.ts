@@ -253,8 +253,8 @@ export class ComplementaryField {
   totalMagnitude(): Float64 {
     let sum = 0.0;
     for (let i = 0; i < this.size; i++) {
-      const p = this._data[2 * i];
-      const m = this._data[2 * i + 1];
+      const p = at(this._data, 2 * i);
+      const m = at(this._data, 2 * i + 1);
       sum += Math.sqrt(p * p + m * m);
     }
     return sum as Float64;

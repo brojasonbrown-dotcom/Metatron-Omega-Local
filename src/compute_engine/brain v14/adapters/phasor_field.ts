@@ -216,10 +216,10 @@ export function similarity(a: Float64Array, b: Float64Array): number {
 export function bind(a: Float64Array, b: Float64Array): Float64Array {
   const out = new Float64Array(HV_SIZE);
   for (let k = 0; k < HV_COMPLEX; k++) {
-    const ar = a[2 * k];
-    const ai = a[2 * k + 1];
-    const br = b[2 * k];
-    const bi = b[2 * k + 1];
+    const ar = at(a, 2 * k);
+    const ai = at(a, 2 * k + 1);
+    const br = at(b, 2 * k);
+    const bi = at(b, 2 * k + 1);
     out[2 * k] = ar * br - ai * bi;
     out[2 * k + 1] = ar * bi + ai * br;
   }
@@ -235,8 +235,8 @@ export function bind(a: Float64Array, b: Float64Array): Float64Array {
 export function unbind(bound: Float64Array, key: Float64Array): Float64Array {
   const out = new Float64Array(HV_SIZE);
   for (let k = 0; k < HV_COMPLEX; k++) {
-    const ar = bound[2 * k];
-    const ai = bound[2 * k + 1];
+    const ar = at(bound, 2 * k);
+    const ai = at(bound, 2 * k + 1);
     const kr = at(key, 2 * k);
     const ki = at(key, 2 * k + 1);
     // multiply by conj(key) = (kr − i·ki)

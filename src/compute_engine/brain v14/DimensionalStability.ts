@@ -154,7 +154,7 @@ export class DimensionalStability {
       for (let b = 0; b < DIMENSION_COUNT; b++) {
         at(tensor, a)[b] = a === b
           ? this.computeIntrinsicStability(a as DimensionIndex, at(vals, a))
-          : this.computeCrossDimensionalStability(a as DimensionIndex, b as DimensionIndex, at(vals, a), vals[b]);
+          : this.computeCrossDimensionalStability(a as DimensionIndex, b as DimensionIndex, at(vals, a), at(vals, b));
       }
     }
     for (let a = 0; a < DIMENSION_COUNT; a++) {
@@ -299,7 +299,7 @@ export class DimensionalStability {
     if (N < 3) return 0.0 as Float64;
     let defect = 0.0;
     for (let i = 0; i < N; i++) {
-      const l = values[(i - 1 + N) % N], c = at(values, i), r = values[(i + 1) % N];
+      const l = at(values, (i - 1 + N) % N), c = at(values, i), r = at(values, (i + 1) % N);
       const lap = l - 2.0 * c + r;
       defect += lap * lap;
     }
@@ -317,7 +317,7 @@ export class DimensionalStability {
   computeGlobalStability(): Float64 {
     let total = 0.0;
     for (let a = 0; a < DIMENSION_COUNT; a++) {
-      for (let b = 0; b < DIMENSION_COUNT; b++) total += at(this.tensor, a)[b];
+      for (let b = 0; b < DIMENSION_COUNT; b++) total += at(at(this.tensor, a), b);
     }
     return (total / (DIMENSION_COUNT * DIMENSION_COUNT)) as Float64;
   }
@@ -383,8 +383,8 @@ export class DimensionalStability {
    * [PHIL] Perturbation propagation from α into β.
    */
   computeCrossDimensionalCoupling(src: DimensionIndex, tgt: DimensionIndex): Float64 {
-    const num = Math.abs(at(this.tensor, src)[tgt]);
-    const denom = Math.sqrt(at(this.tensor, src)[src] * at(this.tensor, tgt)[tgt]) + 1e-15;
+    const num = Math.abs(at(at(this.tensor, src), tgt));
+    const denom = Math.sqrt(at(at(this.tensor, src), src) * at(at(this.tensor, tgt), tgt)) + 1e-15;
     return (num / denom) as Float64;
   }
 
@@ -477,7 +477,7 @@ export class DimensionalStability {
     let meas = 0.0;
     for (let a = 0; a < DIMENSION_COUNT; a++) {
       for (let b = 0; b < DIMENSION_COUNT; b++) {
-        const t = at(this.tensor, a)[b]; meas += t * t;
+        const t = at(at(this.tensor, a), b); meas += t * t;
       }
     }
     const Meas = Math.sqrt(meas);
@@ -511,7 +511,7 @@ export class DimensionalStability {
     let sum = 0.0;
     for (let a = 0; a < DIMENSION_COUNT; a++) {
       for (let b = 0; b < DIMENSION_COUNT; b++) {
-        const d = at(this.tensor, a)[b] - at(this.previousTensor, a)[b];
+        const d = at(at(this.tensor, a), b) - at(at(this.previousTensor, a), b);
         sum += d * d;
       }
     }

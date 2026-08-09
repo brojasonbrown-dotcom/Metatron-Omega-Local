@@ -307,10 +307,10 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
     let sum = 0.0;
     for (let j = 0; j < NUM_LETTERS; j++) {
       const inputIdx = (i + j) % N;
-      sum += at(input, inputIdx) * permutationMatrix[letterIdx][j];
+      sum += at(input, inputIdx) * at(at(permutationMatrix, letterIdx), j);
     }
     let weightSum = 0.0;
-    for (let j = 0; j < NUM_LETTERS; j++) weightSum += permutationMatrix[letterIdx][j];
+    for (let j = 0; j < NUM_LETTERS; j++) weightSum += at(at(permutationMatrix, letterIdx), j);
     cyclicTransformed[i] = sum / (weightSum + 1e-300);
   }
   const SEPTENARY_LEVELS = 7;
@@ -334,7 +334,7 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
   const normalizedEntropy = entropySum / Math.log(NUM_LETTERS * SEPTENARY_LEVELS);
   const septenaryTransformed = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const letterIdx = letterIndices[i];
+    const letterIdx = at(letterIndices, i);
     let levelSum = 0.0;
     let weightSum = 0.0;
     for (let level = 0; level < SEPTENARY_LEVELS; level++) {
@@ -376,7 +376,7 @@ function computeF7_Thermodynamic(input: Float64Array, fieldState: Float64Array):
   const gradientDescent = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const psi = at(fieldState, i);
-    const p = probabilities[i];
+    const p = at(probabilities, i);
     const logP = p > 1e-300 ? Math.log(p) : 0.0;
     const dFdPsi = 2.0 * psi - temperature * (1.0 + logP) * Math.sign(psi);
     gradientDescent[i] = -learningRate * dFdPsi;

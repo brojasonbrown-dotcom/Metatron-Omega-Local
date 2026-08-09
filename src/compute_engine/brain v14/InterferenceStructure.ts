@@ -266,7 +266,7 @@ export class InterferenceStructure {
 
       for (let j = 0; j < M; j++) {
         const idx = k * M + j;
-        const thetaJ = phases[j];
+        const thetaJ = at(phases, j);
         const diff = circularDifference(thetaK, thetaJ);
         const cosDiff = Math.cos(diff);
 

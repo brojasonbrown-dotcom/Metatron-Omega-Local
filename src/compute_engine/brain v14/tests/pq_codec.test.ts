@@ -35,7 +35,7 @@ describe("pq_codec", () => {
     expect(pq.subDim).toBe(FIELD_SIZE / PQ_SUBSPACES);
     expect(pq.codebook.length).toBe(PQ_SUBSPACES);
     expect(at(pq.codebook, 0).length).toBe(PQ_CENTROIDS);
-    expect(at(pq.codebook, 0)[0].length).toBe(pq.subDim);
+    expect(at(at(pq.codebook, 0), 0).length).toBe(pq.subDim);
   });
 
   it("training is deterministic", () => {

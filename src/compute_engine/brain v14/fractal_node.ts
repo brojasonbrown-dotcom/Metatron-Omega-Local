@@ -622,7 +622,7 @@ export class FractalNode {
 
       // Convert memory output back to interleaved complex and add to totalField
       for (let i = 0; i < realInputSize; i++) {
-        const contribution = memorySum[i];
+        const contribution = at(memorySum, i);
         totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i + 1, this.scale))) as Float64;
         totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i + 1, this.scale))) as Float64;
       }
@@ -796,7 +796,7 @@ export class FractalNode {
     // Recompute energy density: mean |Ψ|² over field elements
     let energySum = 0;
     for (let i = 0; i < fieldLen; i += 2) {
-      const re = field[i];
+      const re = at(field, i);
       const im = field[i + 1] ?? 0;
       energySum += re * re + im * im;
     }

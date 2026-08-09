@@ -198,7 +198,7 @@ export function computeNodeShared(
       }
     }
     for (let i = 0; i < realInputSize; i++) {
-      const contribution = memorySum[i];
+      const contribution = at(memorySum, i);
       totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i + 1, scale))) as Float64;
       totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i + 1, scale))) as Float64;
     }

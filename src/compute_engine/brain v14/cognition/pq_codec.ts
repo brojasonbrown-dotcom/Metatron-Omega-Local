@@ -134,7 +134,7 @@ export function pqEncode(pq: TrainedPQ, field: Float64Array): Uint8Array {
 export function pqDecode(pq: TrainedPQ, code: Uint8Array): Float64Array {
   const out = new Float64Array(pq.subspaces * pq.subDim);
   for (let s = 0; s < pq.subspaces; s++) {
-    const centroid = at(pq.codebook, s)[code[s] ?? 0];
+    const centroid = at(at(pq.codebook, s), code[s] ?? 0);
     const offset = s * pq.subDim;
     for (let d = 0; d < pq.subDim; d++) out[offset + d] = at(centroid, d);
   }
@@ -148,7 +148,7 @@ export function pqDecode(pq: TrainedPQ, code: Uint8Array): Float64Array {
 export function pqAsymmetricDistance(pq: TrainedPQ, query: Float64Array, code: Uint8Array): number {
   let dist = 0.0;
   for (let s = 0; s < pq.subspaces; s++) {
-    const centroid = at(pq.codebook, s)[code[s] ?? 0];
+    const centroid = at(at(pq.codebook, s), code[s] ?? 0);
     const offset = s * pq.subDim;
     for (let d = 0; d < pq.subDim; d++) {
       const diff = at(query, offset + d) - at(centroid, d);

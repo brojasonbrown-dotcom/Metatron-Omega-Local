@@ -221,7 +221,7 @@ function handleStabilizeNode(payload: WorkerTask["payload"]): StabilizeNodeResul
   // Recompute energy density
   let energySum = 0;
   for (let i = 0; i < fieldLen; i += 2) {
-    const re = field[i];
+    const re = at(field, i);
     const im = field[i + 1] ?? 0;
     energySum += re * re + im * im;
   }

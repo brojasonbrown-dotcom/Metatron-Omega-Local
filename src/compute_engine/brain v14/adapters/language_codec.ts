@@ -356,10 +356,10 @@ export function phaseAlign(moving: Float64Array, reference: Float64Array): Float
   let dotRe = 0.0;
   let dotIm = 0.0;
   for (let i = 0; i < n; i++) {
-    const aRe = moving[2 * i];
-    const aIm = moving[2 * i + 1];
-    const bRe = reference[2 * i];
-    const bIm = reference[2 * i + 1];
+    const aRe = at(moving, 2 * i);
+    const aIm = at(moving, 2 * i + 1);
+    const bRe = at(reference, 2 * i);
+    const bIm = at(reference, 2 * i + 1);
     dotRe += aRe * bRe + aIm * bIm;
     dotIm += aRe * bIm - aIm * bRe;
   }

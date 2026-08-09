@@ -586,12 +586,12 @@ export class F6_Hebrew implements FrameworkEngine {
       let sum = 0.0;
       for (let j = 0; j < NUM_LETTERS; j++) {
         const inputIdx = (i + j) % N;
-        sum += at(input, inputIdx) * permutationMatrix[letterIdx][j];
+        sum += at(input, inputIdx) * at(at(permutationMatrix, letterIdx), j);
       }
       // Normalize by φ-scaled sum of weights
       let weightSum = 0.0;
       for (let j = 0; j < NUM_LETTERS; j++) {
-        weightSum += permutationMatrix[letterIdx][j];
+        weightSum += at(at(permutationMatrix, letterIdx), j);
       }
       cyclicTransformed[i] = sum / (weightSum + 1e-300);
     }
@@ -633,7 +633,7 @@ export class F6_Hebrew implements FrameworkEngine {
     // Apply 7-level processing to each letter position
     const septenaryTransformed = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const letterIdx = letterIndices[i];
+      const letterIdx = at(letterIndices, i);
       let levelSum = 0.0;
       let weightSum = 0.0;
       for (let level = 0; level < SEPTENARY_LEVELS; level++) {
@@ -738,7 +738,7 @@ export class F7_Thermodynamic implements FrameworkEngine {
     const gradientDescent = new Float64Array(N);
     for (let i = 0; i < N; i++) {
       const psi = at(field_state, i);
-      const p = probabilities[i];
+      const p = at(probabilities, i);
       const logP = p > 1e-300 ? Math.log(p) : 0.0;
       const dFdPsi = 2.0 * psi - temperature * (1.0 + logP) * Math.sign(psi);
       gradientDescent[i] = -learningRate * dFdPsi;
@@ -1211,7 +1211,7 @@ export class L1_Pattern implements MemoryEngine {
     let bestSim = at(similarities, 0);
     for (let i = 1; i < similarities.length; i++) {
       if (at(similarities, i) > bestSim) {
-        bestSim = similarities[i];
+        bestSim = at(similarities, i);
         bestIdx = i;
       }
     }
@@ -1401,7 +1401,7 @@ export class L2_Hebbian implements MemoryEngine {
 
       for (let i = 0; i < N; i++) {
         for (let j = 0; j < N; j++) {
-          at(this._correlationMatrix, i)[j] += eta * at(histPattern, i) * at(histPattern, j);
+          at(this._correlationMatrix, i)[j] = at(at(this._correlationMatrix, i), j) + eta * at(histPattern, i) * at(histPattern, j);
         }
       }
     }
@@ -1421,12 +1421,12 @@ export class L2_Hebbian implements MemoryEngine {
     for (let i = 0; i < N; i++) {
       let rowSum = 0.0;
       for (let j = 0; j < N; j++) {
-        rowSum += Math.abs(at(this._correlationMatrix, i)[j]);
+        rowSum += Math.abs(at(at(this._correlationMatrix, i), j));
       }
       const normFactor = rowSum > 1e-300 ? 1.0 / rowSum : 1.0;
       const normalizedRow = new Float64Array(N);
       for (let j = 0; j < N; j++) {
-        normalizedRow[j] = at(this._correlationMatrix, i)[j] * normFactor;
+        normalizedRow[j] = at(at(this._correlationMatrix, i), j) * normFactor;
       }
       normalizedWeights.push(normalizedRow);
     }
@@ -1449,14 +1449,14 @@ export class L2_Hebbian implements MemoryEngine {
       if (activation > activationThreshold) {
         // LTP: strengthen — add φ-scaled correlation boost
         for (let j = 0; j < N; j++) {
-          at(this._correlationMatrix, i)[j] += this.learning_rate * at(pattern, i) * at(pattern, j) * PHI_INV;
+          at(this._correlationMatrix, i)[j] = at(at(this._correlationMatrix, i), j) + this.learning_rate * at(pattern, i) * at(pattern, j) * PHI_INV;
         }
       } else if (activation < activationThreshold * PHI_INV) {
         // LTD: weaken — subtract φ-scaled decay
         for (let j = 0; j < N; j++) {
-          at(this._correlationMatrix, i)[j] *= (1.0 - this.learning_rate * PHI_NEG2);
+          at(this._correlationMatrix, i)[j] = at(at(this._correlationMatrix, i), j) * (1.0 - this.learning_rate * PHI_NEG2);
           // Ensure weights don't go negative (clamp to 0)
-          if (at(this._correlationMatrix, i)[j] < 0) {
+          if (at(at(this._correlationMatrix, i), j) < 0) {
             at(this._correlationMatrix, i)[j] = 0;
           }
         }

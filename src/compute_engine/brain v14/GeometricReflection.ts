@@ -117,7 +117,7 @@ export function computeCurvatureInducedReturn(
         const w = Math.pow(PHI_INV, l - 2);
         const c = coeffs[idx] ?? 0;
         for (let i = 0; i < params.sphereCount; i++)
-          cField[i] = at(cField, i) + (c * _shCurvature(l, m, points[3*i], points[3*i+1], points[3*i+2]) * w) as Float64at64;
+          cField[i] = at(cField, i) + (c * _shCurvature(l, m, at(points, 3*i), at(points, 3*i+1), at(points, 3*i+2)) * w) as Float64;
       }
       idx++;
     }

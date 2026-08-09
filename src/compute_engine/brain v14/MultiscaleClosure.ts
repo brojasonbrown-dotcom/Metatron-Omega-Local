@@ -333,7 +333,7 @@ export class MultiscaleClosure {
     for (let i = 0; i < scales.length; i++) {
       for (let j = i + 1; j < scales.length; j++) {
         const key = `${scales[i]}_${scales[j]}`;
-        map.set(key, this.computeCrossScaleClosure(nodes, at(scales, i), scales[j]));
+        map.set(key, this.computeCrossScaleClosure(nodes, at(scales, i), at(scales, j)));
       }
     }
     return map;

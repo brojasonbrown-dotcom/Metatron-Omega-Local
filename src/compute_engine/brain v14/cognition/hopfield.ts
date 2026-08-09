@@ -153,7 +153,7 @@ export class HopfieldMemory {
     const out = new Float64Array(this.dim);
     for (let mu = 0; mu < this._patterns.length; mu++) {
       const w = at(scores, mu) / denom;
-      const xi = this._patterns[mu];
+      const xi = at(this._patterns, mu);
       for (let i = 0; i < this.dim; i++) out[i] = at(out, i) + w * at(xi, i);
     }
     let normSq = 0.0;
