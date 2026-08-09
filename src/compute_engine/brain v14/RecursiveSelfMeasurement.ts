@@ -264,7 +264,7 @@ export function computeDirectionalProjection(
     const weight = filter.weight;
     const len = Math.min(filtered.length, result.length);
     for (let i = 0; i < len; i++) {
-      result[i] += (filtered[i] ?? 0) * weight;
+      result[i] = at(result, i) + (filtered[i] ?? 0) * weight;
     }
     totalWeight += weight;
   }
@@ -396,7 +396,7 @@ export function computeMultiscaleStabilization(
 
     const len = Math.min(stabilized.length, blended.length);
     for (let i = 0; i < len; i++) {
-      blended[i] += (stabilized[i] ?? 0) * weight;
+      blended[i] = at(blended, i) + (stabilized[i] ?? 0) * weight;
     }
     totalWeight += weight;
   }
@@ -823,8 +823,8 @@ export class RecursiveSelfMeasurement {
     const history = this._recursiveHistory.get(nodeId);
     if (!history || history.length < 2) return 0 as Float64;
 
-    const prev = history[history.length - 2];
-    const curr = history[history.length - 1];
+    const prev = at(history, history.length - 2);
+    const curr = at(history, history.length - 1);
     return phaseDriftMetric(prev.recursiveState, curr.recursiveState);
   }
 

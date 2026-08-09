@@ -144,7 +144,7 @@ function handleComputeNode(payload: WorkerTask["payload"] & { readonly childFiel
     const childWeight = (1.0 / PHI) / (p.childFieldStates.length + 1e-300);
     for (const childField of p.childFieldStates) {
       for (let i = 0; i < fieldSize; i++) {
-        totalField[i] += at(childField, i) * childWeight;
+        totalField[i] = at(totalField, i) + at(childField, i) * childWeight;
       }
     }
   }
@@ -160,8 +160,8 @@ function handleComputeNode(payload: WorkerTask["payload"] & { readonly childFiel
   // ── Compute energy density ─────────────────────────────────────────────
   let energySum = 0;
   for (let i = 0; i < fieldSize; i += 2) {
-    const re = totalField[i];
-    const im = totalField[i + 1];
+    const re = at(totalField, i);
+    const im = at(totalField, i + 1);
     energySum += re * re + im * im;
   }
   const energyDensity = energySum / (N + 1);

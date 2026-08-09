@@ -219,7 +219,7 @@ export class MembraneStabilizer {
     // Normalize by field magnitude to get relative deviation. [SPEC]
     let field_magnitude: number = 0.0;
     for (let i = 0; i < field_state.length; i++) {
-      field_magnitude += Math.abs(field_state[i]);
+      field_magnitude += Math.abs(at(field_state, i));
     }
     field_magnitude = field_magnitude / field_state.length;
 
@@ -356,7 +356,7 @@ export class MembraneStabilizer {
     let grad_mag: number = 0.0;
 
     for (let i = 0; i < field_state.length; i++) {
-      mean_mag += Math.abs(field_state[i]);
+      mean_mag += Math.abs(at(field_state, i));
       const prev: number =
         i > 0 ? field_state[i - 1] : field_state[field_state.length - 1];
       grad_mag += Math.abs(at(field_state, i) - prev);

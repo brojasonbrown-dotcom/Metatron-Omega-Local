@@ -19,6 +19,7 @@ import {
 } from "../adapters/language_codec.ts";
 import { ConceptRegistry } from "../cognition/concept_registry.ts";
 
+import { at } from "../core/indexing.ts";
 describe("normalizeText", () => {
   it("lowercases, collapses whitespace, trims", () => {
     expect(normalizeText("  Hello   WORLD \n")).toBe("hello world");
@@ -107,7 +108,7 @@ describe("decode by resonance (registry ranking)", () => {
   it("the test corpus is pairwise distinct (all resonances < λ = 0.382)", () => {
     for (let i = 0; i < texts.length; i++) {
       for (let j = i + 1; j < texts.length; j++) {
-        expect(resonance(encodeText(texts[i]), encodeText(texts[j]))).toBeLessThan(0.382);
+        expect(resonance(encodeText(at(texts, i)), encodeText(at(texts, j)))).toBeLessThan(0.382);
       }
     }
   });
@@ -115,11 +116,11 @@ describe("decode by resonance (registry ranking)", () => {
   it("ranks the encoded concept #1 among distinct concepts", () => {
     const registry = new ConceptRegistry();
     for (let i = 0; i < texts.length; i++) {
-      registry.observe(encodeText(texts[i]), [labels[i]], "test");
+      registry.observe(encodeText(at(texts, i)), [at(labels, i)], "test");
     }
     expect(registry.size).toBe(texts.length); // none merged
     for (let i = 0; i < texts.length; i++) {
-      const matches = registry.nearest(encodeText(texts[i]), texts.length);
+      const matches = registry.nearest(encodeText(at(texts, i)), texts.length);
       expect(matches[0]?.concept.labels).toContain(labels[i]);
       expect(matches[0]?.resonance).toBeCloseTo(1.0, 9);
     }

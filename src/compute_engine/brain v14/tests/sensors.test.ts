@@ -18,6 +18,7 @@ import {
 import { chunkText } from "../adapters/sensors/text_feed.ts";
 import { parseLuminanceCsv } from "../adapters/sensors/vision_screen.ts";
 
+import { at } from "../core/indexing.ts";
 function goodFrame(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     source: "text.feed",
@@ -66,7 +67,7 @@ describe("SensorBus validation", () => {
     expect(stats.dropped).toBe(10);
     // oldest were dropped — the first queued frame is now i=10
     const first = bus.drain(1)[0];
-    expect(first.meta["i"]).toBe("10");
+    expect(at(first.meta, "i")).toBe("10");
   });
 
   it("drain(max) never exceeds max and empties in order", () => {

@@ -236,10 +236,10 @@ export function resonance(a: Float64Array, b: Float64Array): number {
   let normB = 0.0;
 
   for (let i = 0; i < n; i++) {
-    const aRe = a[2 * i];
-    const aIm = a[2 * i + 1];
-    const bRe = b[2 * i];
-    const bIm = b[2 * i + 1];
+    const aRe = at(a, 2 * i);
+    const aIm = at(a, 2 * i + 1);
+    const bRe = at(b, 2 * i);
+    const bIm = at(b, 2 * i + 1);
 
     dotRe += aRe * bRe + aIm * bIm;
     dotIm += aRe * bIm - aIm * bRe;
@@ -337,8 +337,8 @@ export function phaseRotate(field: Float64Array, phi: number): Float64Array {
   const c = Math.cos(phi);
   const s = Math.sin(phi);
   for (let i = 0; i < n; i++) {
-    const re = field[2 * i];
-    const im = field[2 * i + 1];
+    const re = at(field, 2 * i);
+    const im = at(field, 2 * i + 1);
     out[2 * i] = re * c - im * s;
     out[2 * i + 1] = re * s + im * c;
   }

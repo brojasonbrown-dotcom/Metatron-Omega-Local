@@ -153,7 +153,7 @@ export function atom(label: string): Float64Array {
   // Each phasor is already unit-magnitude, so the whole vector has norm √D;
   // normalize to unit L2 so similarity is a true cosine. [MATH]
   const norm = Math.sqrt(HV_COMPLEX);
-  for (let i = 0; i < HV_SIZE; i++) out[i] /= norm;
+  for (let i = 0; i < HV_SIZE; i++) out[i] = at(out, i) / norm;
 
   _atomCache.set(key, out);
   if (_atomCache.size > ATOM_CACHE_MAX) {
@@ -185,10 +185,10 @@ export function similarity(a: Float64Array, b: Float64Array): number {
   let na = 0.0;
   let nb = 0.0;
   for (let k = 0; k < n; k++) {
-    const ar = a[2 * k];
-    const ai = a[2 * k + 1];
-    const br = b[2 * k];
-    const bi = b[2 * k + 1];
+    const ar = at(a, 2 * k);
+    const ai = at(a, 2 * k + 1);
+    const br = at(b, 2 * k);
+    const bi = at(b, 2 * k + 1);
     // Re(Σ a·conj(b)) = Σ (ar·br + ai·bi)
     re += ar * br + ai * bi;
     na += ar * ar + ai * ai;
@@ -237,8 +237,8 @@ export function unbind(bound: Float64Array, key: Float64Array): Float64Array {
   for (let k = 0; k < HV_COMPLEX; k++) {
     const ar = bound[2 * k];
     const ai = bound[2 * k + 1];
-    const kr = key[2 * k];
-    const ki = key[2 * k + 1];
+    const kr = at(key, 2 * k);
+    const ki = at(key, 2 * k + 1);
     // multiply by conj(key) = (kr − i·ki)
     out[2 * k] = ar * kr + ai * ki;
     out[2 * k + 1] = ai * kr - ar * ki;
@@ -265,10 +265,10 @@ export function bundle(items: readonly Float64Array[]): Float64Array {
   if (items.length === 0) {
     throw new Error("phasor_field.bundle: cannot bundle zero items");
   }
-  if (items.length === 1) return normalizeHV(items[0]);
+  if (items.length === 1) return normalizeHV(at(items, 0));
   const out = new Float64Array(HV_SIZE);
   for (const v of items) {
-    for (let i = 0; i < HV_SIZE; i++) out[i] += at(v, i);
+    for (let i = 0; i < HV_SIZE; i++) out[i] = at(out, i) + at(v, i);
   }
   return normalizeHV(out);
 }
@@ -327,10 +327,10 @@ export function encodeSentence(text: string): Float64Array {
     throw new Error("phasor_field.encodeSentence: text is empty after normalization");
   }
   const words = norm.split(" ").filter((w) => w.length > 0);
-  if (words.length === 1) return atom(words[0]);
+  if (words.length === 1) return atom(at(words, 0));
   const placed: Float64Array[] = new Array(words.length);
   for (let k = 0; k < words.length; k++) {
-    placed[k] = permute(atom(words[k]), k);
+    placed[k] = permute(atom(at(words, k)), k);
   }
   return bundle(placed);
 }

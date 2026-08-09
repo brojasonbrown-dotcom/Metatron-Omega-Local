@@ -98,7 +98,7 @@ export function sphericalHarmonicProjection(
     for (let m = -l; m <= l; m++) {
       let sum = 0.0;
       for (let i = 0; i < numPoints; i++) {
-        const x = points[3 * i];
+        const x = at(points, 3 * i);
         const y = points[3 * i + 1];
         const z = points[3 * i + 2];
         const Ylm = _realSphericalHarmonic(l, m, x, y, z);
@@ -336,7 +336,7 @@ export function multiscaleSphericalCoherence(
   let weightedCoherence = 0.0;
 
   for (let i = 0; i < shellCounts.length; i++) {
-    const count = shellCounts[i];
+    const count = at(shellCounts, i);
     const field = fieldGenerator(count);
     const coh = angularCoherence(field);
     // Weight by φ^(-i) — higher shells (finer resolution) get less weight

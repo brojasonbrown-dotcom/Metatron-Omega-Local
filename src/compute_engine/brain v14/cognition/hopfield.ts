@@ -85,7 +85,7 @@ export class HopfieldMemory {
     let bestIdx = -1;
     let bestRes = 0;
     for (let i = 0; i < this._patterns.length; i++) {
-      const r = resonance(p, this._patterns[i]);
+      const r = resonance(p, at(this._patterns, i));
       if (r > bestRes) {
         bestRes = r;
         bestIdx = i;
@@ -94,7 +94,7 @@ export class HopfieldMemory {
     if (bestIdx >= 0 && bestRes >= mergeThreshold) {
       // φ-decayed reinforcement of the existing attractor.
       const eta = 1.0 / (PHI * PHI);
-      const cur = this._patterns[bestIdx];
+      const cur = at(this._patterns, bestIdx);
       if (this._mergeScratch === null) this._mergeScratch = new Float64Array(this.dim);
       const merged = this._mergeScratch;
       for (let i = 0; i < this.dim; i++) merged[i] = at(cur, i) * (1.0 - eta) + at(p, i) * eta;
@@ -132,7 +132,7 @@ export class HopfieldMemory {
     let maxScore = -Infinity;
     for (let mu = 0; mu < this._patterns.length; mu++) {
       let dot = 0.0;
-      const xi = this._patterns[mu];
+      const xi = at(this._patterns, mu);
       for (let i = 0; i < this.dim; i++) dot += at(xi, i) * at(q, i);
       const s = this.beta * dot;
       scores[mu] = s;
@@ -154,7 +154,7 @@ export class HopfieldMemory {
     for (let mu = 0; mu < this._patterns.length; mu++) {
       const w = at(scores, mu) / denom;
       const xi = this._patterns[mu];
-      for (let i = 0; i < this.dim; i++) out[i] += w * at(xi, i);
+      for (let i = 0; i < this.dim; i++) out[i] = at(out, i) + w * at(xi, i);
     }
     let normSq = 0.0;
     for (let i = 0; i < this.dim; i++) normSq += at(out, i) * at(out, i);

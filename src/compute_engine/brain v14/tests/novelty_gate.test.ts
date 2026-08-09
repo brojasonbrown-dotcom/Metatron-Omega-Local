@@ -20,6 +20,7 @@ import { visionSpectralEnrichment } from "../adapters/sensors/spectral_enrichmen
 import { FIELD_SIZE } from "../adapters/language_codec.ts";
 import type { SpectralEnrichment } from "../schemas/validate.ts";
 
+import { at } from "../core/indexing.ts";
 /** Deterministic luminance grid; `seed` shifts the pattern so grids differ. */
 function makeGrid(w: number, h: number, seed = 0): Float64Array {
   const g = new Float64Array(w * h);
@@ -40,7 +41,7 @@ function field28(seed: number): Float64Array {
   let n = 0;
   for (const v of f) n += v * v;
   n = Math.sqrt(n) || 1;
-  for (let i = 0; i < FIELD_SIZE; i++) f[i] /= n;
+  for (let i = 0; i < FIELD_SIZE; i++) f[i] = at(f, i) / n;
   return f;
 }
 

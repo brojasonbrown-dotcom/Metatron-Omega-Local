@@ -1,3 +1,4 @@
+import { at } from "./core/indexing.ts";
 /**
  * RHUFT v13 — Complementary Field: Chapter 4 — Oppositional Complementarity
  *
@@ -93,7 +94,7 @@ export class ComplementaryField {
    */
   net(i: number): Float64 {
     if (i < 0 || i >= this.size) return 0 as Float64;
-    return (this._data[2 * i] - this._data[2 * i + 1]) as Float64;
+    return (at(this._data, 2 * i) - at(this._data, 2 * i + 1)) as Float64;
   }
 
   /**
@@ -105,8 +106,8 @@ export class ComplementaryField {
    */
   magnitude(i: number): Float64 {
     if (i < 0 || i >= this.size) return 0 as Float64;
-    const p = this._data[2 * i];
-    const m = this._data[2 * i + 1];
+    const p = at(this._data, 2 * i);
+    const m = at(this._data, 2 * i + 1);
     return Math.sqrt(p * p + m * m) as Float64;
   }
 
@@ -175,7 +176,7 @@ export class ComplementaryField {
     }
     const result = new Float64Array(this._data.length);
     for (let i = 0; i < this._data.length; i++) {
-      result[i] = (this._data[i] + other.toArray()[i]) as Float64;
+      result[i] = (at(this._data, i) + at(other.toArray(), i)) as Float64;
     }
     return new ComplementaryField(result);
   }
@@ -186,7 +187,7 @@ export class ComplementaryField {
   scale(scalar: Float64): ComplementaryField {
     const result = new Float64Array(this._data.length);
     for (let i = 0; i < this._data.length; i++) {
-      result[i] = (this._data[i] * scalar) as Float64;
+      result[i] = (at(this._data, i) * scalar) as Float64;
     }
     return new ComplementaryField(result);
   }
@@ -206,10 +207,10 @@ export class ComplementaryField {
     let sum = 0.0;
     const otherData = other.toArray();
     for (let i = 0; i < this.size; i++) {
-      const p1 = this._data[2 * i];
-      const m1 = this._data[2 * i + 1];
-      const p2 = otherData[2 * i];
-      const m2 = otherData[2 * i + 1];
+      const p1 = at(this._data, 2 * i);
+      const m1 = at(this._data, 2 * i + 1);
+      const p2 = at(otherData, 2 * i);
+      const m2 = at(otherData, 2 * i + 1);
       sum += p1 * p2 + m1 * m2;
     }
     return sum as Float64;
@@ -241,7 +242,7 @@ export class ComplementaryField {
   totalNet(): Float64 {
     let sum = 0.0;
     for (let i = 0; i < this.size; i++) {
-      sum += this._data[2 * i] - this._data[2 * i + 1];
+      sum += at(this._data, 2 * i) - at(this._data, 2 * i + 1);
     }
     return sum as Float64;
   }

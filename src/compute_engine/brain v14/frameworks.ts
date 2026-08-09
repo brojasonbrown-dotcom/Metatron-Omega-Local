@@ -109,8 +109,8 @@ function magnitudeSpectrum(complex: Float64Array): Float64Array {
   const N = complex.length / 2;
   const result = new Float64Array(N);
   for (let k = 0; k < N; k++) {
-    const re = complex[2 * k];
-    const im = complex[2 * k + 1];
+    const re = at(complex, 2 * k);
+    const im = at(complex, 2 * k + 1);
     result[k] = Math.sqrt(re * re + im * im);
   }
   return result;
@@ -241,7 +241,7 @@ export class F4_Geometric implements FrameworkEngine {
         // Deterministic edges: connect if |i-j| is a Fibonacci number or 1
         const diff = Math.abs(i - j);
         const isFibonacci = diff === 1 || diff === 2 || diff === 3 || diff === 5 || diff === 8 || diff === 13;
-        adjacency[i][j] = isFibonacci && i !== j ? 1.0 : 0.0;
+        at(adjacency, i)[j] = isFibonacci && i !== j ? 1.0 : 0.0;
       }
     }
 
@@ -269,7 +269,7 @@ export class F4_Geometric implements FrameworkEngine {
     for (let h = 0; h < harmonics.length; h++) {
       let dot = 0.0;
       for (let i = 0; i < N; i++) {
-        dot += at(input, i) * at(harmonics, h)[i];
+        dot += at(input, i) * at(at(harmonics, h), i);
       }
       harmonicCoeffs[h] = dot / N; // normalized coefficient
     }
@@ -289,11 +289,11 @@ export class F4_Geometric implements FrameworkEngine {
     for (let iter = 0; iter < iterations; iter++) {
       const newValues = new Float64Array(NUM_NODES);
       for (let i = 0; i < NUM_NODES; i++) {
-        let sum = latticeValues[i];
+        let sum = at(latticeValues, i);
         let degree = 1.0;
         for (let j = 0; j < NUM_NODES; j++) {
-          if (at(adjacency, i)[j] > 0) {
-            sum += at(latticeValues, j) * at(adjacency, i)[j];
+          if (at(at(adjacency, i), j) > 0) {
+            sum += at(latticeValues, j) * at(at(adjacency, i), j);
             degree += 1.0;
           }
         }
@@ -309,12 +309,12 @@ export class F4_Geometric implements FrameworkEngine {
     for (let i = 0; i < N; i++) {
       // Lattice contribution: interpolate from lattice nodes
       const latticeIdx = i % NUM_NODES;
-      const latticeContribution = latticeValues[latticeIdx];
+      const latticeContribution = at(latticeValues, latticeIdx);
 
       // Harmonic contribution: sum of weighted harmonics
       let harmonicContribution = 0.0;
       for (let h = 0; h < harmonics.length; h++) {
-        harmonicContribution += at(harmonicCoeffs, h) * at(harmonics, h)[i];
+        harmonicContribution += at(harmonicCoeffs, h) * at(at(harmonics, h), i);
       }
 
       // Blend lattice + harmonics with field_state for continuity
@@ -496,7 +496,7 @@ export class F5_ColorMusic implements FrameworkEngine {
     for (let i = 0; i < N; i++) {
       const massFreq = at(input, i) * massFreqConversion;
       const harmonicWeight = at(harmonicSeries, i % N) / (baseFreq + 1e-300);
-      const colorWeight = colorWeights[i];
+      const colorWeight = at(colorWeights, i);
       const musicWeight = 1.0 + at(musicalIntervals, i);
 
       // Combined transformation: φ-scaled spectral processing
@@ -575,14 +575,14 @@ export class F6_Hebrew implements FrameworkEngine {
         const step = (j - i + NUM_LETTERS) % NUM_LETTERS;
         // Weight by inverse gematria: more fundamental letters = higher weight
         const weight = 1.0 / (at(gematriaValues, step) + 1.0);
-        permutationMatrix[i][j] = weight;
+        at(permutationMatrix, i)[j] = weight;
       }
     }
 
     // Step 3: Apply 22-fold cyclic transformation to input
     const cyclicTransformed = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const letterIdx = letterIndices[i];
+      const letterIdx = at(letterIndices, i);
       let sum = 0.0;
       for (let j = 0; j < NUM_LETTERS; j++) {
         const inputIdx = (i + j) % N;
@@ -616,13 +616,13 @@ export class F6_Hebrew implements FrameworkEngine {
     // Compute probability distribution from encoded values
     let totalEncoded = 0.0;
     for (let i = 0; i < encoded154.length; i++) {
-      totalEncoded += Math.abs(encoded154[i]);
+      totalEncoded += Math.abs(at(encoded154, i));
     }
 
     const entropy = 0.0;
     let entropySum = 0.0;
     for (let i = 0; i < encoded154.length; i++) {
-      const p = Math.abs(encoded154[i]) / (totalEncoded + 1e-300);
+      const p = Math.abs(at(encoded154, i)) / (totalEncoded + 1e-300);
       if (p > 0) {
         entropySum -= p * Math.log(p);
       }
@@ -697,11 +697,11 @@ export class F7_Thermodynamic implements FrameworkEngine {
     // p_i = |Ψ_i|² / Σ|Ψ_j|² (Born-rule-like probability)
     let totalAmplitude = 0.0;
     for (let i = 0; i < N; i++) {
-      totalAmplitude += Math.abs(field_state[i]);
+      totalAmplitude += Math.abs(at(field_state, i));
     }
     const probabilities = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      probabilities[i] = Math.abs(field_state[i]) / (totalAmplitude + 1e-300);
+      probabilities[i] = Math.abs(at(field_state, i)) / (totalAmplitude + 1e-300);
     }
 
     // Step 2: Shannon entropy S = -k_B Σ p_i log(p_i)
@@ -709,7 +709,7 @@ export class F7_Thermodynamic implements FrameworkEngine {
     const K_B = 1.380649e-23;
     let entropy = 0.0;
     for (let i = 0; i < N; i++) {
-      const p = probabilities[i];
+      const p = at(probabilities, i);
       if (p > 1e-300) {
         entropy -= p * Math.log(p);
       }
@@ -737,7 +737,7 @@ export class F7_Thermodynamic implements FrameworkEngine {
     const learningRate = 1.0 / (PHI * PHI * N); // η = 1/(φ²N) — small, stable step
     const gradientDescent = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const psi = field_state[i];
+      const psi = at(field_state, i);
       const p = probabilities[i];
       const logP = p > 1e-300 ? Math.log(p) : 0.0;
       const dFdPsi = 2.0 * psi - temperature * (1.0 + logP) * Math.sign(psi);
@@ -831,7 +831,7 @@ export class F1_Septenary implements FrameworkEngine {
     const level0 = new Float64Array(N);
     let inputMax = 0.0;
     for (let i = 0; i < N; i++) {
-      if (Math.abs(input[i]) > inputMax) inputMax = Math.abs(input[i]);
+      if (Math.abs(at(input, i)) > inputMax) inputMax = Math.abs(at(input, i));
     }
     const normFactor = inputMax > 0 ? 1.0 / inputMax : 1.0;
     for (let i = 0; i < N; i++) {
@@ -921,7 +921,7 @@ export class F1_Septenary implements FrameworkEngine {
       let weightSum = 0.0;
       for (let l = 0; l < levelOutputs.length; l++) {
         const weight = Math.pow(PHI_INV, l); // higher levels weighted less
-        transcendence += at(levelOutputs, l)[i] * weight;
+        transcendence += at(at(levelOutputs, l), i) * weight;
         weightSum += weight;
       }
       level6[i] = transcendence / (weightSum + 1e-300);
@@ -934,7 +934,7 @@ export class F1_Septenary implements FrameworkEngine {
     for (let i = 0; i < N; i++) {
       let variance = 0.0;
       for (let l = 0; l < NUM_LEVELS; l++) {
-        variance += Math.pow(at(levelOutputs, l)[i] - at(level6, i), 2);
+        variance += Math.pow(at(at(levelOutputs, l), i) - at(level6, i), 2);
       }
       informationContent[i] = Math.sqrt(variance / NUM_LEVELS);
     }
@@ -943,7 +943,7 @@ export class F1_Septenary implements FrameworkEngine {
     const attentionWeights = new Float64Array(N);
     let maxInfo = 0.0;
     for (let i = 0; i < N; i++) {
-      if (at(informationContent, i) > maxInfo) maxInfo = informationContent[i];
+      if (at(informationContent, i) > maxInfo) maxInfo = at(informationContent, i);
     }
     let attentionSum = 0.0;
     for (let i = 0; i < N; i++) {
@@ -952,7 +952,7 @@ export class F1_Septenary implements FrameworkEngine {
       attentionSum += at(attentionWeights, i);
     }
     for (let i = 0; i < N; i++) {
-      attentionWeights[i] /= (attentionSum + 1e-300);
+      attentionWeights[i] = at(attentionWeights, i) / (attentionSum + 1e-300);
     }
 
     // Step 3: Information gain — KL divergence between adjacent levels
@@ -961,8 +961,8 @@ export class F1_Septenary implements FrameworkEngine {
     for (let l = 0; l < NUM_LEVELS - 1; l++) {
       let kl = 0.0;
       for (let i = 0; i < N; i++) {
-        const pNext = Math.abs(at(levelOutputs, l + 1)[i]) + 1e-300;
-        const pCurrent = Math.abs(at(levelOutputs, l)[i]) + 1e-300;
+        const pNext = Math.abs(at(at(levelOutputs, l + 1), i)) + 1e-300;
+        const pCurrent = Math.abs(at(at(levelOutputs, l), i)) + 1e-300;
         kl += pNext * Math.log(pNext / pCurrent);
       }
       klDivergences[l] = kl / N; // average KL per element
@@ -977,7 +977,7 @@ export class F1_Septenary implements FrameworkEngine {
 
       // Blend with field_state for temporal continuity
       // Cognitive bias correction: φ-scaled normalization prevents runaway
-      const biasCorrection = 1.0 / (1.0 + Math.abs(level6[i]) * PHI_INV);
+      const biasCorrection = 1.0 / (1.0 + Math.abs(at(level6, i)) * PHI_INV);
       const correctedOutput = attentionOutput * biasCorrection;
 
       result[i] =
@@ -1062,11 +1062,11 @@ export class F9_Hypergalactic implements FrameworkEngine {
     // Step 4: Compute actual entropy from field_state
     let totalAmplitude = 0.0;
     for (let i = 0; i < N; i++) {
-      totalAmplitude += Math.abs(field_state[i]);
+      totalAmplitude += Math.abs(at(field_state, i));
     }
     let actualEntropy = 0.0;
     for (let i = 0; i < N; i++) {
-      const p = Math.abs(field_state[i]) / (totalAmplitude + 1e-300);
+      const p = Math.abs(at(field_state, i)) / (totalAmplitude + 1e-300);
       if (p > 1e-300) {
         actualEntropy -= p * Math.log(p);
       }
@@ -1134,7 +1134,7 @@ export class F9_Hypergalactic implements FrameworkEngine {
       771.32342877765313, -176.61502916214059, 12.507343278686905,
       -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
     ];
-    let x = p[0];
+    let x = at(p, 0);
     for (let i = 1; i < p.length; i++) {
       x += at(p, i) / (z + i);
     }
@@ -1208,19 +1208,19 @@ export class L1_Pattern implements MemoryEngine {
 
     // Step 2: Find best matching prototype (highest similarity)
     let bestIdx = 0;
-    let bestSim = similarities[0];
+    let bestSim = at(similarities, 0);
     for (let i = 1; i < similarities.length; i++) {
       if (at(similarities, i) > bestSim) {
         bestSim = similarities[i];
         bestIdx = i;
       }
     }
-    const bestPrototype = this._prototypes[bestIdx];
+    const bestPrototype = at(this._prototypes, bestIdx);
 
     // Step 3: Pattern completion — reconstruct from best match
     // For each element: if pattern has information, use it; otherwise use prototype
     for (let i = 0; i < N; i++) {
-      const hasInformation = Math.abs(pattern[i]) > 1e-12;
+      const hasInformation = Math.abs(at(pattern, i)) > 1e-12;
       if (hasInformation) {
         // Use input pattern with φ-scaled temporal decay
         const decay = 1.0 / this.temporal_scale;
@@ -1237,11 +1237,11 @@ export class L1_Pattern implements MemoryEngine {
       const mean = new Float64Array(N);
       for (const proto of this._prototypes) {
         for (let i = 0; i < N; i++) {
-          mean[i] += at(proto, i);
+          mean[i] = at(mean, i) + at(proto, i);
         }
       }
       for (let i = 0; i < N; i++) {
-        mean[i] /= this._prototypes.length;
+        mean[i] = at(mean, i) / this._prototypes.length;
       }
 
       // First principal component (power iteration approximation, 1 step)
@@ -1262,7 +1262,7 @@ export class L1_Pattern implements MemoryEngine {
       pcNorm = Math.sqrt(pcNorm);
       if (pcNorm > 0) {
         for (let i = 0; i < N; i++) {
-          pc[i] /= pcNorm;
+          pc[i] = at(pc, i) / pcNorm;
         }
       }
 
@@ -1395,13 +1395,13 @@ export class L2_Hebbian implements MemoryEngine {
     // Hebbian update: ΔC[i][j] = η · x_i · x_j for all i, j
     // STDP-like: weight more recent patterns more heavily
     for (let h = 0; h < this._patternHistory.length; h++) {
-      const histPattern = this._patternHistory[h];
+      const histPattern = at(this._patternHistory, h);
       const temporalWeight = Math.pow(PHI_INV, this._patternHistory.length - 1 - h); // recent = more weight
       const eta = this.learning_rate * temporalWeight;
 
       for (let i = 0; i < N; i++) {
         for (let j = 0; j < N; j++) {
-          this._correlationMatrix[i][j] += eta * at(histPattern, i) * at(histPattern, j);
+          at(this._correlationMatrix, i)[j] += eta * at(histPattern, i) * at(histPattern, j);
         }
       }
     }
@@ -1421,12 +1421,12 @@ export class L2_Hebbian implements MemoryEngine {
     for (let i = 0; i < N; i++) {
       let rowSum = 0.0;
       for (let j = 0; j < N; j++) {
-        rowSum += Math.abs(this._correlationMatrix[i][j]);
+        rowSum += Math.abs(at(this._correlationMatrix, i)[j]);
       }
       const normFactor = rowSum > 1e-300 ? 1.0 / rowSum : 1.0;
       const normalizedRow = new Float64Array(N);
       for (let j = 0; j < N; j++) {
-        normalizedRow[j] = this._correlationMatrix[i][j] * normFactor;
+        normalizedRow[j] = at(this._correlationMatrix, i)[j] * normFactor;
       }
       normalizedWeights.push(normalizedRow);
     }
@@ -1436,7 +1436,7 @@ export class L2_Hebbian implements MemoryEngine {
     for (let i = 0; i < N; i++) {
       let sum = 0.0;
       for (let j = 0; j < N; j++) {
-        sum += at(normalizedWeights, i)[j] * at(pattern, j);
+        sum += at(at(normalizedWeights, i), j) * at(pattern, j);
       }
       result[i] = sum;
     }
@@ -1445,19 +1445,19 @@ export class L2_Hebbian implements MemoryEngine {
     // Strengthen weights for high-activation patterns, weaken for low-activation
     const activationThreshold = 1.0 / PHI; // φ-scale activation threshold
     for (let i = 0; i < N; i++) {
-      const activation = Math.abs(pattern[i]);
+      const activation = Math.abs(at(pattern, i));
       if (activation > activationThreshold) {
         // LTP: strengthen — add φ-scaled correlation boost
         for (let j = 0; j < N; j++) {
-          this._correlationMatrix[i][j] += this.learning_rate * at(pattern, i) * at(pattern, j) * PHI_INV;
+          at(this._correlationMatrix, i)[j] += this.learning_rate * at(pattern, i) * at(pattern, j) * PHI_INV;
         }
       } else if (activation < activationThreshold * PHI_INV) {
         // LTD: weaken — subtract φ-scaled decay
         for (let j = 0; j < N; j++) {
-          this._correlationMatrix[i][j] *= (1.0 - this.learning_rate * PHI_NEG2);
+          at(this._correlationMatrix, i)[j] *= (1.0 - this.learning_rate * PHI_NEG2);
           // Ensure weights don't go negative (clamp to 0)
-          if (this._correlationMatrix[i][j] < 0) {
-            this._correlationMatrix[i][j] = 0;
+          if (at(this._correlationMatrix, i)[j] < 0) {
+            at(this._correlationMatrix, i)[j] = 0;
           }
         }
       }
@@ -1532,7 +1532,7 @@ export class L3_Kuramoto implements MemoryEngine {
 
     // Convert pattern amplitude to phase: θ_i = atan2(x_i, 1/φ)
     for (let i = 0; i < N; i++) {
-      this._phases[i] = Math.atan2(pattern[i], 1.0 / PHI);
+      this._phases[i] = Math.atan2(at(pattern, i), 1.0 / PHI);
     }
   }
 
@@ -1548,8 +1548,8 @@ export class L3_Kuramoto implements MemoryEngine {
     let sumRe = 0.0;
     let sumIm = 0.0;
     for (let i = 0; i < N; i++) {
-      sumRe += Math.cos(this._phases[i]);
-      sumIm += Math.sin(this._phases[i]);
+      sumRe += Math.cos(at(this._phases, i));
+      sumIm += Math.sin(at(this._phases, i));
     }
     const orderParameter = Math.sqrt(sumRe * sumRe + sumIm * sumIm) / N;
 
@@ -1561,12 +1561,12 @@ export class L3_Kuramoto implements MemoryEngine {
     const newPhases = new Float64Array(N);
     for (let i = 0; i < N; i++) {
       // Natural frequency term
-      let dTheta = this._naturalFrequencies[i];
+      let dTheta = at(this._naturalFrequencies, i);
 
       // Coupling term: K/N · Σ_j sin(θ_j - θ_i)
       let coupling = 0.0;
       for (let j = 0; j < N; j++) {
-        coupling += Math.sin(this._phases[j] - this._phases[i]);
+        coupling += Math.sin(at(this._phases, j) - at(this._phases, i));
       }
       coupling *= this.coupling_strength / N;
       dTheta += coupling;
@@ -1577,11 +1577,11 @@ export class L3_Kuramoto implements MemoryEngine {
 
       // Update phase (Euler step, dt = 1/φ for stability)
       const dt = 1.0 / PHI;
-      newPhases[i] = this._phases[i] + dTheta * dt;
+      newPhases[i] = at(this._phases, i) + dTheta * dt;
 
       // Wrap to [0, 2π)
       newPhases[i] = at(newPhases, i) % (2.0 * PI);
-      if (at(newPhases, i) < 0) newPhases[i] += 2.0 * PI;
+      if (at(newPhases, i) < 0) newPhases[i] = at(newPhases, i) + 2.0 * PI;
     }
 
     // Update stored phases
@@ -1594,15 +1594,15 @@ export class L3_Kuramoto implements MemoryEngine {
     if (orderParameter > this.locking_threshold) {
       const meanFreq = 1.0; // target mean frequency
       for (let i = 0; i < N; i++) {
-        const freqError = meanFreq - this._naturalFrequencies[i];
-        this._naturalFrequencies[i] += this.adaptation_rate * freqError * orderParameter;
+        const freqError = meanFreq - at(this._naturalFrequencies, i);
+        this._naturalFrequencies[i] = at(this._naturalFrequencies, i) + this.adaptation_rate * freqError * orderParameter;
       }
     }
 
     // Step 5: Output synchronized pattern
     // Output = pattern + phase-synchronization signal
     for (let i = 0; i < N; i++) {
-      const syncSignal = Math.sin(meanPhase - this._phases[i]) * this.coupling_strength * orderParameter;
+      const syncSignal = Math.sin(meanPhase - at(this._phases, i)) * this.coupling_strength * orderParameter;
       result[i] = at(pattern, i) + syncSignal;
     }
 
@@ -1684,7 +1684,7 @@ export class L4_Sensory implements MemoryEngine {
     // Normalize salience to [0, 1] via φ-scaled softmax
     let maxSalience = 0.0;
     for (let i = 0; i < N; i++) {
-      if (at(salience, i) > maxSalience) maxSalience = salience[i];
+      if (at(salience, i) > maxSalience) maxSalience = at(salience, i);
     }
     const attentionWeights = new Float64Array(N);
     let attentionSum = 0.0;
@@ -1693,7 +1693,7 @@ export class L4_Sensory implements MemoryEngine {
       attentionSum += at(attentionWeights, i);
     }
     for (let i = 0; i < N; i++) {
-      attentionWeights[i] /= (attentionSum + 1e-300);
+      attentionWeights[i] = at(attentionWeights, i) / (attentionSum + 1e-300);
     }
 
     // Step 2: Temporal integration — moving average with φ-scaled window
@@ -1704,7 +1704,7 @@ export class L4_Sensory implements MemoryEngine {
         let weightSum = 0.0;
         for (let h = 0; h < this._sensoryHistory.length; h++) {
           const weight = Math.pow(PHI_INV, this._sensoryHistory.length - 1 - h); // recent = more weight
-          const hist = this._sensoryHistory[h];
+          const hist = at(this._sensoryHistory, h);
           if (i < hist.length) {
             sum += at(hist, i) * weight;
             weightSum += weight;
@@ -1732,13 +1732,13 @@ export class L4_Sensory implements MemoryEngine {
     // Step 4: Sensory fusion — combine all components with attention weighting
     for (let i = 0; i < N; i++) {
       // Sensory fusion: current pattern + stored sensory + temporal average + binding
-      const sensoryComponent = this._sensory[i] * this.decay_rate;
+      const sensoryComponent = at(this._sensory, i) * this.decay_rate;
       const patternComponent = at(pattern, i) * (1.0 - this.decay_rate);
       const temporalComponent = at(temporalAverage, i) * (1.0 / PHI);
       const bindingComponent = at(bindingStrength, i) * (1.0 / (PHI * PHI));
 
       // Attention-weighted fusion: high-salience regions get more weight
-      const attentionWeight = attentionWeights[i];
+      const attentionWeight = at(attentionWeights, i);
       const unattendedWeight = (1.0 - attentionWeight) / (PHI * PHI);
 
       const fused =
@@ -1805,11 +1805,11 @@ export class L4p_WeightedRAM implements MemoryEngine {
       const N = Math.min(pattern.length, this._global.length);
       for (let i = 0; i < N; i++) {
         // Consolidation: strengthen frequently seen patterns
-        this._consolidationCounts[i] += 1.0;
+        this._consolidationCounts[i] = at(this._consolidationCounts, i) + 1.0;
         // Blend new pattern with global memory
-        const consolidationFactor = Math.min(1.0, this._consolidationCounts[i] / this.consolidation_threshold);
+        const consolidationFactor = Math.min(1.0, at(this._consolidationCounts, i) / this.consolidation_threshold);
         this._global[i] =
-          this._global[i] * (1.0 - consolidationFactor) +
+          at(this._global, i) * (1.0 - consolidationFactor) +
           at(pattern, i) * consolidationFactor;
       }
     }
@@ -1827,7 +1827,7 @@ export class L4p_WeightedRAM implements MemoryEngine {
     // For this engine, we use the geometric mean of pattern amplitude as proxy
     let globalCoherence = 0.0;
     for (let i = 0; i < N; i++) {
-      globalCoherence += Math.abs(pattern[i]);
+      globalCoherence += Math.abs(at(pattern, i));
     }
     globalCoherence = globalCoherence > 0 ? globalCoherence / N : 0.0;
     // Normalize to [0, 1] using tanh-like normalization
@@ -1838,25 +1838,25 @@ export class L4p_WeightedRAM implements MemoryEngine {
     const coherenceWeights = new Float64Array(N);
     let coherenceSum = 0.0;
     for (let i = 0; i < N; i++) {
-      coherenceWeights[i] = Math.abs(pattern[i]) + 1e-300;
+      coherenceWeights[i] = Math.abs(at(pattern, i)) + 1e-300;
       coherenceSum += at(coherenceWeights, i);
     }
     for (let i = 0; i < N; i++) {
-      coherenceWeights[i] /= coherenceSum;
+      coherenceWeights[i] = at(coherenceWeights, i) / coherenceSum;
     }
 
     // Step 3: Memory consolidation — long-term vs short-term weighting
     const longTermWeights = new Float64Array(N);
     for (let i = 0; i < N; i++) {
       // Long-term weight = consolidation count / threshold (saturated at 1.0)
-      longTermWeights[i] = Math.min(1.0, this._consolidationCounts[i] / this.consolidation_threshold);
+      longTermWeights[i] = Math.min(1.0, at(this._consolidationCounts, i) / this.consolidation_threshold);
     }
 
     // Step 4: Forgetting curve — apply exponential decay to global memory
     // Patterns not recently reinforced decay with φ-scaled time constant
     const forgetFactor = Math.exp(-this.forgetting_rate * PHI);
     for (let i = 0; i < N; i++) {
-      this._global[i] *= forgetFactor;
+      this._global[i] = at(this._global, i) * forgetFactor;
     }
 
     // Step 5: Information density optimization
@@ -1864,7 +1864,7 @@ export class L4p_WeightedRAM implements MemoryEngine {
     // Compute information content of the pattern
     let informationContent = 0.0;
     for (let i = 0; i < N; i++) {
-      const p = Math.abs(pattern[i]) / (coherenceSum + 1e-300);
+      const p = Math.abs(at(pattern, i)) / (coherenceSum + 1e-300);
       if (p > 1e-300) {
         informationContent -= p * Math.log(p);
       }
@@ -1883,7 +1883,7 @@ export class L4p_WeightedRAM implements MemoryEngine {
       const weightSum = globalWeight + patternWeight + infoWeight + 1e-300;
 
       const integrated =
-        this._global[i] * (globalWeight / weightSum) +
+        at(this._global, i) * (globalWeight / weightSum) +
         at(pattern, i) * (patternWeight / weightSum) +
         normalizedInfo * (infoWeight / weightSum); // information density component
 

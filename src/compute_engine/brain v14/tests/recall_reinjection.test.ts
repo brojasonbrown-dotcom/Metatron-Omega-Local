@@ -25,6 +25,7 @@ import { FIELD_COMPONENTS } from "../cognition/field_genome.ts";
 import type { Thought } from "../cognition/thought.ts";
 import type { ExistenceScore } from "../existence_detector.ts";
 
+import { at } from "../core/indexing.ts";
 function makeScore(): ExistenceScore {
   return { signalScore: 0.9, persistenceScore: 1.0, coherenceScore: 0.92, relationScore: 0.28, exists: true } as ExistenceScore;
 }
@@ -64,7 +65,7 @@ function makeEngine(deltaPerCall: number): FakeEngine {
     async process(d: Float64Array) {
       this.calls.push(new Float64Array(d));
       // Simulate the field's response: a bounded perturbation scaled by deltaPerCall.
-      for (let i = 0; i < this.rootField.length; i++) this.rootField[i] += deltaPerCall;
+      for (let i = 0; i < this.rootField.length; i++) this.rootField[i] = at(this.rootField, i) + deltaPerCall;
     },
     get_state() {
       return { root_node: { state: { field_state: this.rootField } } };

@@ -36,6 +36,7 @@ import {
   SCALE_NAMES,
 } from "./core/constants.ts";
 
+import { at } from "./core/indexing.ts";
 // ───────────────────────────────────────────────────────────────────────────────
 // 1. ScaleConfig Interface (re-exported for local reference)
 // ───────────────────────────────────────────────────────────────────────────────
@@ -124,7 +125,7 @@ export class ScaleMapper {
     }
 
     // Search for closest canonical scale by absolute difference.
-    let closestN: ScaleIndex = SCALE_INDICES[0];
+    let closestN: ScaleIndex = at(SCALE_INDICES, 0);
     let minDiff: number = Math.abs(n - closestN);
 
     for (const candidate of SCALE_INDICES) {

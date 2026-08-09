@@ -44,8 +44,8 @@ function magnitudeSpectrum(complex: Float64Array): Float64Array {
   const N = complex.length / 2;
   const result = new Float64Array(N);
   for (let k = 0; k < N; k++) {
-    const re = complex[2 * k];
-    const im = complex[2 * k + 1];
+    const re = at(complex, 2 * k);
+    const im = at(complex, 2 * k + 1);
     result[k] = Math.sqrt(re * re + im * im);
   }
   return result;
@@ -130,7 +130,7 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
     for (let j = 0; j < NUM_NODES; j++) {
       const diff = Math.abs(i - j);
       const isFibonacci = diff === 1 || diff === 2 || diff === 3 || diff === 5 || diff === 8 || diff === 13;
-      adjacency[i][j] = isFibonacci && i !== j ? 1.0 : 0.0;
+      at(adjacency, i)[j] = isFibonacci && i !== j ? 1.0 : 0.0;
     }
   }
   const harmonics: Float64Array[] = [];
@@ -149,7 +149,7 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
   for (let h = 0; h < harmonics.length; h++) {
     let dot = 0.0;
     for (let i = 0; i < N; i++) {
-      dot += at(input, i) * at(harmonics, h)[i];
+      dot += at(input, i) * at(at(harmonics, h), i);
     }
     harmonicCoeffs[h] = dot / N;
   }
@@ -160,11 +160,11 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
   for (let iter = 0; iter < 3; iter++) {
     const newValues = new Float64Array(NUM_NODES);
     for (let i = 0; i < NUM_NODES; i++) {
-      let sum = latticeValues[i];
+      let sum = at(latticeValues, i);
       let degree = 1.0;
       for (let j = 0; j < NUM_NODES; j++) {
-        if (at(adjacency, i)[j] > 0) {
-          sum += at(latticeValues, j) * at(adjacency, i)[j];
+        if (at(at(adjacency, i), j) > 0) {
+          sum += at(latticeValues, j) * at(at(adjacency, i), j);
           degree += 1.0;
         }
       }
@@ -177,10 +177,10 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const latticeIdx = i % NUM_NODES;
-    const latticeContribution = latticeValues[latticeIdx];
+    const latticeContribution = at(latticeValues, latticeIdx);
     let harmonicContribution = 0.0;
     for (let h = 0; h < harmonics.length; h++) {
-      harmonicContribution += at(harmonicCoeffs, h) * at(harmonics, h)[i];
+      harmonicContribution += at(harmonicCoeffs, h) * at(at(harmonics, h), i);
     }
     const blend = PHI_INV;
     result[i] = latticeContribution * (1.0 - blend) * 0.5 + harmonicContribution * blend * 0.5 + at(fieldState, i) * (1.0 / PHI);
@@ -271,7 +271,7 @@ function computeF5_ColorMusic(input: Float64Array, fieldState: Float64Array): Fl
   for (let i = 0; i < N; i++) {
     const massFreq = at(input, i) * massFreqConversion;
     const harmonicWeight = at(harmonicSeries, i % N) / (baseFreq + 1e-300);
-    const colorWeight = colorWeights[i];
+    const colorWeight = at(colorWeights, i);
     const musicWeight = 1.0 + at(musicalIntervals, i);
     const spectralTransform = massFreq * (1.0 / PHI) * harmonicWeight * colorWeight * musicWeight;
     const normalized = Math.atan(spectralTransform) / (PI / 2.0);
@@ -298,12 +298,12 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
     permutationMatrix[i] = [];
     for (let j = 0; j < NUM_LETTERS; j++) {
       const step = (j - i + NUM_LETTERS) % NUM_LETTERS;
-      permutationMatrix[i][j] = 1.0 / (at(gematriaValues, step) + 1.0);
+      at(permutationMatrix, i)[j] = 1.0 / (at(gematriaValues, step) + 1.0);
     }
   }
   const cyclicTransformed = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const letterIdx = letterIndices[i];
+    const letterIdx = at(letterIndices, i);
     let sum = 0.0;
     for (let j = 0; j < NUM_LETTERS; j++) {
       const inputIdx = (i + j) % N;
@@ -325,10 +325,10 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
     }
   }
   let totalEncoded = 0.0;
-  for (let i = 0; i < encoded154.length; i++) totalEncoded += Math.abs(encoded154[i]);
+  for (let i = 0; i < encoded154.length; i++) totalEncoded += Math.abs(at(encoded154, i));
   let entropySum = 0.0;
   for (let i = 0; i < encoded154.length; i++) {
-    const p = Math.abs(encoded154[i]) / (totalEncoded + 1e-300);
+    const p = Math.abs(at(encoded154, i)) / (totalEncoded + 1e-300);
     if (p > 0) entropySum -= p * Math.log(p);
   }
   const normalizedEntropy = entropySum / Math.log(NUM_LETTERS * SEPTENARY_LEVELS);
@@ -362,7 +362,7 @@ function computeF7_Thermodynamic(input: Float64Array, fieldState: Float64Array):
   for (let i = 0; i < N; i++) probabilities[i] = (at(fieldState, i) * at(fieldState, i)) / (totalAmplitude + 1e-300);
   let entropy = 0.0;
   for (let i = 0; i < N; i++) {
-    const p = probabilities[i];
+    const p = at(probabilities, i);
     if (p > 1e-300) entropy -= p * Math.log(p);
   }
   const maxEntropy = Math.log(N);
@@ -375,7 +375,7 @@ function computeF7_Thermodynamic(input: Float64Array, fieldState: Float64Array):
   const learningRate = 1.0 / (PHI * PHI * N);
   const gradientDescent = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const psi = fieldState[i];
+    const psi = at(fieldState, i);
     const p = probabilities[i];
     const logP = p > 1e-300 ? Math.log(p) : 0.0;
     const dFdPsi = 2.0 * psi - temperature * (1.0 + logP) * Math.sign(psi);
@@ -412,7 +412,7 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
   const levelOutputs: Float64Array[] = [];
   const level0 = new Float64Array(N);
   let inputMax = 0.0;
-  for (let i = 0; i < N; i++) if (Math.abs(input[i]) > inputMax) inputMax = Math.abs(input[i]);
+  for (let i = 0; i < N; i++) if (Math.abs(at(input, i)) > inputMax) inputMax = Math.abs(at(input, i));
   const normFactor = inputMax > 0 ? 1.0 / inputMax : 1.0;
   for (let i = 0; i < N; i++) level0[i] = at(input, i) * normFactor;
   levelOutputs.push(level0);
@@ -477,7 +477,7 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
     let weightSum = 0.0;
     for (let l = 0; l < levelOutputs.length; l++) {
       const weight = Math.pow(PHI_INV, l);
-      transcendence += at(levelOutputs, l)[i] * weight;
+      transcendence += at(at(levelOutputs, l), i) * weight;
       weightSum += weight;
     }
     level6[i] = transcendence / (weightSum + 1e-300);
@@ -487,23 +487,23 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
   for (let i = 0; i < N; i++) {
     let variance = 0.0;
     for (let l = 0; l < NUM_LEVELS; l++) {
-      variance += Math.pow(at(levelOutputs, l)[i] - at(level6, i), 2);
+      variance += Math.pow(at(at(levelOutputs, l), i) - at(level6, i), 2);
     }
     informationContent[i] = Math.sqrt(variance / NUM_LEVELS);
   }
   const attentionWeights = new Float64Array(N);
   let maxInfo = 0.0;
-  for (let i = 0; i < N; i++) if (at(informationContent, i) > maxInfo) maxInfo = informationContent[i];
+  for (let i = 0; i < N; i++) if (at(informationContent, i) > maxInfo) maxInfo = at(informationContent, i);
   let attentionSum = 0.0;
   for (let i = 0; i < N; i++) {
     attentionWeights[i] = Math.exp((at(informationContent, i) - maxInfo) * PHI);
     attentionSum += at(attentionWeights, i);
   }
-  for (let i = 0; i < N; i++) attentionWeights[i] /= (attentionSum + 1e-300);
+  for (let i = 0; i < N; i++) attentionWeights[i] = at(attentionWeights, i) / (attentionSum + 1e-300);
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const attentionOutput = at(level6, i) * at(attentionWeights, i) * PHI;
-    const biasCorrection = 1.0 / (1.0 + Math.abs(level6[i]) * PHI_INV);
+    const biasCorrection = 1.0 / (1.0 + Math.abs(at(level6, i)) * PHI_INV);
     const correctedOutput = attentionOutput * biasCorrection;
     result[i] = correctedOutput * (1.0 - 1.0 / PHI) + at(fieldState, i) * (1.0 / PHI);
   }
@@ -601,9 +601,9 @@ function computeL4p_WeightedRAM(input: Float64Array): Float64Array {
   const N = input.length;
   const result = new Float64Array(N);
   let totalWeight = 0.0;
-  for (let i = 0; i < N; i++) totalWeight += Math.abs(input[i]);
+  for (let i = 0; i < N; i++) totalWeight += Math.abs(at(input, i));
   for (let i = 0; i < N; i++) {
-    const weight = Math.abs(input[i]) / (totalWeight + 1e-300);
+    const weight = Math.abs(at(input, i)) / (totalWeight + 1e-300);
     result[i] = at(input, i) * weight * PHI_INV;
   }
   return result;

@@ -116,7 +116,7 @@ export function flattenTree(root: FractalNode): FlatTree {
   // ── BFS: order[] doubles as the queue; head walks it. ────────────────────
   const order: FractalNode[] = [root];
   for (let head = 0; head < order.length; head++) {
-    const node = order[head];
+    const node = at(order, head);
     for (const child of node.children) order.push(child);
   }
   const indexOf = new Map<FractalNode, number>();

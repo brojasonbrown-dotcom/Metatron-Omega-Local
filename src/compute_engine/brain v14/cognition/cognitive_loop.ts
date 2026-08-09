@@ -655,7 +655,7 @@ export class CognitiveLoop {
     h.update("|");
     h.update(thought.sources.join(","));
     h.update("|");
-    for (let i = 0; i < thought.field.length; i++) h.update(String(thought.field[i].toFixed(6)));
+    for (let i = 0; i < thought.field.length; i++) h.update(String(at(thought.field, i).toFixed(6)));
     h.update("|");
     h.update(labels.join(","));
     return h.digest("hex").slice(0, 16);

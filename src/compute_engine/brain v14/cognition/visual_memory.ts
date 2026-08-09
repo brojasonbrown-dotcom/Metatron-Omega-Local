@@ -81,9 +81,9 @@ export function pHash(grid: Float64Array, w: number, h: number): bigint {
   const dct = dct2d(thumb, T);
   // Median of the low-frequency terms, excluding the DC term (index 0).
   const terms: number[] = [];
-  for (let i = 1; i < T * T; i++) terms.push(dct[i]);
+  for (let i = 1; i < T * T; i++) terms.push(at(dct, i));
   const sorted = [...terms].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)];
+  const median = at(sorted, Math.floor(sorted.length / 2));
   let bits = 0n;
   for (let i = 0; i < T * T; i++) {
     if (at(dct, i) > median) bits |= 1n << BigInt(i);

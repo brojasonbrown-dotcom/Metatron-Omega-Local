@@ -32,6 +32,7 @@ import {
 } from "./../schemas/validate.ts";
 import { MATHSTRAL_MODEL, PHI_MODEL } from "./ollama_supervisor.ts";
 
+import { at } from "../core/indexing.ts";
 /** Outcome of a tool invocation (success payload or an honest failure). */
 export type ToolOutcome<T> =
   | { readonly ok: true; readonly value: T; readonly rawText: string; readonly elapsedMs: number }
@@ -157,7 +158,7 @@ export class LlmTool {
       `Its mood is ${mood}. ` +
       `Speak ONE short first-person sentence (max 20 words) expressing what it notices or wonders. ` +
       `No quotes, no preamble.`;
-    const out = await this._generate(this._languageModel, prompt, false, TIMEOUT_LADDER_MS[0]);
+    const out = await this._generate(this._languageModel, prompt, false, at(TIMEOUT_LADDER_MS, 0));
     if (!out.ok) return out;
     const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 300);
     if (text.length === 0) {
@@ -217,7 +218,7 @@ export class LlmTool {
       `Do NOT introduce any new numbers or claims — only perspective on what the facts mean.\n` +
       `FACTS (the only truth you may reference):\n${context.engineFacts || "(none computed for this query)"}\n\n` +
       `ANSWER:`;
-    const out = await this._generate(this._languageModel, prompt, false, TIMEOUT_LADDER_MS[0], numPredict);
+    const out = await this._generate(this._languageModel, prompt, false, at(TIMEOUT_LADDER_MS, 0), numPredict);
     if (!out.ok) return out;
     const cleaned = out.value.trim().replace(/^["']+|["']+$/g, "");
     const text = LlmTool._truncateAtSentence(cleaned, charCap);
@@ -269,7 +270,7 @@ export class LlmTool {
     let lastReason = "no attempts made";
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const timeout = TIMEOUT_LADDER_MS[attempt];
+      const timeout = at(TIMEOUT_LADDER_MS, attempt);
       const gen = await this._generate(model, prompt, true, timeout);
       if (!gen.ok) {
         lastReason = gen.reason;

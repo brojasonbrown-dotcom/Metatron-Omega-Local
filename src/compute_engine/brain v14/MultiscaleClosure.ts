@@ -161,7 +161,7 @@ export class MultiscaleClosure {
     const n = nodes.length;
     if (n === 0) return 0;
     let sum = 0;
-    for (let i = 0; i < n; i++) sum += this.computeLocalClosure(nodes[i]);
+    for (let i = 0; i < n; i++) sum += this.computeLocalClosure(at(nodes, i));
     return (sum / n) as Float64;
   }
 
@@ -182,7 +182,7 @@ export class MultiscaleClosure {
     let count = 0;
     for (let offset = -radius; offset <= radius; offset++) {
       const idx = (index + offset + n) % n;
-      const neighbor = nodes[idx];
+      const neighbor = at(nodes, idx);
       sumField += neighbor.field;
       sumSin += Math.sin(neighbor.phase);
       sumCos += Math.cos(neighbor.phase);
@@ -333,7 +333,7 @@ export class MultiscaleClosure {
     for (let i = 0; i < scales.length; i++) {
       for (let j = i + 1; j < scales.length; j++) {
         const key = `${scales[i]}_${scales[j]}`;
-        map.set(key, this.computeCrossScaleClosure(nodes, scales[i], scales[j]));
+        map.set(key, this.computeCrossScaleClosure(nodes, at(scales, i), scales[j]));
       }
     }
     return map;

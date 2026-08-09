@@ -180,7 +180,7 @@ export class NecessityComplexity {
     if (matrix.length === 0) return 0.0 as Float64;
     let sumSq = 0.0;
     for (let i = 0; i < matrix.length; i++) {
-      const row = matrix[i];
+      const row = at(matrix, i);
       for (let j = 0; j < row.length; j++) {
         const v = at(row, j) ?? 0;
         sumSq += v * v;

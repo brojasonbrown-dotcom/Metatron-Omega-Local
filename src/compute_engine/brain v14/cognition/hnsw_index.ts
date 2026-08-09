@@ -135,9 +135,9 @@ export class HnswIndex {
       for (const nb of neighbors) {
         const nbNode = this._nodes.get(nb.id)!;
         if (layer < nbNode.neighbors.length) {
-          nbNode.neighbors[layer].push(id);
+          at(nbNode.neighbors, layer).push(id);
           // Prune the neighbor's list back to M closest.
-          if (nbNode.neighbors[layer].length > this.M) {
+          if (at(nbNode.neighbors, layer).length > this.M) {
             nbNode.neighbors[layer] = this._pruneNeighbors(nbNode, layer);
           }
         }
@@ -247,7 +247,7 @@ export class HnswIndex {
       const c = candidates.shift()!;
       // Furthest result.
       results.sort((a, b) => b.dist - a.dist);
-      const furthest = results[0];
+      const furthest = at(results, 0);
       if (c.dist > furthest.dist && results.length >= ef) break;
 
       const cNode = this._nodes.get(c.id);
@@ -259,7 +259,7 @@ export class HnswIndex {
         if (!nb) continue;
         const d = fieldDistance(query, nb.field);
         results.sort((a, b) => b.dist - a.dist);
-        const worst = results[0];
+        const worst = at(results, 0);
         if (results.length < ef || d < worst.dist) {
           candidates.push({ id: nbId, dist: d });
           results.push({ id: nbId, dist: d });
@@ -284,7 +284,7 @@ export class HnswIndex {
 
   /** Prune a node's neighbor list at `layer` to its M closest neighbors. */
   private _pruneNeighbors(node: HnswNode, layer: number): string[] {
-    const withDist = node.neighbors[layer]
+    const withDist = at(node.neighbors, layer)
       .map((id) => {
         const nb = this._nodes.get(id);
         return nb && !nb.deleted ? { id, dist: fieldDistance(node.field, nb.field) } : null;

@@ -17,6 +17,7 @@ import { ConceptRegistry } from "../cognition/concept_registry.ts";
 import { MemoryStore } from "../cognition/memory_store.ts";
 import { decodeFieldBase64, encodeFieldBase64 } from "../schemas/validate.ts";
 
+import { at } from "../core/indexing.ts";
 /** A raw sensory field (distinct geometry from encodeText). */
 function percept(seed: number): Float64Array {
   const g = new Float64Array(64);
@@ -166,8 +167,8 @@ describe("MemoryStore journal", () => {
       .split("\n")
       .filter((l) => l.length > 0);
     expect(lines.length).toBe(2);
-    expect(JSON.parse(lines[0]).kind).toBe("boot");
-    expect(JSON.parse(lines[1]).kind).toBe("thought");
+    expect(JSON.parse(at(lines, 0)).kind).toBe("boot");
+    expect(JSON.parse(at(lines, 1)).kind).toBe("thought");
   });
 });
 

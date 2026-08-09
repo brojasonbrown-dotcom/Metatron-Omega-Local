@@ -364,7 +364,7 @@ export class MultiscaleStabilization {
       const field = at(perScaleResults, s).stabilizedField;
       const w = weights[s] ?? 0;
       for (let i = 0; i < field.length && i < maxLen; i++) {
-        blended[i] += (field[i] ?? 0) * w;
+        blended[i] = at(blended, i) + (field[i] ?? 0) * w;
       }
     }
 
@@ -420,7 +420,7 @@ export class MultiscaleStabilization {
 
     for (let i = 0; i < count; i++) {
       const w = weights[i] ?? 0;
-      const r = perScaleResults[i];
+      const r = at(perScaleResults, i);
       weightedClosure += r.closureScore * w;
       weightedCoherence += r.coherenceScore * w;
       weightedStability += r.localStability * w;
@@ -479,7 +479,7 @@ export class MultiscaleStabilization {
     const weights = computeNormalizedWeights(count);
     const perScale: ScaleStabilizationResult[] = [];
     for (let i = 0; i < count; i++) {
-      perScale.push(this.stabilizeAtScale(inputs[i]));
+      perScale.push(this.stabilizeAtScale(at(inputs, i)));
     }
 
     const combinedField = this.blendStabilizedFields(perScale, weights);

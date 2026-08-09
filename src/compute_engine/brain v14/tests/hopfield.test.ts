@@ -152,6 +152,6 @@ describe("HopfieldMemory", () => {
     mem.store(orthogonalField(1));
     const copy = mem.patterns()[0];
     copy[0] = 999;
-    expect(mem.patterns()[0][0]).not.toBe(999);
+    expect(at(mem.patterns(), 0)[0]).not.toBe(999);
   });
 });

@@ -257,8 +257,8 @@ export class InterferenceStructure {
     const beatSet = new Set<number>();
 
     for (let k = 0; k < M; k++) {
-      const ak = amplitudes[k];
-      const thetaK = phases[k];
+      const ak = at(amplitudes, k);
+      const thetaK = at(phases, k);
 
       selfIntensity += ak * ak;
       sumCos += Math.cos(thetaK);
@@ -314,11 +314,11 @@ export class InterferenceStructure {
     // ── Per-mode interference quality ─────────────────────────────────
     const quality = new Float64Array(M);
     for (let k = 0; k < M; k++) {
-      let q = amplitudes[k]; // j = k term (lock_{kk} = 1, cos(0) = 1)
+      let q = at(amplitudes, k); // j = k term (lock_{kk} = 1, cos(0) = 1)
       for (let j = 0; j < M; j++) {
         if (j === k) continue;
         const idx = k * M + j;
-        const lockVal = locks[idx];
+        const lockVal = at(locks, idx);
         if (lockVal > 0.0) {
           q += at(amplitudes, j) * at(coherence, idx) * lockVal;
         }

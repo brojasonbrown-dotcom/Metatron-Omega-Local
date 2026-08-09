@@ -195,7 +195,7 @@ export class BurdenTracker {
 
     const scaleMap = new Map<number, { sum: number; count: number }>();
     for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
+      const node = at(nodes, i);
       const existing = scaleMap.get(node.scaleIndex);
       if (existing) {
         existing.sum += node.field;

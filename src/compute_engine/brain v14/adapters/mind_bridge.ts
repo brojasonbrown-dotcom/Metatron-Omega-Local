@@ -36,6 +36,7 @@ import type { InstrumentRouter, InstrumentId } from "./../cognition/instrument_r
 import type { OllamaSupervisor } from "./ollama_supervisor.ts";
 import type { DomainCurriculum, Corpus, CorpusResult } from "./domain_curriculum.ts";
 
+import { at } from "../core/indexing.ts";
 export interface MindBridgeDeps {
   readonly bus: SensorBus;
   readonly store: MemoryStore;
@@ -248,7 +249,7 @@ export class MindBridge {
       // recognition strength (resonance ≥ λ = φ⁻²), answer from the glossary
       // itself — no LLM call, no hallucination surface, instant recall.
       const glossary = this._deps.glossary;
-      const topMatch = matches[0];
+      const topMatch = at(matches, 0);
       // P1.3 — MARGIN RULE: in a tiny lexicon the top match can clear λ while
       // still being off-topic (a near-tie with the runner-up). Require the top
       // match to clearly WIN: resonance(top) − resonance(runner-up) ≥ φ⁻².

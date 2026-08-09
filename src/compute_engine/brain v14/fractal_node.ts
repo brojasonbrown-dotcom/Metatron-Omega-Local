@@ -594,13 +594,13 @@ export class FractalNode {
         const fwOutput = fw.compute(realInput, realInput); // input = realInput, field_state = realInput
         // Add framework contribution (weighted by 1/φ per framework for stability)
         for (let i = 0; i < realInputSize; i++) {
-          frameworkSum[i] += at(fwOutput, i) * (1.0 / PHI) / this._frameworkComputes.length;
+          frameworkSum[i] = at(frameworkSum, i) + at(fwOutput, i) * (1.0 / PHI) / this._frameworkComputes.length;
         }
       }
 
       // Convert framework output back to interleaved complex and add to totalField
       for (let i = 0; i < realInputSize; i++) {
-        const contribution = frameworkSum[i];
+        const contribution = at(frameworkSum, i);
         // Distribute evenly between real and imaginary parts
         totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i, this.scale))) as Float64;
         totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i, this.scale))) as Float64;
@@ -616,7 +616,7 @@ export class FractalNode {
         const memOutput = mem.recall(realInput);
         // Add memory contribution (weighted by 1/φ² per memory for stability)
         for (let i = 0; i < realInputSize; i++) {
-          memorySum[i] += at(memOutput, i) * (1.0 / (PHI * PHI)) / this._memoryComputes.length;
+          memorySum[i] = at(memorySum, i) + at(memOutput, i) * (1.0 / (PHI * PHI)) / this._memoryComputes.length;
         }
       }
 
@@ -652,8 +652,8 @@ export class FractalNode {
     // ── Compute energy density (geometric norm squared, normalized) ────────
     let energySum = 0;
     for (let i = 0; i < fieldSize; i += 2) {
-      const re = totalField[i];
-      const im = totalField[i + 1];
+      const re = at(totalField, i);
+      const im = at(totalField, i + 1);
       energySum += re * re + im * im;
     }
     const energyDensity = (energySum / (N + 1)) as Float64;
@@ -926,7 +926,7 @@ export class FractalNode {
     const fieldLen = this._state.field_state.length;
     const scaledField = new Float64Array(fieldLen);
     for (let i = 0; i < fieldLen; i++) {
-      scaledField[i] = (this._state.field_state[i] * fidelity) as Float64;
+      scaledField[i] = (at(this._state.field_state, i) * fidelity) as Float64;
     }
 
     return {

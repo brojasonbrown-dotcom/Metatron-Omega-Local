@@ -251,7 +251,7 @@ export class ActualizationEngine {
         next[i] = (c + lambda * (b - c)) as Float64;
 
         // Clamp to prevent overflow
-        if (!isFinite(next[i])) next[i] = 0 as Float64;
+        if (!isFinite(at(next, i))) next[i] = 0 as Float64;
         if (at(next, i) > 1e150) next[i] = 1e150 as Float64;
         if (at(next, i) < -1e150) next[i] = -1e150 as Float64;
       }
@@ -289,7 +289,7 @@ export class ActualizationEngine {
         const b = boundary[i] ?? 0;
         next[i] = (c + totalRate * (b - c)) as Float64;
 
-        if (!isFinite(next[i])) next[i] = 0 as Float64;
+        if (!isFinite(at(next, i))) next[i] = 0 as Float64;
         if (at(next, i) > 1e150) next[i] = 1e150 as Float64;
         if (at(next, i) < -1e150) next[i] = -1e150 as Float64;
       }
@@ -420,7 +420,7 @@ export class ActualizationEngine {
     const results: ActualizationResult[] = [];
     for (let i = 0; i < scales.length; i++) {
       const b = Array.isArray(boundary) ? boundary[i] ?? boundary[0] : boundary;
-      results.push(this.actualize(scales[i], b, options));
+      results.push(this.actualize(at(scales, i), b, options));
     }
 
     // Blend actualized fields using φ^(-i) weights
@@ -432,7 +432,7 @@ export class ActualizationEngine {
       const weight = Math.pow(PHI_INV, i);
       const actualized = at(results, i).actualized;
       for (let j = 0; j < actualized.length && j < maxLen; j++) {
-        blended[j] += (actualized[j] ?? 0) * weight;
+        blended[j] = at(blended, j) + (actualized[j] ?? 0) * weight;
       }
       totalWeight += weight;
     }

@@ -49,6 +49,7 @@ import {
 } from "./../schemas/validate.ts";
 import type { LanguageInstrument, ToolOutcome } from "./language_instrument.ts";
 
+import { at } from "../core/indexing.ts";
 export type { ToolOutcome };
 
 /** φ-scaled timeout ladder per attempt: 34s, 55s, 89s (Fibonacci). [SPEC] */
@@ -166,7 +167,7 @@ export class KimiK3Tool implements LanguageInstrument {
       `Its mood is ${mood}. ` +
       `Speak ONE short first-person sentence (max 20 words) expressing what it notices or wonders. ` +
       `No quotes, no preamble.`;
-    const out = await this._generate(this._config.languageModel, prompt, false, TIMEOUT_LADDER_MS[0]);
+    const out = await this._generate(this._config.languageModel, prompt, false, at(TIMEOUT_LADDER_MS, 0));
     if (!out.ok) return out;
     const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 300);
     if (text.length === 0) {
@@ -209,7 +210,7 @@ export class KimiK3Tool implements LanguageInstrument {
       `Do NOT introduce any new numbers or claims — only perspective on what the facts mean.\n` +
       `FACTS (the only truth you may reference):\n${context.engineFacts || "(none computed for this query)"}\n\n` +
       `ANSWER:`;
-    const out = await this._generate(this._config.languageModel, prompt, false, TIMEOUT_LADDER_MS[0], maxTokens);
+    const out = await this._generate(this._config.languageModel, prompt, false, at(TIMEOUT_LADDER_MS, 0), maxTokens);
     if (!out.ok) return out;
     const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, charCap);
     if (text.length === 0) {
@@ -231,7 +232,7 @@ export class KimiK3Tool implements LanguageInstrument {
     let lastReason = "no attempts made";
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const timeout = TIMEOUT_LADDER_MS[attempt];
+      const timeout = at(TIMEOUT_LADDER_MS, attempt);
       const gen = await this._generate(model, prompt, true, timeout);
       if (!gen.ok) {
         lastReason = gen.reason;

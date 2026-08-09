@@ -23,6 +23,7 @@ import {
   PI,
 } from "./core/constants.ts";
 
+import { at } from "./core/indexing.ts";
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
 
@@ -385,7 +386,7 @@ export class ToroidalMemory {
   update(current: Float64Array): void {
     const len = Math.min(current.length, this._memory.length);
     for (let i = 0; i < len; i++) {
-      this._memory[i] = (this._alpha * (current[i] ?? 0) + this._beta * this._memory[i]) as Float64;
+      this._memory[i] = (this._alpha * (current[i] ?? 0) + this._beta * at(this._memory, i)) as Float64;
     }
   }
 

@@ -11,6 +11,7 @@ import {
 import { FIELD_SIZE } from "./../adapters/language_codec.ts";
 import { fieldFromLuminanceGrid } from "./../adapters/sensors/signal_codec.ts";
 
+import { at } from "../core/indexing.ts";
 function makeField(seed: number): Float64Array {
   const w = 8, h = 8;
   const g = new Float64Array(w * h);
@@ -33,15 +34,15 @@ describe("pq_codec", () => {
     expect(pq.centroidsPerSubspace).toBe(PQ_CENTROIDS);
     expect(pq.subDim).toBe(FIELD_SIZE / PQ_SUBSPACES);
     expect(pq.codebook.length).toBe(PQ_SUBSPACES);
-    expect(pq.codebook[0].length).toBe(PQ_CENTROIDS);
-    expect(pq.codebook[0][0].length).toBe(pq.subDim);
+    expect(at(pq.codebook, 0).length).toBe(PQ_CENTROIDS);
+    expect(at(pq.codebook, 0)[0].length).toBe(pq.subDim);
   });
 
   it("training is deterministic", () => {
     const a = trainPQ(trainingSet(40));
     const b = trainPQ(trainingSet(40));
-    expect(a.codebook[0][0]).toEqual(b.codebook[0][0]);
-    expect(a.codebook[3][255]).toEqual(b.codebook[3][255]);
+    expect(at(a.codebook, 0)[0]).toEqual(at(b.codebook, 0)[0]);
+    expect(at(a.codebook, 3)[255]).toEqual(at(b.codebook, 3)[255]);
   });
 
   it("encodes to one byte per subspace", () => {

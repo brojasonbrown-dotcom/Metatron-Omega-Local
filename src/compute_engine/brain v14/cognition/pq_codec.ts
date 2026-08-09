@@ -75,7 +75,7 @@ export function trainPQ(samples: Float64Array[]): TrainedPQ {
       for (let iter = 0; iter < PQ_ITERATIONS; iter++) {
         // Assign each sub-vector to its nearest centroid.
         for (let i = 0; i < n; i++) {
-          assignments[i] = nearestCentroidIndex(subVecs[i], centroids);
+          assignments[i] = nearestCentroidIndex(at(subVecs, i), centroids);
         }
         // Recompute centroids as the mean of assigned sub-vectors.
         const sums: Float64Array[] = [];
@@ -84,12 +84,12 @@ export function trainPQ(samples: Float64Array[]): TrainedPQ {
         for (let i = 0; i < n; i++) {
           const a = assignments[i];
           counts[a]++;
-          const v = subVecs[i];
+          const v = at(subVecs, i);
           for (let d = 0; d < subDim; d++) sums[a][d] += at(v, d);
         }
         for (let c = 0; c < k; c++) {
           if (at(counts, c) > 0) {
-            for (let d = 0; d < subDim; d++) centroids[c][d] = at(sums, c)[d] / at(counts, c);
+            for (let d = 0; d < subDim; d++) at(centroids, c)[d] = at(at(sums, c), d) / at(counts, c);
           }
         }
       }
@@ -105,7 +105,7 @@ function nearestCentroidIndex(v: Float64Array, centroids: Float64Array[]): numbe
   let best = 0;
   let bestDist = Infinity;
   for (let c = 0; c < centroids.length; c++) {
-    const cen = centroids[c];
+    const cen = at(centroids, c);
     let dist = 0.0;
     for (let d = 0; d < v.length; d++) {
       const diff = at(v, d) - at(cen, d);
@@ -125,7 +125,7 @@ export function pqEncode(pq: TrainedPQ, field: Float64Array): Uint8Array {
   for (let s = 0; s < pq.subspaces; s++) {
     const offset = s * pq.subDim;
     const sub = field.slice(offset, offset + pq.subDim);
-    code[s] = nearestCentroidIndex(sub, pq.codebook[s]);
+    code[s] = nearestCentroidIndex(sub, at(pq.codebook, s));
   }
   return code;
 }
@@ -134,7 +134,7 @@ export function pqEncode(pq: TrainedPQ, field: Float64Array): Uint8Array {
 export function pqDecode(pq: TrainedPQ, code: Uint8Array): Float64Array {
   const out = new Float64Array(pq.subspaces * pq.subDim);
   for (let s = 0; s < pq.subspaces; s++) {
-    const centroid = pq.codebook[s][code[s] ?? 0];
+    const centroid = at(pq.codebook, s)[code[s] ?? 0];
     const offset = s * pq.subDim;
     for (let d = 0; d < pq.subDim; d++) out[offset + d] = at(centroid, d);
   }
@@ -148,7 +148,7 @@ export function pqDecode(pq: TrainedPQ, code: Uint8Array): Float64Array {
 export function pqAsymmetricDistance(pq: TrainedPQ, query: Float64Array, code: Uint8Array): number {
   let dist = 0.0;
   for (let s = 0; s < pq.subspaces; s++) {
-    const centroid = pq.codebook[s][code[s] ?? 0];
+    const centroid = at(pq.codebook, s)[code[s] ?? 0];
     const offset = s * pq.subDim;
     for (let d = 0; d < pq.subDim; d++) {
       const diff = at(query, offset + d) - at(centroid, d);

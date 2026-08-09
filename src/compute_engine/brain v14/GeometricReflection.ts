@@ -117,7 +117,7 @@ export function computeCurvatureInducedReturn(
         const w = Math.pow(PHI_INV, l - 2);
         const c = coeffs[idx] ?? 0;
         for (let i = 0; i < params.sphereCount; i++)
-          cField[i] += (c * _shCurvature(l, m, points[3*i], points[3*i+1], points[3*i+2]) * w) as Float64;
+          cField[i] = at(cField, i) + (c * _shCurvature(l, m, points[3*i], points[3*i+1], points[3*i+2]) * w) as Float64at64;
       }
       idx++;
     }
@@ -239,7 +239,7 @@ export function computeDirectionalProjection(
   const result = new Float64Array(len);
   for (const f of filters) {
     const filtered = directionalFilter(field, f), w = f.weight / norm;
-    for (let i = 0; i < len; i++) result[i] += (w * (filtered[i] ?? 0)) as Float64;
+    for (let i = 0; i < len; i++) result[i] = at(result, i) + (w * (filtered[i] ?? 0)) as Float64;
   }
   return result;
 }
@@ -438,7 +438,7 @@ export function multiscaleReflection(
   let tw = 0.0;
   const sum = new Float64Array(len);
   for (let s = 0; s < scales.length; s++) {
-    const scale = scales[s], weight = Math.pow(PHI_INV, s);
+    const scale = at(scales, s), weight = Math.pow(PHI_INV, s);
     tw += weight;
     const stride = Math.max(1, scale);
     const sampledLen = Math.ceil(len / stride);
@@ -456,7 +456,7 @@ export function multiscaleReflection(
     const reflected = blendBoundaryWithCurvature(sampled, sb, params);
     for (let i = 0; i < len; i++) {
       const idx = Math.floor(i / stride);
-      sum[i] += (weight * (reflected[Math.min(idx, reflected.length-1)] ?? 0)) as Float64;
+      sum[i] = at(sum, i) + (weight * (reflected[Math.min(idx, reflected.length-1)] ?? 0)) as Float64;
     }
   }
   if (tw > 1e-300) for (let i = 0; i < len; i++) sum[i] = (at(sum, i) / tw) as Float64;

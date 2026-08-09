@@ -152,16 +152,16 @@ export class DimensionalStability {
     const tensor = this._alloc();
     for (let a = 0; a < DIMENSION_COUNT; a++) {
       for (let b = 0; b < DIMENSION_COUNT; b++) {
-        tensor[a][b] = a === b
-          ? this.computeIntrinsicStability(a as DimensionIndex, vals[a])
-          : this.computeCrossDimensionalStability(a as DimensionIndex, b as DimensionIndex, vals[a], vals[b]);
+        at(tensor, a)[b] = a === b
+          ? this.computeIntrinsicStability(a as DimensionIndex, at(vals, a))
+          : this.computeCrossDimensionalStability(a as DimensionIndex, b as DimensionIndex, at(vals, a), vals[b]);
       }
     }
     for (let a = 0; a < DIMENSION_COUNT; a++) {
       for (let b = a + 1; b < DIMENSION_COUNT; b++) {
-        const sym = ((at(tensor, a)[b] + at(tensor, b)[a]) / 2.0) as Float64;
-        tensor[a][b] = sym;
-        tensor[b][a] = sym;
+        const sym = ((at(at(tensor, a), b) + at(at(tensor, b), a)) / 2.0) as Float64;
+        at(tensor, a)[b] = sym;
+        at(tensor, b)[a] = sym;
       }
     }
     return tensor;
@@ -224,7 +224,7 @@ export class DimensionalStability {
     if (len === 0) return 0.0 as Float64;
     let d = 0.0;
     for (let i = 0; i < len; i++) {
-      d += Math.abs(at(a, i) - at(b, i)) / (Math.max(Math.abs(a[i]), Math.abs(b[i])) + 1e-15);
+      d += Math.abs(at(a, i) - at(b, i)) / (Math.max(Math.abs(at(a, i)), Math.abs(at(b, i))) + 1e-15);
     }
     return (d / len) as Float64;
   }
@@ -284,7 +284,7 @@ export class DimensionalStability {
     const ideal: Float64[] = new Array(N);
     const denom = PHI_INV + 2.0 * PHI_NEG3;
     for (let i = 0; i < N; i++) {
-      const l = values[(i - 1 + N) % N], r = values[(i + 1) % N];
+      const l = at(values, (i - 1 + N) % N), r = at(values, (i + 1) % N);
       ideal[i] = ((PHI_INV * mean + PHI_NEG3 * l + PHI_NEG3 * r) / denom) as Float64;
     }
     return ideal;
@@ -299,7 +299,7 @@ export class DimensionalStability {
     if (N < 3) return 0.0 as Float64;
     let defect = 0.0;
     for (let i = 0; i < N; i++) {
-      const l = values[(i - 1 + N) % N], c = values[i], r = values[(i + 1) % N];
+      const l = values[(i - 1 + N) % N], c = at(values, i), r = values[(i + 1) % N];
       const lap = l - 2.0 * c + r;
       defect += lap * lap;
     }
@@ -317,7 +317,7 @@ export class DimensionalStability {
   computeGlobalStability(): Float64 {
     let total = 0.0;
     for (let a = 0; a < DIMENSION_COUNT; a++) {
-      for (let b = 0; b < DIMENSION_COUNT; b++) total += this.tensor[a][b];
+      for (let b = 0; b < DIMENSION_COUNT; b++) total += at(this.tensor, a)[b];
     }
     return (total / (DIMENSION_COUNT * DIMENSION_COUNT)) as Float64;
   }
@@ -337,29 +337,29 @@ export class DimensionalStability {
       let max = 0.0, p = 0, q = 0;
       for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
-          const av = Math.abs(at(M, i)[j]);
+          const av = Math.abs(at(at(M, i), j));
           if (av > max) { max = av; p = i; q = j; }
         }
       }
       if (max < 1e-15) break;
-      const diff = at(M, q)[q] - at(M, p)[p];
-      const phi = 0.5 * Math.atan2(2.0 * at(M, p)[q], diff);
+      const diff = at(at(M, q), q) - at(at(M, p), p);
+      const phi = 0.5 * Math.atan2(2.0 * at(at(M, p), q), diff);
       const c = Math.cos(phi), s = Math.sin(phi);
-      const app = at(M, p)[p], aqq = at(M, q)[q], apq = at(M, p)[q];
-      M[p][p] = (c * c * app - 2.0 * c * s * apq + s * s * aqq) as Float64;
-      M[q][q] = (s * s * app + 2.0 * c * s * apq + c * c * aqq) as Float64;
-      M[p][q] = 0.0 as Float64; M[q][p] = 0.0 as Float64;
+      const app = at(at(M, p), p), aqq = at(at(M, q), q), apq = at(at(M, p), q);
+      at(M, p)[p] = (c * c * app - 2.0 * c * s * apq + s * s * aqq) as Float64;
+      at(M, q)[q] = (s * s * app + 2.0 * c * s * apq + c * c * aqq) as Float64;
+      at(M, p)[q] = 0.0 as Float64; at(M, q)[p] = 0.0 as Float64;
       for (let i = 0; i < n; i++) {
         if (i !== p && i !== q) {
-          const aip = at(M, i)[p], aiq = at(M, i)[q];
-          M[i][p] = (c * aip - s * aiq) as Float64; M[p][i] = at(M, i)[p];
-          M[i][q] = (s * aip + c * aiq) as Float64; M[q][i] = at(M, i)[q];
+          const aip = at(at(M, i), p), aiq = at(at(M, i), q);
+          at(M, i)[p] = (c * aip - s * aiq) as Float64; at(M, p)[i] = at(M, i)[p];
+          at(M, i)[q] = (s * aip + c * aiq) as Float64; at(M, q)[i] = at(M, i)[q];
         }
       }
       for (let i = 0; i < n; i++) {
-        const vip = at(V, i)[p], viq = at(V, i)[q];
-        V[i][p] = (c * vip - s * viq) as Float64;
-        V[i][q] = (s * vip + c * viq) as Float64;
+        const vip = at(at(V, i), p), viq = at(at(V, i), q);
+        at(V, i)[p] = (c * vip - s * viq) as Float64;
+        at(V, i)[q] = (s * vip + c * viq) as Float64;
       }
     }
     return M.map((row, i) => row[i] as Float64);
@@ -383,8 +383,8 @@ export class DimensionalStability {
    * [PHIL] Perturbation propagation from α into β.
    */
   computeCrossDimensionalCoupling(src: DimensionIndex, tgt: DimensionIndex): Float64 {
-    const num = Math.abs(this.tensor[src][tgt]);
-    const denom = Math.sqrt(this.tensor[src][src] * this.tensor[tgt][tgt]) + 1e-15;
+    const num = Math.abs(at(this.tensor, src)[tgt]);
+    const denom = Math.sqrt(at(this.tensor, src)[src] * at(this.tensor, tgt)[tgt]) + 1e-15;
     return (num / denom) as Float64;
   }
 
@@ -477,7 +477,7 @@ export class DimensionalStability {
     let meas = 0.0;
     for (let a = 0; a < DIMENSION_COUNT; a++) {
       for (let b = 0; b < DIMENSION_COUNT; b++) {
-        const t = this.tensor[a][b]; meas += t * t;
+        const t = at(this.tensor, a)[b]; meas += t * t;
       }
     }
     const Meas = Math.sqrt(meas);
@@ -488,7 +488,7 @@ export class DimensionalStability {
     let sc = 0.0, pairs = 0;
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
-        sc += Math.abs(at(scale, i) - at(scale, j)) / (Math.max(Math.abs(scale[i]), Math.abs(scale[j])) + 1e-15);
+        sc += Math.abs(at(scale, i) - at(scale, j)) / (Math.max(Math.abs(at(scale, i)), Math.abs(at(scale, j))) + 1e-15);
         pairs++;
       }
     }
@@ -497,7 +497,7 @@ export class DimensionalStability {
     const len = Math.min(curr.length, prev.length);
     let tSum = 0.0;
     for (let i = 0; i < len; i++) {
-      tSum += Math.abs(at(curr, i) - at(prev, i)) / (Math.max(Math.abs(curr[i]), Math.abs(prev[i])) + 1e-15);
+      tSum += Math.abs(at(curr, i) - at(prev, i)) / (Math.max(Math.abs(at(curr, i)), Math.abs(at(prev, i))) + 1e-15);
     }
     const T = len > 0 ? tSum / len : 0.0;
     return (w_m * M + w_meas * Meas + w_c * C + w_s * SC + w_t * T) as Float64;
@@ -511,7 +511,7 @@ export class DimensionalStability {
     let sum = 0.0;
     for (let a = 0; a < DIMENSION_COUNT; a++) {
       for (let b = 0; b < DIMENSION_COUNT; b++) {
-        const d = this.tensor[a][b] - this.previousTensor[a][b];
+        const d = at(this.tensor, a)[b] - at(this.previousTensor, a)[b];
         sum += d * d;
       }
     }
@@ -523,7 +523,7 @@ export class DimensionalStability {
    * [MATH] [S_{00}, S_{11}, ..., S_{66}]
    */
   getStabilityVector(): Float64[] {
-    return Array.from({ length: DIMENSION_COUNT }, (_, i) => this.tensor[i][i]);
+    return Array.from({ length: DIMENSION_COUNT }, (_, i) => at(this.tensor, i)[i]);
   }
 }
 

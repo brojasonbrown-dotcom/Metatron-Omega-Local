@@ -26,6 +26,7 @@ import { CognitiveLoop } from "../cognition/cognitive_loop.ts";
 import { LearningModeGovernor, REPLAY_MIN_INTERVAL_TICKS } from "../cognition/learning_mode.ts";
 import { FIELD_COMPONENTS } from "../cognition/field_genome.ts";
 
+import { at } from "../core/indexing.ts";
 function rootField(k: number): Float64Array {
   const f = new Float64Array(FIELD_COMPONENTS);
   f[(2 * k) % FIELD_COMPONENTS] = 1;
@@ -144,7 +145,7 @@ describe("P6-D — learning modes + co-governor replay", () => {
     const { loop, journal } = loopWith({ engine, mode: "REPLAY", queuedSensors: 0, genomeSize: 3 });
     (loop as unknown as { _replaySweep(): void })._replaySweep();
     expect(engine.calls.length).toBe(1);
-    expect(engine.calls[0].length).toBe(FIELD_COMPONENTS);
+    expect(at(engine.calls, 0).length).toBe(FIELD_COMPONENTS);
     expect(journal.some((j) => j.kind === "replay.step")).toBe(true);
     const stats = (loop as unknown as { learningModeStats: { replaySweeps: number } }).learningModeStats;
     expect(stats.replaySweeps).toBe(1);

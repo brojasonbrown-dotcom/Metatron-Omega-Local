@@ -440,7 +440,7 @@ export class SelfMeasurementCycle {
     const results: SelfMeasurementResult[] = [];
     for (let i = 0; i < fields.length; i++) {
       const boundary = boundaries[i] ?? new Float64Array(at(fields, i).length);
-      results.push(this.cycle(fields[i], boundary));
+      results.push(this.cycle(at(fields, i), boundary));
     }
 
     // Blend next states using φ^(-i) weights (finer scales get less weight)
@@ -452,7 +452,7 @@ export class SelfMeasurementCycle {
       const weight = Math.pow(PHI_INV, i);
       const next = at(results, i).nextState;
       for (let j = 0; j < next.length && j < maxLen; j++) {
-        blended[j] += (next[j] ?? 0) * weight;
+        blended[j] = at(blended, j) + (next[j] ?? 0) * weight;
       }
       totalWeight += weight;
     }

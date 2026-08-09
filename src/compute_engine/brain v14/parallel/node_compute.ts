@@ -177,11 +177,11 @@ export function computeNodeShared(
     for (const fw of node._frameworkComputes) {
       const fwOutput = fw.compute(realInput, realInput);
       for (let i = 0; i < realInputSize; i++) {
-        frameworkSum[i] += at(fwOutput, i) * (1.0 / PHI) / node._frameworkComputes.length;
+        frameworkSum[i] = at(frameworkSum, i) + at(fwOutput, i) * (1.0 / PHI) / node._frameworkComputes.length;
       }
     }
     for (let i = 0; i < realInputSize; i++) {
-      const contribution = frameworkSum[i];
+      const contribution = at(frameworkSum, i);
       totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i, scale))) as Float64;
       totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i, scale))) as Float64;
     }
@@ -194,7 +194,7 @@ export function computeNodeShared(
       mem.store(realInput);
       const memOutput = mem.recall(realInput);
       for (let i = 0; i < realInputSize; i++) {
-        memorySum[i] += at(memOutput, i) * (1.0 / (PHI * PHI)) / node._memoryComputes.length;
+        memorySum[i] = at(memorySum, i) + at(memOutput, i) * (1.0 / (PHI * PHI)) / node._memoryComputes.length;
       }
     }
     for (let i = 0; i < realInputSize; i++) {
@@ -223,7 +223,7 @@ export function computeNodeShared(
   // ── Energy density ────────────────────────────────────────────────────────
   let energySum = 0;
   for (let i = 0; i < fieldSize; i += 2) {
-    const re = totalField[i], im = totalField[i + 1];
+    const re = at(totalField, i), im = at(totalField, i + 1);
     energySum += re * re + im * im;
   }
   const energyDensity = (energySum / (N + 1)) as Float64;
