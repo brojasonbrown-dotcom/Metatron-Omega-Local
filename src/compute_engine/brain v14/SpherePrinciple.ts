@@ -192,7 +192,7 @@ export class SpherePrinciple {
     const mags = complexMagnitudes(field);
     const proj = mags.length >= count ? mags : field;
     const coeffs = sphericalHarmonicProjection(proj, points, 0);
-    const c0 = coeffs.length > 0 ? coeffs[0] : 0.0;
+    const c0 = coeffs.length > 0 ? at(coeffs, 0) : 0.0;
     const val = c0 * (1.0 / Math.sqrt(4.0 * PI));
     const r = new Float64Array(count);
     r.fill(val);

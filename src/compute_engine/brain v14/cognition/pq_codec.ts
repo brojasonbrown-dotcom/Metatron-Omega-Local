@@ -66,7 +66,7 @@ export function trainPQ(samples: Float64Array[]): TrainedPQ {
     const n = subVecs.length;
     for (let c = 0; c < k; c++) {
       const idx = n > 0 ? Math.floor((c * n) / k) % n : 0;
-      centroids.push(n > 0 ? new Float64Array(subVecs[idx]) : new Float64Array(subDim));
+      centroids.push(n > 0 ? new Float64Array(at(subVecs, idx)) : new Float64Array(subDim));
     }
 
     // Lloyd iterations.
@@ -82,10 +82,10 @@ export function trainPQ(samples: Float64Array[]): TrainedPQ {
         const counts = new Int32Array(k);
         for (let c = 0; c < k; c++) sums.push(new Float64Array(subDim));
         for (let i = 0; i < n; i++) {
-          const a = assignments[i];
-          counts[a]++;
+          const a = at(assignments, i);
+          counts[a] = at(counts, a) + 1;
           const v = at(subVecs, i);
-          for (let d = 0; d < subDim; d++) sums[a][d] += at(v, d);
+          for (let d = 0; d < subDim; d++) at(sums, a)[d] = at(at(sums, a), d) + at(v, d);
         }
         for (let c = 0; c < k; c++) {
           if (at(counts, c) > 0) {

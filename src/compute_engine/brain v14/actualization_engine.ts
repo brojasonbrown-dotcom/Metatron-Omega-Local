@@ -419,7 +419,7 @@ export class ActualizationEngine {
 
     const results: ActualizationResult[] = [];
     for (let i = 0; i < scales.length; i++) {
-      const b = Array.isArray(boundary) ? boundary[i] ?? boundary[0] : boundary;
+      const b = Array.isArray(boundary) ? at(boundary, i) ?? at(boundary, 0) : boundary;
       results.push(this.actualize(at(scales, i), b, options));
     }
 
@@ -443,7 +443,7 @@ export class ActualizationEngine {
 
     // Use the first (coarsest) scale's existence score and components
     return {
-      ...results[0],
+      ...at(results, 0),
       actualized: blended,
     };
   }

@@ -463,7 +463,7 @@ export class SelfMeasurementCycle {
 
     // Use the first (coarsest) scale's metrics as the overall metrics
     return {
-      ...results[0],
+      ...at(results, 0),
       nextState: blended,
     };
   }

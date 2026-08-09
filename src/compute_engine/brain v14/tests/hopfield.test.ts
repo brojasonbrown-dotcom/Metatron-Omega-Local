@@ -150,7 +150,7 @@ describe("HopfieldMemory", () => {
   it("patterns() returns defensive copies", () => {
     const mem = new HopfieldMemory();
     mem.store(orthogonalField(1));
-    const copy = mem.patterns()[0];
+    const copy = at(mem.patterns(), 0);
     copy[0] = 999;
     expect(at(mem.patterns(), 0)[0]).not.toBe(999);
   });

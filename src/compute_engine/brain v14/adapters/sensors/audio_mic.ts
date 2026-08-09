@@ -242,7 +242,7 @@ export function findDshowAudioDevice(): Promise<string | null> {
         const text = String(stderr ?? "");
         const match = text.match(/"([^"]+)"\s*\((?:audio|none)\)/i)
           ?? text.match(/\[dshow[^\]]*\]\s+"([^"]+)"[\s\S]{0,80}?audio/i);
-        resolve(match ? match[1] : null);
+        resolve(match ? (match[1] ?? null) : null);
       }
     );
   });

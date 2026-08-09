@@ -67,7 +67,7 @@ describe("SensorBus validation", () => {
     expect(stats.dropped).toBe(10);
     // oldest were dropped — the first queued frame is now i=10
     const first = at(bus.drain(1), 0);
-    expect(at(first.meta, "i")).toBe("10");
+    expect(first.meta["i"]).toBe("10");
   });
 
   it("drain(max) never exceeds max and empties in order", () => {
