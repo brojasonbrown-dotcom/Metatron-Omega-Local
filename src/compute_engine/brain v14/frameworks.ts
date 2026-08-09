@@ -281,7 +281,7 @@ export class F4_Geometric implements FrameworkEngine {
     for (let i = 0; i < NUM_NODES; i++) {
       // Map input samples to lattice nodes (cyclic assignment)
       const inputIdx = i % N;
-      latticeValues[i] = input[inputIdx];
+      latticeValues[i] = at(input, inputIdx);
     }
 
     // Recursive smoothing: 3 iterations (Fibonacci-like: F_4 = 3)
@@ -300,7 +300,7 @@ export class F4_Geometric implements FrameworkEngine {
         newValues[i] = sum / degree;
       }
       for (let i = 0; i < NUM_NODES; i++) {
-        latticeValues[i] = newValues[i];
+        latticeValues[i] = at(newValues, i);
       }
     }
 
@@ -440,7 +440,7 @@ export class F5_ColorMusic implements FrameworkEngine {
     // Step 3: φ-scaled harmonic series
     // Generate harmonic series f_n = f_0 · φ^(-n) for n = 0..N-1
     const harmonicSeries = new Float64Array(N);
-    const baseFreq = at(magnitudes, 0) > 0 ? magnitudes[0] : 1.0;
+    const baseFreq = at(magnitudes, 0) > 0 ? at(magnitudes, 0) : 1.0;
     for (let n = 0; n < N; n++) {
       harmonicSeries[n] = baseFreq * Math.pow(PHI, -n);
     }
@@ -451,7 +451,7 @@ export class F5_ColorMusic implements FrameworkEngine {
     // Map frequency to wavelength and then to RGB-like weights
     const colorWeights = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const freq = at(magnitudes, i) > 0 ? magnitudes[i] : 1e-300;
+      const freq = at(magnitudes, i) > 0 ? at(magnitudes, i) : 1e-300;
       const wavelength = C / freq; // meters
       const wavelengthNm = wavelength * 1e9; // nanometers
 
@@ -563,7 +563,7 @@ export class F6_Hebrew implements FrameworkEngine {
     // Gematria values for all 22 letters (indexed by letter, not input position)
     const gematriaValues = new Float64Array(NUM_LETTERS);
     for (let i = 0; i < NUM_LETTERS; i++) {
-      gematriaValues[i] = HEBREW_GEMATRIA[i];
+      gematriaValues[i] = at(HEBREW_GEMATRIA, i);
     }
 
     // Step 2: Compute 22-fold cyclic permutation matrix
@@ -1586,7 +1586,7 @@ export class L3_Kuramoto implements MemoryEngine {
 
     // Update stored phases
     for (let i = 0; i < N; i++) {
-      this._phases[i] = newPhases[i];
+      this._phases[i] = at(newPhases, i);
     }
 
     // Step 4: Frequency adaptation
