@@ -3,3 +3,4 @@ export * from "./constants.js";
 export * from "./lucas.js";
 export * from "./provenance.js";
 export * from "./scaleTable.js";
+export * from "./scaleReconciler.js";
