@@ -16,6 +16,7 @@
 import { MASTER_EQUATION_N, PHI, PHI_INV, PI } from "./../../core/constants.ts";
 import { normalizeField } from "./../language_codec.ts";
 import { liftField } from "./../phasor_field.ts";
+import { at } from "../../core/indexing.ts";
 
 /** Number of complex modes: N + 1 = 14. [SPEC] */
 const NUM_MODES: number = MASTER_EQUATION_N + 1;
@@ -62,7 +63,7 @@ export function fieldFromLuminanceGrid(
 
   // Remove mean: structure over brightness. [SPEC]
   let mean = 0.0;
-  for (let i = 0; i < grid.length; i++) mean += grid[i];
+  for (let i = 0; i < grid.length; i++) mean += at(grid, i);
   mean /= grid.length;
 
   const field = new Float64Array(FIELD_SIZE);
@@ -77,7 +78,7 @@ export function fieldFromLuminanceGrid(
     let im = 0.0;
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const v = grid[y * width + x] - mean;
+        const v = at(grid, y * width + x) - mean;
         const phase = 2.0 * PI * ((fx * x) / width + (fy * y) / height);
         re += v * Math.cos(phase);
         im += v * Math.sin(phase);
@@ -176,7 +177,7 @@ export function hiResFieldFromLuminanceGrid(
 
   // Remove mean: structure over brightness (matches the low-res path). [SPEC]
   let mean = 0.0;
-  for (let i = 0; i < grid.length; i++) mean += grid[i];
+  for (let i = 0; i < grid.length; i++) mean += at(grid, i);
   mean /= grid.length;
 
   const field = new Float64Array(hiResFieldSize(octaves, angles));
@@ -272,7 +273,7 @@ export function fieldFromWaveform(samples: Float64Array, sampleRate: number): Fl
 
   // Remove DC offset.
   let mean = 0.0;
-  for (let i = 0; i < samples.length; i++) mean += samples[i];
+  for (let i = 0; i < samples.length; i++) mean += at(samples, i);
   mean /= samples.length;
 
   const nyquist = sampleRate / 2.0;
@@ -289,7 +290,7 @@ export function fieldFromWaveform(samples: Float64Array, sampleRate: number): Fl
     let s1 = 0.0;
     let s2 = 0.0;
     for (let n = 0; n < samples.length; n++) {
-      s0 = samples[n] - mean + coeff * s1 - s2;
+      s0 = at(samples, n) - mean + coeff * s1 - s2;
       s2 = s1;
       s1 = s0;
     }

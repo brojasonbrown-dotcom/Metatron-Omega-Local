@@ -1364,17 +1364,17 @@ function computeQuantum(
   const m_e_gev = 0.51099895e-3; // electron mass in GeV
   const bosonPhiHierarchy = [
     { name: 'W±', mass_gev: QC.W_BOSON_GEV, phi_exp: QC.W_PHI_EXP,
-      phi_power: Math.pow(PHI, 10) * m_e_gev * 1000, // φ^10 × m_e
+      phi_power: Math.pow(PHI, 10) * m_e_gev, // [FIXED] φ^10 × m_e (in GeV, consistent with mass_gev)
       correction: (QC.W_BOSON_GEV / m_e_gev) / Math.pow(PHI, 10),
       agreement: (1 - Math.abs(Math.log(QC.W_BOSON_GEV / m_e_gev) / Math.log(PHI) - 10) / QC.W_PHI_EXP) * 100,
     },
     { name: 'Z⁰', mass_gev: QC.Z_BOSON_GEV, phi_exp: QC.Z_PHI_EXP,
-      phi_power: Math.pow(PHI, 11) * m_e_gev * 1000,
+      phi_power: Math.pow(PHI, 11) * m_e_gev, // [FIXED] in GeV, consistent with mass_gev
       correction: (QC.Z_BOSON_GEV / m_e_gev) / Math.pow(PHI, 11),
       agreement: (1 - Math.abs(Math.log(QC.Z_BOSON_GEV / m_e_gev) / Math.log(PHI) - 11) / QC.Z_PHI_EXP) * 100,
     },
     { name: 'H⁰', mass_gev: QC.HIGGS_BOSON_GEV, phi_exp: QC.HIGGS_PHI_EXP,
-      phi_power: Math.pow(PHI, 11) * m_e_gev * 1000,
+      phi_power: Math.pow(PHI, 11) * m_e_gev, // [FIXED] in GeV, consistent with mass_gev
       correction: (QC.HIGGS_BOSON_GEV / m_e_gev) / Math.pow(PHI, 11),
       agreement: (1 - Math.abs(Math.log(QC.HIGGS_BOSON_GEV / m_e_gev) / Math.log(PHI) - 11) / QC.HIGGS_PHI_EXP) * 100,
     },
@@ -1385,11 +1385,12 @@ function computeQuantum(
   // The running is REAL — it reflects vacuum screening by virtual particle pairs
   // φ-connection: 137.036 - 128.9 = 8.136 ≈ φ^4.3 (vacuum polarization depth)
   const runningCouplingMZ = QC.ALPHA_INV_MZ;
-  const runningCouplingAgreement = (1 - Math.abs(runningCouplingMZ - QC.ALPHA_INV_MZ) / runningCouplingMZ) * 100;
-  // Note: agreement is 100% since we use PDG value directly
-  // The COMPUTATION is: how much does the field's running match the expected Δα
-  const deltaAlphaExpected = QC.ALPHA_INV_CODATA - QC.ALPHA_INV_MZ; // ≈ 8.136
+  // [FIXED] Original was a tautology (runningCouplingMZ === QC.ALPHA_INV_MZ → always 100%).
+  // Compute field-based running coupling from expected Δα, then compare to PDG.
+  const deltaAlphaExpected = QC.ALPHA_INV_CODATA - QC.ALPHA_INV_MZ; // ≈ 8.136 [OBSERVED]
   const deltaAlphaFieldEstimate = deltaAlphaExpected * (0.5 + 0.5 * coherence);
+  const fieldRunningCoupling = QC.ALPHA_INV_CODATA - deltaAlphaFieldEstimate;
+  const runningCouplingAgreement = (1 - Math.abs(fieldRunningCoupling - QC.ALPHA_INV_MZ) / QC.ALPHA_INV_MZ) * 100;
 
   // ═══ RYDBERG φ-DECOMPOSITION: 13.6057/φ^5 = 1.22682 ≈ 1 + κ ═══
   // Wolfram: 13.605693123 / φ^5 = 1.2268245836
@@ -1401,9 +1402,9 @@ function computeQuantum(
   // ≈ 97.5% — the 2.5% gap is the difference between κ and φ^(-4.5) scaling
 
   // ═══ STANDARD MODEL COMPLETENESS ═══
-  // 13 particles modeled out of ~17 fundamental SM particles
+  // [FIXED] 12 particles modeled out of ~17 fundamental SM particles
   // (missing: charm, bottom, top quarks, tau neutrino, muon neutrino)
-  const standardModelCompleteness = modeCount / 17; // 13/17 ≈ 0.765
+  const standardModelCompleteness = modeCount / 17; // 12/17 ≈ 0.706
 
   return {
     fineStructure: alpha_inv,
@@ -2296,7 +2297,13 @@ function computeGeometric(
     : 0;
 
   // ═══ GOLDEN SPIRAL PHASE ═══
-  const goldenSpiralPhase = Math.pow(PHI, (2 * time) / PI) % (2 * PI);
+  // [FIXED] Prevent NaN overflow: Math.pow(PHI, x) → Infinity for x > ~2300, and Infinity % (2*PI) = NaN.
+  // Use log-space modular reduction to keep the exponent finite while preserving the phase structure.
+  const logPhi = Math.log(PHI);
+  const exponent = (2 * time) / PI;
+  const periodInLogSpace = Math.log(2 * PI) / logPhi; // ≈ 5.3 [MATH]
+  const reducedExponent = exponent % periodInLogSpace;
+  const goldenSpiralPhase = Math.exp(reducedExponent * logPhi) % (2 * PI);
 
   // ═══ ZECKENDORF φ-BINARY ═══
   const cohInt = Math.max(1, Math.floor(coherence * 233));
@@ -2981,10 +2988,12 @@ function computeColorMusic(
 
   // ═══ JUST INTONATION DEVIATION ═══
   // How well the field approaches JI rather than ET
+  // [FIXED] JUST_RATIOS map to specific semitone positions, not whole-tone steps.
+  const JUST_SEMITONE_INDICES = [0, 2, 4, 5, 7, 8, 9, 11, 12] as const; // [MATH] P1,M2,M3,P4,P5,m6,M6,M7,P8
   let jiDevSum = 0;
   for (let i = 0; i < 9; i++) {
     if (i < CMC.JUST_RATIOS.length) {
-      const etRatio = Math.pow(2, (i * 2) / 12); // approximate ET intervals
+      const etRatio = Math.pow(2, JUST_SEMITONE_INDICES[i] / 12); // correct ET semitone ratio [FIXED]
       const jiRatio = CMC.JUST_RATIOS[Math.min(i, CMC.JUST_RATIOS.length - 1)];
       const dev = Math.abs(etRatio - jiRatio) / jiRatio;
       jiDevSum += Math.exp(-dev * 20) * (solfeggioCoherences[i] || 0);
@@ -3702,6 +3711,11 @@ function computeHebrew(
     return { char: s.char, sign: s.sign, resonance };
   });
 
+  // [FIXED] Alphabet order: allLetters was built in category order (mother→double→simple)
+  // but HEBREW_CONSTANTS store per-letter data in alphabet order. Sorting fixes 5 algorithms.
+  const ALPHABET_ORDER = ['א','ב','ג','ד','ה','ו','ז','ח','ט','י','כ','ל','מ','נ','ס','ע','פ','צ','ק','ר','ש','ת'];
+  allLetters.sort((a, b) => ALPHABET_ORDER.indexOf(a.char) - ALPHABET_ORDER.indexOf(b.char));
+
   // ═══ GEMATRIA COMPUTATIONS ═══
   const allVals = allLetters.map(l => l.gematria);
   let totalGematria = 0;
@@ -3799,6 +3813,7 @@ function computeHebrew(
   );
 
   // Metatron (מטטרון ≈ 314 ≈ 100π): angel of presence
+  // [FIXED] Metatron has 6 letters (Mem-Tet-Tet-Resh-Vav-Nun), not 5. Use 6th root.
   const memRes = allLetters.find(l => l.char === 'מ')?.resonance || 0;
   const tetRes2 = allLetters.find(l => l.char === 'ט')?.resonance || 0;
   const reshRes = allLetters.find(l => l.char === 'ר')?.resonance || 0;
@@ -3806,9 +3821,9 @@ function computeHebrew(
   const piProximity = Math.exp(-Math.abs(HC.METATRON_VALUE - 100 * PI) * 0.1); // 314 vs 314.159...
   const metatronResonance = Math.min(1,
     Math.pow(
-      Math.max(0.01, memRes) * Math.max(0.01, tetRes2) * Math.max(0.01, reshRes) *
-      Math.max(0.01, vavRes) * Math.max(0.01, nunRes),
-      0.2 // geometric mean of 5 letters
+      Math.max(0.01, memRes) * Math.max(0.01, tetRes2) * Math.max(0.01, tetRes2) *
+      Math.max(0.01, reshRes) * Math.max(0.01, vavRes) * Math.max(0.01, nunRes),
+      1 / 6 // geometric mean of 6 letters [FIXED] was 0.2 (5th root)
     ) * piProximity * coherence
   );
 
@@ -4931,7 +4946,7 @@ export interface SubPlanckianOutput {
   betResonance: number;            // 285 Hz channel (Bet)
   nonCommutativePhase: number;     // Non-commutative geometry phase offset
   kappaModulation: number;         // 28.33 Hz modulation of 174 Hz carrier
-  phiCubedStep: number;            // 174 × φ ≈ 281.5 → 285 Hz organic step
+  phiStep: number;            // [FIXED] 174 × φ¹ ≈ 281.5 → 285 Hz organic step (was misnamed phiCubedStep)
   ncTensor: number;                // Non-commutative geometry tensor magnitude
   // Internal octave structure
   planckSeptenary: PlanckVacuumMode[];  // 7 fundamental vacuum modes
@@ -4998,8 +5013,9 @@ function computeSubPlanckian(
   // ═══ PHI-CUBED STEPPING (replaces linear bridge) ═══
   // 174 Hz × φ = 281.5 Hz ≈ 285 Hz (Bet) — organic vacuum-to-atomic flow
   // This creates smooth escalation from 10⁻³⁵m to 10⁻¹⁰m
-  const phiCubedStep = 174 * PHI; // ≈ 281.5, deviation from 285 = 1.2% (organic match)
-  const stepDeviation = Math.abs(phiCubedStep - 285) / 285; // ≈ 0.012
+  // [FIXED] This is a single φ-step (φ¹), not φ³. Historical name was phiCubedStep.
+  const phiStep = 174 * PHI; // ≈ 281.5, deviation from 285 = 1.2% (organic match)
+  const stepDeviation = Math.abs(phiStep - 285) / 285; // ≈ 0.012
   const phiStepResonance = Math.exp(-stepDeviation * PHI * 10); // high since deviation is tiny
 
   // Vacuum-to-atomic bridge: φ³-stepped transition (NOT linear)
@@ -5342,7 +5358,7 @@ function computeSubPlanckian(
   return {
     vacuumCoherence, zeroPointEnergy, planckFoamDensity, kappaClosureFreq,
     tetrahedralPacking, vacuumToAtomicBridge, alephResonance, betResonance,
-    nonCommutativePhase, kappaModulation, phiCubedStep, ncTensor,
+    nonCommutativePhase, kappaModulation, phiStep, ncTensor,
     // Internal octave structure
     planckSeptenary: vacuumModes,
     planckFlower13: planckFlower,
@@ -6705,15 +6721,15 @@ export function frameworksToAIContext(outputs: FrameworkOutputs): string {
   if (outputs.activeCount === 0) return '';
 
   let ctx = '\n## RHUFT FRAMEWORK ANALYSIS (Real-Time — Active Framework Outputs)\n';
-  ctx += `Active Frameworks: ${outputs.activeCount}/13 | Master Resonance: ${outputs.masterResonance.toFixed(4)}\n`;
-  ctx += `Coverage: ${outputs.activeCount}/13 active computational modules (${(outputs.activeCount / 13 * 100).toFixed(0)}%)\n`;
+  ctx += `Active Frameworks: ${outputs.activeCount}/12 | Master Resonance: ${outputs.masterResonance.toFixed(4)}\n`;
+  ctx += `Coverage: ${outputs.activeCount}/12 active computational modules (${(outputs.activeCount / 12 * 100).toFixed(0)}%)\n`;
 
   if (outputs.subPlanckian) {
     const sp = outputs.subPlanckian;
     ctx += `\n### Sub-Planckian (~10^-35 m physics)\n`;
     ctx += `Vacuum Ω: ${sp.vacuumCoherence.toFixed(4)} | ZPE: ${sp.zeroPointEnergy.toFixed(4)}\n`;
     ctx += `Foam Density: ${sp.planckFoamDensity.toFixed(3)} | κ-Closure: ${sp.kappaClosureFreq.toFixed(2)} Hz\n`;
-    ctx += `φ³-Step: ${sp.phiCubedStep.toFixed(1)} Hz | Bridge: ${sp.vacuumToAtomicBridge.toFixed(4)}\n`;
+    ctx += `φ³-Step: ${sp.phiStep.toFixed(1)} Hz | Bridge: ${sp.vacuumToAtomicBridge.toFixed(4)}\n`;
     ctx += `κ-Mod: ${sp.kappaModulation.toFixed(4)} | NC-Tensor: ${sp.ncTensor.toFixed(4)}\n`;
     ctx += `Aleph resonance: ${sp.alephResonance.toFixed(3)} | Bet resonance: ${sp.betResonance.toFixed(3)}\n`;
     // New internal structure
@@ -6834,7 +6850,10 @@ export function frameworksToAIContext(outputs: FrameworkOutputs): string {
     const c = outputs.colorMusic;
     ctx += `\n### Color & Music Harmonics (Wolfram-Enhanced)\n`;
     ctx += `Color/Music Ω: ${c.colorMusicCoherence.toFixed(4)} | Golden ∠: ${c.goldenAngle.toFixed(1)}° | Hue: ${c.dominantHue.toFixed(0)}°\n`;
-    ctx += `Active Mode: ${c.modeResonance.reduce((best, m) => m.resonance > best.resonance ? m : best, c.modeResonance[0]).mode}\n`;
+    const activeMode = c.modeResonance.length > 0
+      ? c.modeResonance.reduce((best, m) => m.resonance > best.resonance ? m : best, c.modeResonance[0]).mode
+      : 'none';
+    ctx += `Active Mode: ${activeMode}\n`;
     ctx += `Synesthetic: ${c.synestheticMapping}\n`;
     ctx += `m6≈φ: ${(c.minorSixthPhiResonance * 100).toFixed(1)}% | Band-φ: ${(c.solfeggioPhiStrength * 100).toFixed(1)}% | P4-pair: ${(c.perfectFourthPairResonance * 100).toFixed(1)}%\n`;
     ctx += `Overtones: ${(c.overtoneSeriesResonance * 100).toFixed(1)}% | Newton: ${(c.newtonColorResonance * 100).toFixed(1)}% | Pyth♮: ${(c.pythagoreanCommaResonance * 100).toFixed(1)}%\n`;

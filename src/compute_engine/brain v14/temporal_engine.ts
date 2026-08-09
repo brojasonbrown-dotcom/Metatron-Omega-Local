@@ -28,6 +28,7 @@ import {
   phaseComparison,
   phaseDriftMetric,
 } from "./torus_recurrence.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -136,7 +137,7 @@ export class TemporalEngine {
     const records = this._history.get(nodeId);
     if (!records) return null;
     for (let i = records.length - 1; i >= 0; i--) {
-      if (records[i].tick === tick) return records[i];
+      if (at(records, i).tick === tick) return records[i];
     }
     return null;
   }
@@ -307,8 +308,8 @@ export class TemporalEngine {
 
     let cumulativeDrift = 0.0;
     for (let i = 1; i < records.length; i++) {
-      const current = records[i].field;
-      const previous = records[i - 1].field;
+      const current = at(records, i).field;
+      const previous = at(records, i - 1).field;
       cumulativeDrift += phaseDriftMetric(current, previous);
     }
 
@@ -332,9 +333,9 @@ export class TemporalEngine {
     const records = this._history.get(nodeId);
     if (!records || records.length < 2) return 0.0 as Float64;
 
-    const first = records[0].coherence;
-    const last = records[records.length - 1].coherence;
-    const ticks = records[records.length - 1].tick - records[0].tick;
+    const first = at(records, 0).coherence;
+    const last = at(records, records.length - 1).coherence;
+    const ticks = at(records, records.length - 1).tick - at(records, 0).tick;
 
     if (ticks === 0) return 0.0 as Float64;
     return ((last - first) / ticks) as Float64;

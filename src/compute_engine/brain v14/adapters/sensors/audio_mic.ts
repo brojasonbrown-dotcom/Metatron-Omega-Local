@@ -22,6 +22,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { SensorBus } from "./sensor_bus.ts";
 import { fieldFromWaveform } from "./signal_codec.ts";
+import { audioSpectralEnrichment } from "./spectral_enrichment.ts";
 
 /** Mic segment length in seconds: F_5 = 5. [SPEC] */
 const SEGMENT_SECONDS = 5;
@@ -139,6 +140,7 @@ export class AudioSensor {
 
       const { samples, sampleRate } = parseWavPcm16(fs.readFileSync(filePath), MAX_ANALYSIS_SECONDS);
       const field = fieldFromWaveform(samples, sampleRate);
+      const spectral = audioSpectralEnrichment(samples, sampleRate);
       const isMic = path.basename(filePath).startsWith("mic-");
       const accepted = this._bus.push({
         source: isMic ? "audio.mic" : "audio.file",
@@ -150,6 +152,7 @@ export class AudioSensor {
           seconds: (samples.length / sampleRate).toFixed(2),
         },
         field,
+        spectral,
       });
       if (accepted) {
         this._sensed++;

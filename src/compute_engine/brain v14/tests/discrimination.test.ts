@@ -23,6 +23,7 @@ import {
   liftPerceptField,
 } from "../adapters/sensors/signal_codec";
 import { GRID_W, GRID_H, HIRES_GRID_W, HIRES_GRID_H } from "../adapters/sensors/vision_screen";
+import { at } from "../core/indexing.ts";
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -192,7 +193,7 @@ describe("P3 liftPerceptField dimension-safety [P3, FIX]", () => {
     expect(hvHi.length).toBe(hvFast.length);
     // deterministic: same field → same hypervector
     let d = 0;
-    for (let i = 0; i < hvFast.length; i++) d += Math.abs(hvFast[i] - hvFast2[i]);
+    for (let i = 0; i < hvFast.length; i++) d += Math.abs(at(hvFast, i) - at(hvFast2, i));
     expect(d).toBe(0);
   });
 
@@ -204,7 +205,7 @@ describe("P3 liftPerceptField dimension-safety [P3, FIX]", () => {
       hiResFieldFromLuminanceGrid(noiseGrid(HIRES_GRID_W, HIRES_GRID_H, 22), HIRES_GRID_W, HIRES_GRID_H)
     );
     let diff = 0;
-    for (let i = 0; i < a.length; i++) diff += Math.abs(a[i] - b[i]);
+    for (let i = 0; i < a.length; i++) diff += Math.abs(at(a, i) - at(b, i));
     expect(diff).toBeGreaterThan(0);
   });
 });

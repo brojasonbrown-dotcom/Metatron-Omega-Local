@@ -28,6 +28,7 @@ import {
 
 import { ActualizationEngine } from "./actualization_engine.ts";
 import type { ActualizationResult } from "./actualization_engine.ts";
+import { at } from "./core/indexing.ts";
 
 /** [SPEC] Explicit Float64 type alias for IEEE-754 deterministic arithmetic. */
 export type Float64 = number;
@@ -190,7 +191,7 @@ function computeNormalizedWeights(count: number): Float64[] {
   }
   if (total > 0) {
     for (let i = 0; i < count; i++) {
-      weights[i] = (weights[i] / total) as Float64;
+      weights[i] = (at(weights, i) / total) as Float64;
     }
   }
   return weights;
@@ -355,12 +356,12 @@ export class MultiscaleStabilization {
 
     let maxLen = 0;
     for (let i = 0; i < count; i++) {
-      maxLen = Math.max(maxLen, perScaleResults[i].stabilizedField.length);
+      maxLen = Math.max(maxLen, at(perScaleResults, i).stabilizedField.length);
     }
 
     const blended = new Float64Array(maxLen);
     for (let s = 0; s < count; s++) {
-      const field = perScaleResults[s].stabilizedField;
+      const field = at(perScaleResults, s).stabilizedField;
       const w = weights[s] ?? 0;
       for (let i = 0; i < field.length && i < maxLen; i++) {
         blended[i] += (field[i] ?? 0) * w;
@@ -489,9 +490,9 @@ export class MultiscaleStabilization {
     let averageViolation = 0.0;
     for (let i = 0; i < count; i++) {
       const w = weights[i] ?? 0;
-      totalConstraintEnforcement += perScale[i].constraintEnforcement * w;
-      averageLocalStability += perScale[i].localStability * w;
-      averageViolation += perScale[i].violationScore * w;
+      totalConstraintEnforcement += at(perScale, i).constraintEnforcement * w;
+      averageLocalStability += at(perScale, i).localStability * w;
+      averageViolation += at(perScale, i).violationScore * w;
     }
 
     return {

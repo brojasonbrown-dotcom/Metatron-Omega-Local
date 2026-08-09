@@ -26,6 +26,13 @@ import type {
   MembraneStabilizationResult,
 } from "./types.ts";
 
+import {
+  PHI_INV,
+  PHI_NEG2,
+  MASTER_EQUATION_N,
+} from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
+
 /** φ — exact to Float64 (≈15 digits). [SPEC] */
 const PHI = RHUFT_CONSTANTS.PHI;
 
@@ -89,6 +96,24 @@ export class MembraneStabilizer {
     // This is the "most irrational" ratio, preventing resonant leakage. [PHIL]
     const winding_number: number = aspect_ratio;
 
+    // Curvature coupling = 1/φ² ≈ 0.382 — dimensionless relaxation parameter.
+    // Must be <1 for stability. Matches createDefaultMembrane in fractal_node.ts. [SPEC]
+    const curvature_coupling: number = PHI_NEG2;
+
+    // Boundary field: deterministic complex array of size 2·(N+1) = 28 (for N=13).
+    // θ_k = (2π·k·φ⁻¹·n)/89 mod 2π; amplitude = φ⁻ᵏ · e^(iθ_k). [SPEC]
+    const boundarySize = 2 * (MASTER_EQUATION_N + 1);
+    const boundary_field = new Float64Array(boundarySize);
+    for (let i = 0; i < boundarySize; i += 2) {
+      const k = i / 2;
+      const base = (2 * PI * k * PHI_INV * scale_n) / 89;
+      const theta = base % (2 * PI);
+      const normalized = theta >= 0 ? theta : theta + 2 * PI;
+      const weight = Math.pow(PHI_INV, k);
+      boundary_field[i] = weight * Math.cos(normalized);
+      boundary_field[i + 1] = weight * Math.sin(normalized);
+    }
+
     return {
       major_radius: R,
       minor_radius: r,
@@ -98,6 +123,8 @@ export class MembraneStabilizer {
       surface_area,
       volume,
       winding_number,
+      curvature_coupling,
+      boundary_field,
     };
   }
 
@@ -180,7 +207,7 @@ export class MembraneStabilizer {
     // This approximates |∇Ψ| along the field discretization. [SPEC]
     let grad_sum: number = 0.0;
     for (let i = 1; i < field_state.length; i++) {
-      const diff: number = field_state[i] - field_state[i - 1];
+      const diff: number = at(field_state, i) - at(field_state, i - 1);
       grad_sum += Math.abs(diff);
     }
 
@@ -255,9 +282,9 @@ export class MembraneStabilizer {
     // ΔΨ[0] = -(Ψ[0] - Ψ[N-1]) · correction_factor (toroidal wrap-around). [SPEC]
     for (let i = 0; i < N; i++) {
       const prev: number = i > 0 ? field_state[i - 1] : field_state[N - 1];
-      const gradient: number = field_state[i] - prev;
+      const gradient: number = at(field_state, i) - prev;
       // Gentle correction: push field back toward previous value.
-      corrected[i] = field_state[i] - gradient * correction_factor;
+      corrected[i] = at(field_state, i) - gradient * correction_factor;
     }
 
     return corrected;
@@ -290,11 +317,11 @@ export class MembraneStabilizer {
     // Approximate ∮∇Ψ·dS by discrete gradient sum scaled by surface area element.
     let flux_integral: number = 0.0;
     for (let i = 1; i < field_state.length; i++) {
-      const diff: number = field_state[i] - field_state[i - 1];
+      const diff: number = at(field_state, i) - at(field_state, i - 1);
       flux_integral += Math.abs(diff);
     }
     // Close the toroidal loop.
-    const loop_diff: number = field_state[0] - field_state[field_state.length - 1];
+    const loop_diff: number = at(field_state, 0) - at(field_state, field_state.length - 1);
     flux_integral += Math.abs(loop_diff);
 
     // Scale by surface area per element to approximate flux through boundary.
@@ -332,7 +359,7 @@ export class MembraneStabilizer {
       mean_mag += Math.abs(field_state[i]);
       const prev: number =
         i > 0 ? field_state[i - 1] : field_state[field_state.length - 1];
-      grad_mag += Math.abs(field_state[i] - prev);
+      grad_mag += Math.abs(at(field_state, i) - prev);
     }
 
     mean_mag = mean_mag / field_state.length;

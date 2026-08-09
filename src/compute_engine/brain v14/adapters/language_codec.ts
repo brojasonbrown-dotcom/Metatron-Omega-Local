@@ -25,6 +25,7 @@
  */
 
 import { BIND_WEIGHT, GOLDEN_PHASE_DENOMINATOR, MASTER_EQUATION_N, PHI, PHI_INV, PI } from "./../core/constants.ts";
+import { at } from "../core/indexing.ts";
 
 /** Field size contract: 2 * (N + 1) = 28 for N = 13. [SPEC] */
 export const FIELD_SIZE: number = 2 * (MASTER_EQUATION_N + 1);
@@ -108,7 +109,7 @@ function _encodeTextUncached(text: string): Float64Array {
   // values, so the field is a pure DC mode — still deterministic and nonzero.
   const V_MAX = 800.0;
   let mean = 0.0;
-  for (let i = 0; i < L; i++) mean += values[i] / V_MAX;
+  for (let i = 0; i < L; i++) mean += at(values, i) / V_MAX;
   mean /= L;
   let allSame = true;
   for (let i = 1; i < L; i++) {
@@ -126,7 +127,7 @@ function _encodeTextUncached(text: string): Float64Array {
     let re = 0.0;
     let im = 0.0;
     for (let i = 0; i < L; i++) {
-      const v = allSame ? values[i] / V_MAX : values[i] / V_MAX - mean;
+      const v = allSame ? at(values, i) / V_MAX : at(values, i) / V_MAX - mean;
       const angle = (2.0 * PI * k * i) / L + theta_k;
       re += v * Math.cos(angle);
       im += v * Math.sin(angle);
@@ -199,7 +200,7 @@ export function normalizeField(field: Float64Array): Float64Array {
   }
   let normSq = 0.0;
   for (let i = 0; i < field.length; i++) {
-    normSq += field[i] * field[i];
+    normSq += at(field, i) * at(field, i);
   }
   if (normSq <= 0.0 || !Number.isFinite(normSq)) {
     throw new Error("language_codec.normalizeField: field has zero or non-finite norm");
@@ -207,7 +208,7 @@ export function normalizeField(field: Float64Array): Float64Array {
   const inv = 1.0 / Math.sqrt(normSq);
   const out = new Float64Array(field.length);
   for (let i = 0; i < field.length; i++) {
-    out[i] = field[i] * inv;
+    out[i] = at(field, i) * inv;
   }
   return out;
 }
@@ -283,7 +284,7 @@ export function reinforceField(
     out[i] = oldField[i];
   }
   for (let i = 0; i < len; i++) {
-    out[i] = oldField[i] * (1.0 - eta) + incoming[i] * eta;
+    out[i] = at(oldField, i) * (1.0 - eta) + at(incoming, i) * eta;
   }
   return normalizeField(out);
 }
@@ -310,10 +311,10 @@ export function blendFields(a: Float64Array, b: Float64Array, w: number): Float6
   const out = new Float64Array(a.length);
   for (let i = 0; i < a.length; i++) out[i] = a[i];
   for (let i = 0; i < len; i++) {
-    out[i] = a[i] * (1.0 - weight) + b[i] * weight;
+    out[i] = at(a, i) * (1.0 - weight) + at(b, i) * weight;
   }
   let normSq = 0.0;
-  for (let i = 0; i < out.length; i++) normSq += out[i] * out[i];
+  for (let i = 0; i < out.length; i++) normSq += at(out, i) * at(out, i);
   if (normSq <= 0.0 || !Number.isFinite(normSq)) {
     // Anti-parallel collapse: keep the dominant side so meaning is never lost.
     return weight >= 0.5 ? new Float64Array(b) : new Float64Array(a);

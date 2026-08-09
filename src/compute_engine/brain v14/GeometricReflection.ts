@@ -25,6 +25,7 @@ import {
   toroidalShift, averageToroidalCoherence,
   phaseDriftMetric, delayedFeedback,
 } from "./torus_recurrence.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -458,7 +459,7 @@ export function multiscaleReflection(
       sum[i] += (weight * (reflected[Math.min(idx, reflected.length-1)] ?? 0)) as Float64;
     }
   }
-  if (tw > 1e-300) for (let i = 0; i < len; i++) sum[i] = (sum[i] / tw) as Float64;
+  if (tw > 1e-300) for (let i = 0; i < len; i++) sum[i] = (at(sum, i) / tw) as Float64;
   return sum;
 }
 
@@ -493,4 +494,7 @@ export function verifyGeometricReflectionStabilization(
 }
 
 // Epistemic re-exports for downstream consumers
-export type { Float64, CurvatureParams, DirectionalFilterConfig, GeometricReflectionResult };
+// (CurvatureParams, DirectionalFilterConfig and GeometricReflectionResult are
+// already exported at their interface declarations above; only the local
+// Float64 alias needs re-exporting here.)
+export type { Float64 };

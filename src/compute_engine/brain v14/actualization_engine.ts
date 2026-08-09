@@ -28,6 +28,7 @@ import {
 
 import type { ExistenceScore } from "./existence_detector.ts";
 import { ExistenceDetector } from "./existence_detector.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -251,8 +252,8 @@ export class ActualizationEngine {
 
         // Clamp to prevent overflow
         if (!isFinite(next[i])) next[i] = 0 as Float64;
-        if (next[i] > 1e150) next[i] = 1e150 as Float64;
-        if (next[i] < -1e150) next[i] = -1e150 as Float64;
+        if (at(next, i) > 1e150) next[i] = 1e150 as Float64;
+        if (at(next, i) < -1e150) next[i] = -1e150 as Float64;
       }
       current = next;
     }
@@ -289,8 +290,8 @@ export class ActualizationEngine {
         next[i] = (c + totalRate * (b - c)) as Float64;
 
         if (!isFinite(next[i])) next[i] = 0 as Float64;
-        if (next[i] > 1e150) next[i] = 1e150 as Float64;
-        if (next[i] < -1e150) next[i] = -1e150 as Float64;
+        if (at(next, i) > 1e150) next[i] = 1e150 as Float64;
+        if (at(next, i) < -1e150) next[i] = -1e150 as Float64;
       }
       current = next;
     }
@@ -429,7 +430,7 @@ export class ActualizationEngine {
 
     for (let i = 0; i < results.length; i++) {
       const weight = Math.pow(PHI_INV, i);
-      const actualized = results[i].actualized;
+      const actualized = at(results, i).actualized;
       for (let j = 0; j < actualized.length && j < maxLen; j++) {
         blended[j] += (actualized[j] ?? 0) * weight;
       }
@@ -437,7 +438,7 @@ export class ActualizationEngine {
     }
 
     for (let j = 0; j < maxLen; j++) {
-      blended[j] = (blended[j] / (totalWeight + 1e-300)) as Float64;
+      blended[j] = (at(blended, j) / (totalWeight + 1e-300)) as Float64;
     }
 
     // Use the first (coarsest) scale's existence score and components

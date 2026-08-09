@@ -28,10 +28,11 @@ import { describe, expect, it } from "vitest";
 import { encodeDocument, encodeUiTree, type UiElement } from "../adapters/structured_codec.ts";
 import { resonance } from "../adapters/language_codec.ts";
 import { FIELD_SIZE } from "../schemas/validate.ts";
+import { at } from "../core/indexing.ts";
 
 function norm(f: Float64Array): number {
   let s = 0;
-  for (let i = 0; i < f.length; i++) s += f[i] * f[i];
+  for (let i = 0; i < f.length; i++) s += at(f, i) * at(f, i);
   return Math.sqrt(s);
 }
 

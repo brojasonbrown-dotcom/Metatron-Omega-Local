@@ -22,6 +22,7 @@ import { COHERENCE_THRESHOLD } from "./../../core/constants.ts";
 import { resonance } from "./../language_codec.ts";
 import type { SensorBus } from "./sensor_bus.ts";
 import { fieldFromLuminanceGrid } from "./signal_codec.ts";
+import { visionSpectralEnrichment } from "./spectral_enrichment.ts";
 
 /** Downsample grid dimensions: F_11 × F_10 = 89 × 55. [SPEC] */
 export const GRID_W = 89;
@@ -146,6 +147,10 @@ export class ScreenVisionSensor {
       const csv = await runPowerShell(CAPTURE_SCRIPT, this._periodMs * 2);
       const grid = parseLuminanceCsv(csv, GRID_W * GRID_H);
       const field = fieldFromLuminanceGrid(grid, GRID_W, GRID_H);
+      // Certified spectral enrichment (additive — the 28-field above is the locked bus
+      // contract). Full 2-D FFT whitened identity signature + measured complexity +
+      // Parseval certificate, so the loop reasons over measured modal occupancy. [SPEC]
+      const spectral = visionSpectralEnrichment(grid, GRID_W, GRID_H);
       this._captures++;
       // P2 — hand the raw grid to visual memory before it is discarded.
       if (this._onGrid) {
@@ -183,6 +188,7 @@ export class ScreenVisionSensor {
             trigger: novel ? "novelty" : "periodic",
           },
           field,
+          spectral,
         });
         if (accepted) {
           this._injected++;

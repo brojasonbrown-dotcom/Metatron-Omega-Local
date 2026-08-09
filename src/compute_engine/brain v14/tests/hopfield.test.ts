@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { HopfieldMemory } from "./../cognition/hopfield.ts";
 import { FIELD_SIZE, resonance, normalizeField } from "./../adapters/language_codec.ts";
 import { fieldFromLuminanceGrid } from "./../adapters/sensors/signal_codec.ts";
+import { at } from "../core/indexing.ts";
 
 function makeField(seed: number): Float64Array {
   const w = 8, h = 8;
@@ -30,7 +31,7 @@ function orthogonalField(seed: number): Float64Array {
 function noisy(field: Float64Array, amount: number): Float64Array {
   const out = new Float64Array(field.length);
   for (let i = 0; i < field.length; i++) {
-    out[i] = field[i] + amount * Math.sin(i * 12.9898 + 78.233);
+    out[i] = at(field, i) + amount * Math.sin(i * 12.9898 + 78.233);
   }
   return normalizeField(out);
 }

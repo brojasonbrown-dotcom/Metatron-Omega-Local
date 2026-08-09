@@ -25,6 +25,7 @@ import {
 } from "./core/constants.ts";
 
 import { type NodeState } from "./MultiscaleClosure.ts";
+import { at } from "./core/indexing.ts";
 
 /** [SPEC] Explicit Float64 type alias for IEEE-754 deterministic arithmetic. */
 export type Float64 = number;
@@ -215,7 +216,7 @@ export class BurdenTracker {
     let totalDiff = 0.0;
     for (let i = 0; i < s; i++) {
       for (let j = i + 1; j < s; j++) {
-        totalDiff += Math.abs(means[i] - means[j]);
+        totalDiff += Math.abs(at(means, i) - at(means, j));
       }
     }
 
@@ -424,8 +425,8 @@ export class BurdenTracker {
     const n = history.length;
 
     for (let i = 0; i < n; i++) {
-      const x = history[i].tick;
-      const y = history[i].weighted;
+      const x = at(history, i).tick;
+      const y = at(history, i).weighted;
       sumX += x;
       sumY += y;
       sumXY += x * y;

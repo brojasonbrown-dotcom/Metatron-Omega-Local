@@ -17,6 +17,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { SensorBus } from "./sensor_bus.ts";
 import { fieldFromLuminanceGrid } from "./signal_codec.ts";
+import { visionSpectralEnrichment } from "./spectral_enrichment.ts";
 import { GRID_H, GRID_W, parseLuminanceCsv, runPowerShell } from "./vision_screen.ts";
 
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff"]);
@@ -116,6 +117,10 @@ export class FileVisionSensor {
       const csv = await runPowerShell(decodeScript(filePath), 30_000);
       const grid = parseLuminanceCsv(csv, GRID_W * GRID_H);
       const field = fieldFromLuminanceGrid(grid, GRID_W, GRID_H);
+      // Certified spectral enrichment (additive — the 28-field above is the locked bus
+      // contract). Full 2-D FFT whitened identity signature + measured complexity +
+      // Parseval certificate, so the loop reasons over measured modal occupancy. [SPEC]
+      const spectral = visionSpectralEnrichment(grid, GRID_W, GRID_H);
       // P2 — hand the raw grid to visual memory before it is discarded.
       if (this._onGrid) {
         try {
@@ -130,6 +135,7 @@ export class FileVisionSensor {
         timestamp: Date.now(),
         meta: { path: filePath, file: path.basename(filePath) },
         field,
+        spectral,
       });
       if (accepted) {
         this._sensed++;

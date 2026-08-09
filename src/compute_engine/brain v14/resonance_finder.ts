@@ -38,6 +38,7 @@ import type {
   FractalNode,
   ResonanceConvergence,
   MembraneGeometry,
+  ScaleIndex,
 } from "./types.ts";
 
 import { MembraneStabilizer } from "./membrane_stabilizer.ts";
@@ -196,8 +197,8 @@ export class ResonanceFinder {
   measure_stability(
     node: FractalNode,
     frequency: number
-  ): { stability: number; participating_scales: number[] } {
-    const participating_scales: number[] = [];
+  ): { stability: number; participating_scales: ScaleIndex[] } {
+    const participating_scales: ScaleIndex[] = [];
     const coherences: number[] = [];
 
     // Collect all scales in the node tree via BFS/DFS traversal. [SPEC]

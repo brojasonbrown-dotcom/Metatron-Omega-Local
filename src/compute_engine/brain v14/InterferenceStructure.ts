@@ -28,6 +28,7 @@ import {
   QRF_CRITICAL_SCALE,
   PLANCK_FREQUENCY,
 } from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. Constants & Helpers
@@ -274,12 +275,12 @@ export class InterferenceStructure {
         const lockVal = k === j ? 1.0 : computeLock(diff);
         locks[idx] = lockVal as Float64;
 
-        const beatVal = Math.abs(frequencies[k] - frequencies[j]) as Float64;
+        const beatVal = Math.abs(at(frequencies, k) - at(frequencies, j)) as Float64;
         beats[idx] = beatVal;
 
         if (j > k) {
           // Upper-triangular aggregates only
-          crossIntensity += 2.0 * ak * amplitudes[j] * cosDiff * lockVal;
+          crossIntensity += 2.0 * ak * at(amplitudes, j) * cosDiff * lockVal;
           phaseLockSum += lockVal;
           beatSet.add(beatVal);
         }
@@ -319,7 +320,7 @@ export class InterferenceStructure {
         const idx = k * M + j;
         const lockVal = locks[idx];
         if (lockVal > 0.0) {
-          q += amplitudes[j] * coherence[idx] * lockVal;
+          q += at(amplitudes, j) * at(coherence, idx) * lockVal;
         }
       }
       quality[k] = q as Float64;
@@ -484,10 +485,10 @@ export function computeActualizationObjective(
   let sum = 0.0;
   for (let k = 0; k < M; k++) {
     sum +=
-      coherence[k] *
-      persistence[k] *
-      closure[k] *
-      interferenceQuality[k];
+      at(coherence, k) *
+      at(persistence, k) *
+      at(closure, k) *
+      at(interferenceQuality, k);
   }
   return sum as Float64;
 }

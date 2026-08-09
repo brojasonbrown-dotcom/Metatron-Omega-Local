@@ -26,6 +26,7 @@
 import { HOPFIELD_BETA, HOPFIELD_MERGE_THRESHOLD, PHI } from "./../core/constants.ts";
 import { FIELD_SIZE, normalizeField, resonance } from "./../adapters/language_codec.ts";
 import { decodeFieldBase64, encodeFieldBase64 } from "./../schemas/validate.ts";
+import { at } from "../core/indexing.ts";
 
 /** Maximum stored patterns: F_11 = 89 per memory bank. [SPEC] */
 const MAX_PATTERNS = 89;
@@ -96,7 +97,7 @@ export class HopfieldMemory {
       const cur = this._patterns[bestIdx];
       if (this._mergeScratch === null) this._mergeScratch = new Float64Array(this.dim);
       const merged = this._mergeScratch;
-      for (let i = 0; i < this.dim; i++) merged[i] = cur[i] * (1.0 - eta) + p[i] * eta;
+      for (let i = 0; i < this.dim; i++) merged[i] = at(cur, i) * (1.0 - eta) + at(p, i) * eta;
       // normalizeField allocates a fresh output, so the stored pattern never
       // aliases the scratch buffer (which the next merge will overwrite). [SPEC]
       this._patterns[bestIdx] = normalizeField(merged);
@@ -132,7 +133,7 @@ export class HopfieldMemory {
     for (let mu = 0; mu < this._patterns.length; mu++) {
       let dot = 0.0;
       const xi = this._patterns[mu];
-      for (let i = 0; i < this.dim; i++) dot += xi[i] * q[i];
+      for (let i = 0; i < this.dim; i++) dot += at(xi, i) * at(q, i);
       const s = this.beta * dot;
       scores[mu] = s;
       if (s > maxScore) maxScore = s;
@@ -141,8 +142,8 @@ export class HopfieldMemory {
     // softmax (numerically stable: subtract max).
     let denom = 0.0;
     for (let mu = 0; mu < scores.length; mu++) {
-      scores[mu] = Math.exp(scores[mu] - maxScore);
-      denom += scores[mu];
+      scores[mu] = Math.exp(at(scores, mu) - maxScore);
+      denom += at(scores, mu);
     }
     if (denom <= 0 || !Number.isFinite(denom)) {
       return { ok: false, field: new Float64Array(this.dim), resonance: 0 };
@@ -151,12 +152,12 @@ export class HopfieldMemory {
     // ξ_new = Σ_μ softmax_μ · ξ_μ, then unit-normalize.
     const out = new Float64Array(this.dim);
     for (let mu = 0; mu < this._patterns.length; mu++) {
-      const w = scores[mu] / denom;
+      const w = at(scores, mu) / denom;
       const xi = this._patterns[mu];
-      for (let i = 0; i < this.dim; i++) out[i] += w * xi[i];
+      for (let i = 0; i < this.dim; i++) out[i] += w * at(xi, i);
     }
     let normSq = 0.0;
-    for (let i = 0; i < this.dim; i++) normSq += out[i] * out[i];
+    for (let i = 0; i < this.dim; i++) normSq += at(out, i) * at(out, i);
     if (normSq <= 0 || !Number.isFinite(normSq)) {
       return { ok: false, field: new Float64Array(this.dim), resonance: 0 };
     }

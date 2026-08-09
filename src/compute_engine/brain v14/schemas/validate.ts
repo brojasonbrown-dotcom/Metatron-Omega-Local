@@ -263,6 +263,52 @@ const SENSORY_SOURCES: readonly string[] = [
   "llm.answer",
 ];
 
+/**
+ * The measured spectral complexity of a percept, in the SAME basis across
+ * modalities (vision spectral_perception + audio spectral_audio produce these
+ * exact five numbers from the engine's certified FFT). Optional on a frame —
+ * its presence means the sensor ran the full certified transform, not just the
+ * 14-mode Goertzel shadow. [SPEC]
+ */
+export interface SpectralComplexity {
+  readonly entropyNorm: number;
+  readonly participation: number;
+  readonly flatness: number;
+  readonly rank99: number;
+  readonly dominantFraction: number;
+}
+
+/**
+ * The certified spectral enrichment carried BESIDE the locked 28-field. [SPEC]
+ *
+ * WHY A SEPARATE CHANNEL — the bus `field` is hard-locked to 28 elements
+ * (engine.process, the genome snapshots, the concept prototypes and every
+ * persisted mind-state file all depend on that exact length). The certified
+ * full-FFT percept is hundreds-to-thousands of elements, so it can never BE the
+ * bus field. Instead the sensor attaches it here as additive enrichment: the
+ * 28-field continues to drive the engine unchanged, while the spectral block
+ * lets the loop reason over measured modal occupancy (whitened identity +
+ * cross-modal complexity) at full resolution. Optional: frames without it are
+ * the legacy path and validate exactly as before.
+ */
+export interface SpectralEnrichment {
+  /**
+   * Whitened (log-power) identity signature — the fine-discrimination feature.
+   * Length is the percept's own (image bins or audio window bins); NOT the 28.
+   */
+  readonly whitened: Float64Array;
+  /** Measured modal-occupancy complexity (cross-modally commensurable). */
+  readonly complexity: SpectralComplexity;
+  /**
+   * Parseval residual of the underlying certified transform — the percept's own
+   * certificate. Machine-floor (≈1e-16) means energy-conserving, never an
+   * approximation. Surfaced so the loop can refuse a non-conserving frame.
+   */
+  readonly parsevalResidual: number;
+  /** Pitch anchor (Hz) for audio; NaN / absent for vision. */
+  readonly dominantHz?: number;
+}
+
 /** A single validated sensory frame entering the engine. */
 export interface SensoryFrame {
   readonly source: SensorySource;
@@ -271,6 +317,8 @@ export interface SensoryFrame {
   readonly meta: Record<string, string>;
   /** The 28-element interleaved-complex geometric field. */
   readonly field: Float64Array;
+  /** Optional certified spectral enrichment (see SpectralEnrichment). */
+  readonly spectral?: SpectralEnrichment;
 }
 
 export function validateSensoryFrame(raw: unknown): ValidationResult<SensoryFrame> {
@@ -295,6 +343,19 @@ export function validateSensoryFrame(raw: unknown): ValidationResult<SensoryFram
       if (typeof v === "string") meta[k] = v.slice(0, 500);
     }
   }
+
+  // Optional certified spectral enrichment. When present it MUST be well-formed:
+  // a corrupt percept is rejected loudly, never silently repaired (TRUTH_SOURCES).
+  // When absent the frame is the legacy path and validates exactly as before.
+  let spectral: SpectralEnrichment | undefined;
+  if (o["spectral"] !== undefined) {
+    const s = validateSpectralEnrichment(o["spectral"]);
+    if (!s.ok) {
+      return { ok: false, reason: `frame.spectral: ${s.reason}` };
+    }
+    spectral = s.value;
+  }
+
   return {
     ok: true,
     value: {
@@ -302,8 +363,72 @@ export function validateSensoryFrame(raw: unknown): ValidationResult<SensoryFram
       timestamp: o["timestamp"] as number,
       meta,
       field: fieldCheck.value,
+      ...(spectral !== undefined ? { spectral } : {}),
     },
   };
+}
+
+/**
+ * Validate the optional spectral enrichment block. Light-touch: the numbers must
+ * be finite (the sensor already ran the certified transform — the Parseval
+ * certificate lives inside the block, not re-derived here). [SPEC]
+ */
+function validateSpectralEnrichment(raw: unknown): ValidationResult<SpectralEnrichment> {
+  if (typeof raw !== "object" || raw === null) {
+    return { ok: false, reason: "not an object" };
+  }
+  const s = raw as Record<string, unknown>;
+
+  const w = s["whitened"];
+  if (!(w instanceof Float64Array)) {
+    return { ok: false, reason: "whitened is not a Float64Array" };
+  }
+  if (w.length === 0) {
+    return { ok: false, reason: "whitened is empty" };
+  }
+  for (let i = 0; i < w.length; i++) {
+    if (!Number.isFinite(w[i])) {
+      return { ok: false, reason: `whitened[${i}] is not finite` };
+    }
+  }
+
+  const c = s["complexity"];
+  if (typeof c !== "object" || c === null) {
+    return { ok: false, reason: "complexity is not an object" };
+  }
+  const co = c as Record<string, unknown>;
+  const keys = ["entropyNorm", "participation", "flatness", "rank99", "dominantFraction"] as const;
+  for (const k of keys) {
+    if (!isFiniteNumber(co[k])) {
+      return { ok: false, reason: `complexity.${k} is not a finite number` };
+    }
+  }
+  const complexity: SpectralComplexity = {
+    entropyNorm: co["entropyNorm"] as number,
+    participation: co["participation"] as number,
+    flatness: co["flatness"] as number,
+    rank99: co["rank99"] as number,
+    dominantFraction: co["dominantFraction"] as number,
+  };
+
+  if (!isFiniteNumber(s["parsevalResidual"])) {
+    return { ok: false, reason: "parsevalResidual is not a finite number" };
+  }
+
+  const enrichment: SpectralEnrichment = {
+    whitened: w,
+    complexity,
+    parsevalResidual: s["parsevalResidual"] as number,
+  };
+  // Pitch anchor is optional and vision may leave it absent; if present it must
+  // be a finite positive frequency.
+  if (s["dominantHz"] !== undefined) {
+    if (!isFiniteNumber(s["dominantHz"]) || (s["dominantHz"] as number) < 0) {
+      return { ok: false, reason: "dominantHz must be a non-negative finite number" };
+    }
+    return { ok: true, value: { ...enrichment, dominantHz: s["dominantHz"] as number } };
+  }
+  return { ok: true, value: enrichment };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

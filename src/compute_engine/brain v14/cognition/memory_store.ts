@@ -48,6 +48,8 @@ export interface JournalEntry {
     | "mode.change"
     | "replay.step"
     | "replay.deferred"
+    | "spectral.percept"
+    | "novelty.gate"
     | "shutdown";
   readonly data: Record<string, unknown>;
 }

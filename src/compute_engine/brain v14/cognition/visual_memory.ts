@@ -23,6 +23,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { at } from "../core/indexing.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Hash primitives
@@ -62,7 +63,7 @@ export function dHash(grid: Float64Array, w: number, h: number): bigint {
   let idx = 0;
   for (let y = 0; y < TH; y++) {
     for (let x = 0; x < TW - 1; x++) {
-      if (thumb[y * TW + x] > thumb[y * TW + x + 1]) bits |= 1n << BigInt(idx);
+      if (at(thumb, y * TW + x) > at(thumb, y * TW + x + 1)) bits |= 1n << BigInt(idx);
       idx++;
     }
   }
@@ -85,7 +86,7 @@ export function pHash(grid: Float64Array, w: number, h: number): bigint {
   const median = sorted[Math.floor(sorted.length / 2)];
   let bits = 0n;
   for (let i = 0; i < T * T; i++) {
-    if (dct[i] > median) bits |= 1n << BigInt(i);
+    if (at(dct, i) > median) bits |= 1n << BigInt(i);
   }
   return bits;
 }
@@ -103,7 +104,7 @@ function blockReduce(grid: Float64Array, w: number, h: number, tw: number, th: n
       let n = 0;
       for (let y = y0; y < y1; y++) {
         for (let x = x0; x < x1; x++) {
-          sum += grid[y * w + x];
+          sum += at(grid, y * w + x);
           n++;
         }
       }
@@ -123,7 +124,7 @@ function dct2d(thumb: Float64Array, n: number): Float64Array {
       for (let y = 0; y < n; y++) {
         for (let x = 0; x < n; x++) {
           sum +=
-            thumb[y * n + x] *
+            at(thumb, y * n + x) *
             Math.cos(((2 * x + 1) * u * Math.PI) / (2 * n)) *
             Math.cos(((2 * y + 1) * v * Math.PI) / (2 * n));
         }

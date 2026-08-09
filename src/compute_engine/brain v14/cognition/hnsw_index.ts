@@ -25,6 +25,7 @@
 
 import { PHI } from "./../core/constants.ts";
 import { resonance } from "./../adapters/language_codec.ts";
+import { at } from "../core/indexing.ts";
 
 /** Distance between two fields: 1 − resonance (monotone in resonance). */
 function fieldDistance(a: Float64Array, b: Float64Array): number {
@@ -141,7 +142,7 @@ export class HnswIndex {
           }
         }
       }
-      if (neighbors.length > 0) curr = neighbors[0].id; // descend from closest
+      if (neighbors.length > 0) curr = at(neighbors, 0).id; // descend from closest
     }
 
     if (level > this._maxLevel) {

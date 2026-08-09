@@ -65,6 +65,7 @@ import {
   L4_Sensory,
   L4p_WeightedRAM,
 } from "./frameworks.ts";
+import { at } from "./core/indexing.ts";
 
 // ───────────────────────────────────────────────────────────────────────────────
 // 1. Helper Functions (deterministic, no randomness)
@@ -78,7 +79,7 @@ function computeNodeId(scale: ScaleIndex, pathSegments: readonly number[]): Node
   // Simple deterministic hash: weighted sum of path segments with φ-proportional weights.
   let hash = 0;
   for (let i = 0; i < pathSegments.length; i++) {
-    hash = (hash * 31 + pathSegments[i] * (i + 1)) & 0x7fffffff;
+    hash = (hash * 31 + at(pathSegments, i) * (i + 1)) & 0x7fffffff;
   }
   return `node_${scale}_${hash.toString(16).padStart(8, "0")}`;
 }
@@ -274,7 +275,7 @@ function computeSurfaceClosure(
 
   for (let i = 0; i < field.length; i++) {
     const bVal = boundary[i % boundary.length] ?? 0;
-    const diff = bVal - field[i];
+    const diff = bVal - at(field, i);
     result[i] = factor * diff;
   }
 
@@ -572,7 +573,7 @@ export class FractalNode {
     // ── Total field: sum all three terms ───────────────────────────────────
     const totalField = new Float64Array(fieldSize);
     for (let i = 0; i < fieldSize; i++) {
-      totalField[i] = (summationField[i] + memoryField[i] + surfaceField[i]) as Float64;
+      totalField[i] = (at(summationField, i) + at(memoryField, i) + at(surfaceField, i)) as Float64;
     }
 
     // ── [INTEGRATED] Framework Computation ───────────────────────────────────
@@ -593,7 +594,7 @@ export class FractalNode {
         const fwOutput = fw.compute(realInput, realInput); // input = realInput, field_state = realInput
         // Add framework contribution (weighted by 1/φ per framework for stability)
         for (let i = 0; i < realInputSize; i++) {
-          frameworkSum[i] += fwOutput[i] * (1.0 / PHI) / this._frameworkComputes.length;
+          frameworkSum[i] += at(fwOutput, i) * (1.0 / PHI) / this._frameworkComputes.length;
         }
       }
 
@@ -601,8 +602,8 @@ export class FractalNode {
       for (let i = 0; i < realInputSize; i++) {
         const contribution = frameworkSum[i];
         // Distribute evenly between real and imaginary parts
-        totalField[2 * i] = (totalField[2 * i] + contribution * Math.cos(computePhaseAngle(i, this.scale))) as Float64;
-        totalField[2 * i + 1] = (totalField[2 * i + 1] + contribution * Math.sin(computePhaseAngle(i, this.scale))) as Float64;
+        totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i, this.scale))) as Float64;
+        totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i, this.scale))) as Float64;
       }
     }
 
@@ -615,15 +616,15 @@ export class FractalNode {
         const memOutput = mem.recall(realInput);
         // Add memory contribution (weighted by 1/φ² per memory for stability)
         for (let i = 0; i < realInputSize; i++) {
-          memorySum[i] += memOutput[i] * (1.0 / (PHI * PHI)) / this._memoryComputes.length;
+          memorySum[i] += at(memOutput, i) * (1.0 / (PHI * PHI)) / this._memoryComputes.length;
         }
       }
 
       // Convert memory output back to interleaved complex and add to totalField
       for (let i = 0; i < realInputSize; i++) {
         const contribution = memorySum[i];
-        totalField[2 * i] = (totalField[2 * i] + contribution * Math.cos(computePhaseAngle(i + 1, this.scale))) as Float64;
-        totalField[2 * i + 1] = (totalField[2 * i + 1] + contribution * Math.sin(computePhaseAngle(i + 1, this.scale))) as Float64;
+        totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i + 1, this.scale))) as Float64;
+        totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i + 1, this.scale))) as Float64;
       }
     }
 
@@ -635,7 +636,7 @@ export class FractalNode {
       for (const child of this.children) {
         const childField = child.state.field_state;
         for (let i = 0; i < fieldSize; i++) {
-          totalField[i] = (totalField[i] + childField[i] * childWeight) as Float64;
+          totalField[i] = (at(totalField, i) + at(childField, i) * childWeight) as Float64;
         }
       }
     }
@@ -774,9 +775,9 @@ export class FractalNode {
       maxDelta = 0;
       for (let i = 0; i < fieldLen; i++) {
         const bVal = boundary[i % boundary.length] ?? 0;
-        const correction = cc * (bVal - field[i]);
-        const newVal = (field[i] + correction) as Float64;
-        const delta = Math.abs(newVal - field[i]);
+        const correction = cc * (bVal - at(field, i));
+        const newVal = (at(field, i) + correction) as Float64;
+        const delta = Math.abs(newVal - at(field, i));
         if (delta > maxDelta) {
           maxDelta = delta;
         }

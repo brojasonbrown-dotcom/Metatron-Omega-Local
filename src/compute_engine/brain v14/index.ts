@@ -29,6 +29,8 @@ export type {
   MemoryThreshold,
   FrameworkInstance,
   MemoryInstance,
+  FrameworkEngine,
+  MemoryEngine,
   FractalNodeState,
   FractalTreeStats,
   NodeId,

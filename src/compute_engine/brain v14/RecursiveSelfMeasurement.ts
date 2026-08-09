@@ -37,6 +37,7 @@ import {
 import {
   phaseDriftMetric,
 } from "./torus_recurrence.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -270,7 +271,7 @@ export function computeDirectionalProjection(
 
   if (totalWeight > 0) {
     for (let i = 0; i < result.length; i++) {
-      result[i] = (result[i] / totalWeight) as Float64;
+      result[i] = (at(result, i) / totalWeight) as Float64;
     }
   }
 
@@ -402,7 +403,7 @@ export function computeMultiscaleStabilization(
 
   if (totalWeight > 0) {
     for (let i = 0; i < blended.length; i++) {
-      blended[i] = (blended[i] / totalWeight) as Float64;
+      blended[i] = (at(blended, i) / totalWeight) as Float64;
     }
   }
 

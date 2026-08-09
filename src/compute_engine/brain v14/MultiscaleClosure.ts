@@ -22,6 +22,7 @@ import {
   TWO_PI,
   SCALE_INDICES,
 } from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
 
 /** [SPEC] Explicit Float64 type alias for IEEE-754 deterministic arithmetic. */
 export type Float64 = number;
@@ -94,7 +95,7 @@ function mean(values: Float64[]): Float64 {
   const n = values.length;
   if (n === 0) return 0;
   let sum = 0;
-  for (let i = 0; i < n; i++) sum += values[i];
+  for (let i = 0; i < n; i++) sum += at(values, i);
   return (sum / n) as Float64;
 }
 
@@ -103,11 +104,11 @@ function stddev(values: Float64[]): Float64 {
   const n = values.length;
   if (n === 0) return 0;
   let sum = 0;
-  for (let i = 0; i < n; i++) sum += values[i];
+  for (let i = 0; i < n; i++) sum += at(values, i);
   const mu = sum / n;
   let sq = 0;
   for (let i = 0; i < n; i++) {
-    const d = values[i] - mu;
+    const d = at(values, i) - mu;
     sq += d * d;
   }
   return Math.sqrt(sq / n) as Float64;
@@ -189,9 +190,9 @@ export class MultiscaleClosure {
     }
     const meanField = (sumField / count) as Float64;
     const meanPhase = circularMean(sumSin as Float64, sumCos as Float64);
-    const fieldDiff = Math.abs(nodes[index].field - meanField) as Float64;
+    const fieldDiff = Math.abs(at(nodes, index).field - meanField) as Float64;
     const fieldNorm = (PHI_INV + Math.abs(meanField)) as Float64;
-    const phaseDiff = Math.abs(wrapPhase(nodes[index].phase - meanPhase)) as Float64;
+    const phaseDiff = Math.abs(wrapPhase(at(nodes, index).phase - meanPhase)) as Float64;
     const arg = CLOSURE_COUPLING * (fieldDiff / fieldNorm + phaseDiff * PHI_INV);
     return Math.exp(-arg) as Float64;
   }
@@ -220,17 +221,17 @@ export class MultiscaleClosure {
     let sumSin = 0;
     let sumCos = 0;
     for (let i = 0; i < n; i++) {
-      sumField += nodes[i].field;
-      sumSin += Math.sin(nodes[i].phase);
-      sumCos += Math.cos(nodes[i].phase);
+      sumField += at(nodes, i).field;
+      sumSin += Math.sin(at(nodes, i).phase);
+      sumCos += Math.cos(at(nodes, i).phase);
     }
     const meanField = (sumField / n) as Float64;
     const meanPhase = circularMean(sumSin as Float64, sumCos as Float64);
     let varField = 0;
     let varPhase = 0;
     for (let i = 0; i < n; i++) {
-      varField += (nodes[i].field - meanField) ** 2;
-      varPhase += wrapPhase(nodes[i].phase - meanPhase) ** 2;
+      varField += (at(nodes, i).field - meanField) ** 2;
+      varPhase += wrapPhase(at(nodes, i).phase - meanPhase) ** 2;
     }
     const stdField = Math.sqrt(varField / n) as Float64;
     const stdPhase = Math.sqrt(varPhase / n) as Float64;
@@ -247,18 +248,18 @@ export class MultiscaleClosure {
     const T = history.length;
     if (T < 2) return 1;
     let sum = 0;
-    for (let i = 0; i < T; i++) sum += history[i];
+    for (let i = 0; i < T; i++) sum += at(history, i);
     const mean = (sum / T) as Float64;
     let variance = 0;
     for (let i = 0; i < T; i++) {
-      const d = history[i] - mean;
+      const d = at(history, i) - mean;
       variance += d * d;
     }
     variance /= T;
     if (variance === 0) return 1;
     let cov = 0;
     for (let i = 1; i < T; i++) {
-      cov += (history[i] - mean) * (history[i - 1] - mean);
+      cov += (at(history, i) - mean) * (at(history, i - 1) - mean);
     }
     cov /= (T - 1);
     const autocorr = (cov / variance) as Float64;
@@ -274,7 +275,7 @@ export class MultiscaleClosure {
   computeScaleClosure(nodes: NodeState[], scaleIndex: number): Float64 {
     const fields: Float64[] = [];
     for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].scaleIndex === scaleIndex) fields.push(nodes[i].field);
+      if (at(nodes, i).scaleIndex === scaleIndex) fields.push(at(nodes, i).field);
     }
     const m = fields.length;
     if (m === 0) return 0;
@@ -291,7 +292,7 @@ export class MultiscaleClosure {
   computeScaleClosureMap(nodes: NodeState[]): Map<number, Float64> {
     const map = new Map<number, Float64>();
     const scales = new Set<number>();
-    for (let i = 0; i < nodes.length; i++) scales.add(nodes[i].scaleIndex);
+    for (let i = 0; i < nodes.length; i++) scales.add(at(nodes, i).scaleIndex);
     for (const s of scales) map.set(s, this.computeScaleClosure(nodes, s));
     return map;
   }
@@ -305,8 +306,8 @@ export class MultiscaleClosure {
     const fieldsA: Float64[] = [];
     const fieldsB: Float64[] = [];
     for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].scaleIndex === scaleA) fieldsA.push(nodes[i].field);
-      if (nodes[i].scaleIndex === scaleB) fieldsB.push(nodes[i].field);
+      if (at(nodes, i).scaleIndex === scaleA) fieldsA.push(at(nodes, i).field);
+      if (at(nodes, i).scaleIndex === scaleB) fieldsB.push(at(nodes, i).field);
     }
     const mA = fieldsA.length;
     const mB = fieldsB.length;

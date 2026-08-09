@@ -23,6 +23,7 @@
  */
 
 import { FIELD_SIZE } from "./../adapters/language_codec.ts";
+import { at } from "../core/indexing.ts";
 
 /** Number of sub-vector spaces: m = 4. [SPEC] */
 export const PQ_SUBSPACES = 4;
@@ -84,11 +85,11 @@ export function trainPQ(samples: Float64Array[]): TrainedPQ {
           const a = assignments[i];
           counts[a]++;
           const v = subVecs[i];
-          for (let d = 0; d < subDim; d++) sums[a][d] += v[d];
+          for (let d = 0; d < subDim; d++) sums[a][d] += at(v, d);
         }
         for (let c = 0; c < k; c++) {
-          if (counts[c] > 0) {
-            for (let d = 0; d < subDim; d++) centroids[c][d] = sums[c][d] / counts[c];
+          if (at(counts, c) > 0) {
+            for (let d = 0; d < subDim; d++) centroids[c][d] = at(sums, c)[d] / at(counts, c);
           }
         }
       }
@@ -107,7 +108,7 @@ function nearestCentroidIndex(v: Float64Array, centroids: Float64Array[]): numbe
     const cen = centroids[c];
     let dist = 0.0;
     for (let d = 0; d < v.length; d++) {
-      const diff = v[d] - cen[d];
+      const diff = at(v, d) - at(cen, d);
       dist += diff * diff;
     }
     if (dist < bestDist) {
@@ -135,7 +136,7 @@ export function pqDecode(pq: TrainedPQ, code: Uint8Array): Float64Array {
   for (let s = 0; s < pq.subspaces; s++) {
     const centroid = pq.codebook[s][code[s] ?? 0];
     const offset = s * pq.subDim;
-    for (let d = 0; d < pq.subDim; d++) out[offset + d] = centroid[d];
+    for (let d = 0; d < pq.subDim; d++) out[offset + d] = at(centroid, d);
   }
   return out;
 }
@@ -150,7 +151,7 @@ export function pqAsymmetricDistance(pq: TrainedPQ, query: Float64Array, code: U
     const centroid = pq.codebook[s][code[s] ?? 0];
     const offset = s * pq.subDim;
     for (let d = 0; d < pq.subDim; d++) {
-      const diff = query[offset + d] - centroid[d];
+      const diff = at(query, offset + d) - at(centroid, d);
       dist += diff * diff;
     }
   }
@@ -166,9 +167,9 @@ export function pqDistortion(pq: TrainedPQ, samples: Float64Array[]): number {
     let num = 0;
     let den = 0;
     for (let i = 0; i < f.length; i++) {
-      const diff = f[i] - recon[i];
+      const diff = at(f, i) - at(recon, i);
       num += diff * diff;
-      den += f[i] * f[i];
+      den += at(f, i) * at(f, i);
     }
     total += den > 0 ? Math.sqrt(num) / Math.sqrt(den) : 0;
   }

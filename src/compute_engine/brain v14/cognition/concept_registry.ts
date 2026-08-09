@@ -362,8 +362,12 @@ export class ConceptRegistry {
    * @param field — Unit-normalizable Float64Array(28).
    * @param labels — Optional labels to attach (from LLM naming or text feed).
    * @param source — Provenance string for the audit trace.
+   * @param options.reinforce — Upgrade 3 (novelty gate): when false, the field is
+   *   still RECOGNIZED against existing prototypes (and returns the match) but the
+   *   prototype is NOT nudged and NO new concept is minted — the redundant percept
+   *   leaves learning untouched. Default true = byte-for-byte the legacy behaviour.
    */
-  observe(field: Float64Array, labels: string[] = [], source: string = "unknown"): ObserveResult {
+  observe(field: Float64Array, labels: string[] = [], source: string = "unknown", options: { reinforce?: boolean } = {}): ObserveResult {
     if (field.length !== FIELD_SIZE) {
       throw new Error(
         `ConceptRegistry.observe: field length ${field.length} !== ${FIELD_SIZE}`
@@ -372,6 +376,24 @@ export class ConceptRegistry {
     const normalized = normalizeField(field);
     const now = Date.now();
     const best = this.nearest(normalized, 1)[0];
+    const reinforce = options.reinforce !== false;
+
+    // Upgrade 3 — novelty gate: a redundant percept is recognized but not learned.
+    // It never reinforces the prototype and never mints a duplicate concept.
+    if (!reinforce) {
+      if (best && best.resonance >= this.recognitionThreshold) {
+        const c = best.concept;
+        c.lastSeen = now;
+        return { concept: c, isNew: false, resonance: best.resonance };
+      }
+      // Unrecognized but not novel: report the nearest concept WITHOUT minting a
+      // new one — a static, unsurprising scene must not spawn duplicate concepts.
+      if (best) {
+        return { concept: best.concept, isNew: false, resonance: best.resonance };
+      }
+      // No concepts at all yet: mint the first (a mind with zero concepts must
+      // still bootstrap) — fall through to the normal path.
+    }
 
     if (best && best.resonance >= this.recognitionThreshold) {
       // Recognized: reinforce prototype with φ-decayed averaging, weighted by

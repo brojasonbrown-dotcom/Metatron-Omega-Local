@@ -33,6 +33,7 @@ import { fieldFromLuminanceGrid } from "../adapters/sensors/signal_codec.ts";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { at } from "../core/indexing.ts";
 
 const PHI = 1.618033988749895;
 const ETA = 1.0 / (PHI * PHI); // 1/φ² — the engine's universal learning rate
@@ -175,7 +176,7 @@ describe("P3.5 — EMA reinforcement decay matches closed form", () => {
     }
     // The residual sequence is non-increasing (monotone learning).
     for (let i = 1; i < residuals.length; i++) {
-      expect(residuals[i]).toBeLessThanOrEqual(residuals[i - 1] + 1e-9);
+      expect(residuals[i]).toBeLessThanOrEqual(at(residuals, i - 1) + 1e-9);
     }
     // Regret vs closed form: the FINAL residual should be near (1−η)^13 × initial.
     const init = 1 - r0;

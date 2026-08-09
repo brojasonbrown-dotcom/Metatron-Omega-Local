@@ -33,6 +33,7 @@ import {
   toroidalShift,
   delayedFeedback,
 } from "./torus_recurrence.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -438,7 +439,7 @@ export class SelfMeasurementCycle {
     // Run cycle at each scale
     const results: SelfMeasurementResult[] = [];
     for (let i = 0; i < fields.length; i++) {
-      const boundary = boundaries[i] ?? new Float64Array(fields[i].length);
+      const boundary = boundaries[i] ?? new Float64Array(at(fields, i).length);
       results.push(this.cycle(fields[i], boundary));
     }
 
@@ -449,7 +450,7 @@ export class SelfMeasurementCycle {
 
     for (let i = 0; i < results.length; i++) {
       const weight = Math.pow(PHI_INV, i);
-      const next = results[i].nextState;
+      const next = at(results, i).nextState;
       for (let j = 0; j < next.length && j < maxLen; j++) {
         blended[j] += (next[j] ?? 0) * weight;
       }
@@ -457,7 +458,7 @@ export class SelfMeasurementCycle {
     }
 
     for (let j = 0; j < maxLen; j++) {
-      blended[j] = (blended[j] / (totalWeight + 1e-300)) as Float64;
+      blended[j] = (at(blended, j) / (totalWeight + 1e-300)) as Float64;
     }
 
     // Use the first (coarsest) scale's metrics as the overall metrics

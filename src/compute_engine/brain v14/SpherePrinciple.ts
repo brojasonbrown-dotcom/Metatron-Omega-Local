@@ -267,7 +267,7 @@ export class SpherePrinciple {
    * ∇²I_smooth = 0. We compute the spectral Laplacian energy of the deviation field.
    */
   computeCornerDefect(field: Float64Array, idealField: Float64Array): Float64 {
-    return computeCornerDefect(field, idealField);
+    return this._pd.computeCornerDefect(field, idealField);
   }
 
   /** [MATH] Corner_density = Corner_defect / N. Normalizes by sampling density for cross-resolution comparison. */
@@ -501,7 +501,8 @@ export function verifyMeasurementIncompleteness(sampleCount: number): boolean {
 
 /** [PHIL] Verify the No-Corner Ideal: any realized structure at finite resolution has corners, so cornerDefect > 0. */
 export function verifyNoCornerIdeal(field: Float64Array, isComplex: boolean = false): boolean {
-  return computeCornerDefect(field, computeIdealSmoothField(field, isComplex)) > 0.0;
+  const pd = new PerfectionDeficit();
+  return pd.computeCornerDefect(field, computeIdealSmoothField(field, isComplex)) > 0.0;
 }
 
 /** [PHIL] Verify the Smooth Ideal Nonattainment Principle: ε_t is always strictly positive, bounded above, and converging toward zero (but never reaching it). */

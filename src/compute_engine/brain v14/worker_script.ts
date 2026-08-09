@@ -10,6 +10,7 @@
 
 import { parentPort } from "node:worker_threads";
 import type { WorkerTask, WorkerResult, ComputeNodeResult, StabilizeNodeResult, DeepOntologyResult } from "./worker_pool.ts";
+import { at } from "./core/indexing.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. Constants (mirrored from constants.ts for worker independence)
@@ -127,7 +128,7 @@ function handleComputeNode(payload: WorkerTask["payload"] & { readonly childFiel
 
     for (let i = 0; i < fieldSize; i++) {
       const bVal = boundary[i % boundary.length] ?? 0;
-      const diff = bVal - field[i];
+      const diff = bVal - at(field, i);
       surfaceField[i] = factor * diff;
     }
   }
@@ -135,7 +136,7 @@ function handleComputeNode(payload: WorkerTask["payload"] & { readonly childFiel
   // ── Total field: sum all three terms ───────────────────────────────────
   const totalField = new Float64Array(fieldSize);
   for (let i = 0; i < fieldSize; i++) {
-    totalField[i] = summationField[i] + memoryField[i] + surfaceField[i];
+    totalField[i] = at(summationField, i) + at(memoryField, i) + at(surfaceField, i);
   }
 
   // ── Child Field Feedback ───────────────────────────────────────────────
@@ -143,7 +144,7 @@ function handleComputeNode(payload: WorkerTask["payload"] & { readonly childFiel
     const childWeight = (1.0 / PHI) / (p.childFieldStates.length + 1e-300);
     for (const childField of p.childFieldStates) {
       for (let i = 0; i < fieldSize; i++) {
-        totalField[i] += childField[i] * childWeight;
+        totalField[i] += at(childField, i) * childWeight;
       }
     }
   }
@@ -200,9 +201,9 @@ function handleStabilizeNode(payload: WorkerTask["payload"]): StabilizeNodeResul
     maxDelta = 0;
     for (let i = 0; i < fieldLen; i++) {
       const bVal = boundary[i % boundary.length] ?? 0;
-      const correction = cc * (bVal - field[i]);
-      const newVal = field[i] + correction;
-      const delta = Math.abs(newVal - field[i]);
+      const correction = cc * (bVal - at(field, i));
+      const newVal = at(field, i) + correction;
+      const delta = Math.abs(newVal - at(field, i));
       if (delta > maxDelta) {
         maxDelta = delta;
       }

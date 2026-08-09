@@ -24,6 +24,7 @@ import {
   hamming,
   hashSimilarity,
 } from "../cognition/visual_memory.ts";
+import { at } from "../core/indexing.ts";
 
 const W = 89;
 const H = 55;
@@ -54,7 +55,7 @@ function makeGrid(seed: number, mode: "gradient" | "checker" | "blob"): Float64A
 function perturb(g: Float64Array, amount: number): Float64Array {
   const out = new Float64Array(g.length);
   for (let i = 0; i < g.length; i++) {
-    out[i] = Math.max(0, Math.min(255, g[i] + amount * Math.sin(i * 1.7)));
+    out[i] = Math.max(0, Math.min(255, at(g, i) + amount * Math.sin(i * 1.7)));
   }
   return out;
 }

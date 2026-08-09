@@ -19,6 +19,7 @@ import {
   PHI_INV,
   PI,
 } from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -101,7 +102,7 @@ export function sphericalHarmonicProjection(
         const y = points[3 * i + 1];
         const z = points[3 * i + 2];
         const Ylm = _realSphericalHarmonic(l, m, x, y, z);
-        sum += field[i] * Ylm * weights[i];
+        sum += at(field, i) * Ylm * at(weights, i);
       }
       // Normalize by 4π (surface area of unit sphere)
       coeffs[coeffIdx++] = (sum * 4.0 * PI) as Float64;
@@ -142,21 +143,75 @@ function _realSphericalHarmonic(l: number, m: number, x: Float64, y: Float64, z:
     if (m === 2) return (c2 * 0.5 * (x * x - y * y)) as Float64;
   }
 
-  // l=3: m=-3..3 (extended coverage)
-  if (l === 3) {
-    const c3 = Math.sqrt(21.0 / (32.0 * PI)) as Float64;
-    const c30 = Math.sqrt(7.0 / (16.0 * PI)) as Float64;
-    if (m === -3) return (c3 * Math.sqrt(15.0) * y * (3.0 * x * x - y * y)) as Float64;
-    if (m === -2) return (c3 * Math.sqrt(15.0) * 2.0 * x * y * z) as Float64;
-    if (m === -1) return (c3 * Math.sqrt(3.0) * y * (5.0 * z * z - 1.0)) as Float64;
-    if (m === 0) return (c30 * z * (5.0 * z * z - 3.0)) as Float64;
-    if (m === 1) return (c3 * Math.sqrt(3.0) * x * (5.0 * z * z - 1.0)) as Float64;
-    if (m === 2) return (c3 * Math.sqrt(15.0) * z * (x * x - y * y)) as Float64;
-    if (m === 3) return (c3 * Math.sqrt(15.0) * x * (x * x - 3.0 * y * y)) as Float64;
-  }
+  // l=3: the original hard-coded table had two normalisation defects — Y_3^±3 was
+  // ×3 too large and Y_3^±2 ×√(3/2) too large (measured against the Legendre
+  // ground truth, which is orthonormal to machine floor). l=3 and every higher
+  // degree defer to the correct general associated-Legendre form below.
+  if (l >= 3) return generalSphericalHarmonic(l, m, x, y, z);
 
-  // Fallback: return 0 for unsupported l,m
   return 0 as Float64;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2b. GENERAL SPHERICAL HARMONICS — arbitrary (l, m) via associated Legendre
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Associated Legendre polynomial P_l^m(x) WITHOUT the Condon–Shortley phase,
+ * matching the hard-coded l≤3 table above (which carries no (−1)^m). Computed
+ * by the standard stable upward recurrence in l:
+ *   (l−m) P_l^m = x(2l−1) P_{l−1}^m − (l+m−1) P_{l−2}^m
+ * seeded from P_m^m = (2m−1)!! (1−x²)^{m/2}  (no CS phase) and P_{m+1}^m = x(2m+1)P_m^m.
+ * Stable to machine floor for the degrees the sphere probe reaches (l ≲ 48).
+ */
+export function associatedLegendre(l: number, m: number, x: number): Float64 {
+  if (m < 0 || l < 0 || m > l) return 0 as Float64;
+  if (x < -1 || x > 1) return 0 as Float64;
+  // P_m^m = (2m−1)!! (1−x²)^{m/2}
+  let pmm = 1.0;
+  if (m > 0) {
+    const somx2 = Math.sqrt(Math.max(0, (1 - x) * (1 + x)));
+    let fact = 1.0;
+    for (let i = 1; i <= m; i++) { pmm *= fact * somx2; fact += 2.0; }
+  }
+  if (l === m) return pmm as Float64;
+  let pmmp1 = x * (2 * m + 1) * pmm;
+  if (l === m + 1) return pmmp1 as Float64;
+  let pll = 0.0;
+  for (let ll = m + 2; ll <= l; ll++) {
+    pll = (x * (2 * ll - 1) * pmmp1 - (ll + m - 1) * pmm) / (ll - m);
+    pmm = pmmp1;
+    pmmp1 = pll;
+  }
+  return pll as Float64;
+}
+
+/**
+ * GENERAL real spherical harmonic Y_l^m on the unit sphere, for ANY l ≥ 0 and
+ * −l ≤ m ≤ l — the extension of the hard-coded l≤3 table to arbitrary degree.
+ *
+ * Convention (identical normalisation and sign as the l≤3 table, verified to
+ * machine floor at l=0..3):
+ *   m = 0 :  Y_l^0 = sqrt((2l+1)/(4π)) · P_l(z)
+ *   m > 0 :  Y_l^{+m} = sqrt(2)·N_l^m · P_l^m(z) · cos(mφ)
+ *            Y_l^{−m} = sqrt(2)·N_l^m · P_l^m(z) · sin(mφ)
+ *   with N_l^m = sqrt((2l+1)/(4π) · (l−m)!/(l+m)!), φ = atan2(y, x), z = cos θ.
+ *
+ * These are orthonormal: ∮ Y_lm Y_l'm' dΩ = δ_ll' δ_mm'. Use this for l > 3;
+ * the dedicated table above is kept for the common low degrees.
+ */
+export function generalSphericalHarmonic(l: number, m: number, x: Float64, y: Float64, z: Float64): Float64 {
+  if (l < 0 || Math.abs(m) > l) return 0 as Float64;
+  const am = Math.abs(m);
+  // log-factorial ratio (l−m)!/(l+m)! for overflow-safe evaluation at high l.
+  let logRatio = 0;
+  for (let i = l - am + 1; i <= l + am; i++) logRatio -= Math.log(i);
+  const N = Math.sqrt(((2 * l + 1) / (4 * PI)) * Math.exp(logRatio));
+  const Plm = associatedLegendre(l, am, z);
+  if (m === 0) return (N * Plm) as Float64;
+  const phi = Math.atan2(y, x);
+  const base = Math.SQRT2 * N * Plm;
+  return (m > 0 ? base * Math.cos(am * phi) : base * Math.sin(am * phi)) as Float64;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -41,6 +41,9 @@ import { LinguisticGate, gateEchoText } from "./linguistic_gate.ts";
 import type { RecordPerceptron } from "./record_perceptron.ts";
 import type { LexiconTriples } from "./lexicon_triples.ts";
 import { verifyPrediction } from "./prediction_ledger.ts";
+import { SpectralMemory } from "./spectral_memory.ts";
+import { NoveltyGate, type NoveltyVerdict } from "./novelty_gate.ts";
+import { at } from "../core/indexing.ts";
 
 /**
  * The language instrument the engine queries. Any model satisfying the
@@ -124,6 +127,15 @@ export interface CognitiveLoopDeps {
    * Optional so run_mind.ts needs no change. [SPEC]
    */
   readonly modeGovernor?: import("./learning_mode.ts").LearningModeGovernor;
+  readonly noveltyGate?: NoveltyGate;
+  /**
+   * Upgrade 5 — the genome's spectral signature ("DNA scan"). When present, the
+   * loop feeds each tick's lattice into a rolling 144-tick window and the mind's
+   * spectral fingerprint (standing waves, tempo, diversity, drift) becomes
+   * computable on demand via `loop.genomeDNA.signature()`. Optional so
+   * run_mind.ts needs no change. [SPEC]
+   */
+  readonly genomeDNA?: import("./genome_spectral_signature.ts").GenomeSpectralSignature;
 }
 
 export class CognitiveLoop {
@@ -143,6 +155,9 @@ export class CognitiveLoop {
   private _stableThoughtCount: number;
   private _prevRootField: Float64Array | null = null;
   private _boundaryField: Float64Array | null = null;
+  private readonly _spectral = new SpectralMemory();
+  /** Latest novelty verdict per source this tick (Upgrade 3). Reset each sense pass. */
+  private readonly _lastNovelty = new Map<string, NoveltyVerdict>();
 
   private _phiBusy = false;
   private _mathstralBusy = false;
@@ -195,6 +210,22 @@ export class CognitiveLoop {
   get tickCount(): number {
     return this._tickCount;
   }
+  /**
+   * Read access to the spectral memory tap — the live record of measured
+   * percept complexity + identity across every enriched sense. Cross-modally
+   * commensurable; the substrate for novelty-by-complexity gating. [SPEC]
+   */
+  get spectral(): SpectralMemory {
+    return this._spectral;
+  }
+
+  /**
+   * Upgrade 5 — the genome's spectral signature ("DNA scan") window, when the
+   * opt-in dep is attached. Call `.signature()` for the mind's fingerprint. [SPEC]
+   */
+  get genomeDNA(): import("./genome_spectral_signature.ts").GenomeSpectralSignature | undefined {
+    return this._deps.genomeDNA;
+  }
 
   start(): void {
     if (this._running) return;
@@ -236,6 +267,42 @@ export class CognitiveLoop {
         await engine.process(frame.field);
         this._tracker.noteSource(frame.source);
         this._boundaryField = frame.field;
+        // SPECTRAL TAP — when the sensor attached a certified spectral enrichment,
+        // record its measured complexity + identity (cross-modally commensurable) and
+        // journal it. The engine already received the locked 28-field above; this tap
+        // NEVER perturbs dynamics — it only reads the additive enrichment. [SPEC]
+        if (frame.spectral) {
+          const spectralSummary = this._spectral.record(this._tickCount, frame.source, frame.spectral);
+          store.journal({
+            t: Date.now(),
+            kind: "spectral.percept",
+            data: spectralSummary,
+          });
+          // NOVELTY GATE (Upgrade 3) — judge this percept's surprise against its
+          // source's running entropy baseline (already updated by record() above).
+          // The verdict modulates ONLY downstream concept-learning pressure; the
+          // engine's sensory door (engine.process, already run) is NEVER gated.
+          if (this._deps.noveltyGate) {
+            const verdict = this._deps.noveltyGate.judge(
+              this._spectral,
+              frame.source,
+              frame.spectral.complexity.entropyNorm,
+            );
+            this._lastNovelty.set(frame.source, verdict);
+            store.journal({
+              t: Date.now(),
+              kind: "novelty.gate",
+              data: {
+                source: verdict.source,
+                entropyNorm: verdict.entropyNorm,
+                ...(verdict.zScore !== undefined && Number.isFinite(verdict.zScore) ? { zScore: verdict.zScore } : {}),
+                threshold: verdict.threshold,
+                novel: verdict.novel,
+                reason: verdict.reason,
+              },
+            });
+          }
+        }
         store.journal({
           t: Date.now(),
           kind: "sense",
@@ -254,6 +321,9 @@ export class CognitiveLoop {
       if (this._deps.genome) {
         const lattice = engine.snapshot_field_lattice();
         this._deps.genome.record(this._tickCount, lattice, engine.get_state().total_nodes);
+        // Upgrade 5 — feed the same lattice into the DNA-scan window. The scan
+        // copies; it never perturbs recording or the dynamics. [SPEC]
+        this._deps.genomeDNA?.observe(lattice, engine.get_state().total_nodes);
       }
 
       // 2. DETECT — existence of the root field.
@@ -315,11 +385,23 @@ export class CognitiveLoop {
       },
     });
 
-    // RECOGNIZE by resonance.
+    // RECOGNIZE by resonance. Upgrade 3 (novelty gate): when the gate is enabled
+    // and EVERY modality that fed this thought was redundant this tick, recognize
+    // without reinforcing — the mind stops re-learning what it already knows.
+    // When the gate is absent/disabled, or any source was novel, learn as today.
+    let reinforce = true;
+    const gate = this._deps.noveltyGate;
+    if (gate && gate.enabled && thought.sources.length > 0) {
+      const anyNovel = thought.sources.some((src) => this._lastNovelty.get(src)?.novel === true);
+      const anyVerdict = thought.sources.some((src) => this._lastNovelty.has(src));
+      // Suppress only when we have a verdict for the thought and none were novel.
+      reinforce = anyVerdict ? anyNovel : true;
+    }
     const obs = registry.observe(
       thought.field,
       [],
-      `thought:${thought.sources.join("+") || "internal"}`
+      `thought:${thought.sources.join("+") || "internal"}`,
+      { reinforce }
     );
     thought.labels = [...obs.concept.labels];
 
@@ -554,7 +636,7 @@ export class CognitiveLoop {
     const f = thought.field;
     const modes: number[] = [];
     for (let k = 0; k + 1 < f.length; k += 2) {
-      modes.push(f[k] * f[k] + f[k + 1] * f[k + 1]); // |mode_k|²
+      modes.push(at(f, k) * at(f, k) + at(f, k + 1) * at(f, k + 1)); // |mode_k|²
     }
     const total = modes.reduce((a, b) => a + b, 0) || 1;
     const ranked = modes

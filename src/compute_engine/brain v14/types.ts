@@ -186,6 +186,45 @@ export interface MemoryInstance {
 }
 
 /**
+ * Framework ENGINE — the compute contract implemented by the F1–F9 classes in
+ * frameworks.ts. Distinct from `FrameworkInstance`, which is the per-node
+ * metadata record (id + partial field + activation). Engines expose their
+ * characteristic scale and QRF threshold and perform the actual field
+ * computation. [SPEC]
+ */
+export interface FrameworkEngine {
+  /** Engine name (matches its FrameworkId). */
+  readonly name: string;
+  /** Characteristic scale index n. */
+  readonly scale: number;
+  /** Characteristic QRF threshold qrf_fw for this framework. */
+  readonly qrf_threshold: number;
+  /** Transform an input field, blending with prior field_state for continuity. */
+  compute(input: Float64Array, field_state: Float64Array): Float64Array;
+}
+
+/**
+ * Memory ENGINE — the store/recall contract implemented by the L1–L4+ classes
+ * in frameworks.ts. Distinct from `MemoryInstance`, which is the per-node
+ * metadata record (id + memory field + activation). Engines hold prototypes /
+ * history and report a characteristic coherence (activation threshold). [SPEC]
+ */
+export interface MemoryEngine {
+  /** Engine name (matches its MemoryId). */
+  readonly name: string;
+  /** Characteristic scale index n. */
+  readonly scale: number;
+  /** Temporal scale factor (φ-scaled temporal hierarchy). */
+  readonly temporal_scale: number;
+  /** Store a pattern (implementation-defined retention). */
+  store(pattern: Float64Array): void;
+  /** Recall the memory content associated with a probe pattern. */
+  recall(pattern: Float64Array): Float64Array;
+  /** Characteristic coherence / QRF threshold used for activation gating. */
+  coherence(): number;
+}
+
+/**
  * Fractal node state — the complete geometric descriptor at scale n.
  * [SPEC] — Mathematical ontology; C(n) is a geometric overlap, not a Born probability.
  */

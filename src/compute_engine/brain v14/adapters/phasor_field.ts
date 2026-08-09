@@ -45,6 +45,7 @@
 
 import { GOLDEN_PHASE_DENOMINATOR, HYPERVECTOR_DIM, PHI_INV, PI } from "./../core/constants.ts";
 import { normalizeText } from "./language_codec.ts";
+import { at } from "../core/indexing.ts";
 
 /** Number of complex phasors per hypervector: 2^13. [SPEC] */
 export const HV_COMPLEX: number = HYPERVECTOR_DIM;
@@ -267,7 +268,7 @@ export function bundle(items: readonly Float64Array[]): Float64Array {
   if (items.length === 1) return normalizeHV(items[0]);
   const out = new Float64Array(HV_SIZE);
   for (const v of items) {
-    for (let i = 0; i < HV_SIZE; i++) out[i] += v[i];
+    for (let i = 0; i < HV_SIZE; i++) out[i] += at(v, i);
   }
   return normalizeHV(out);
 }
@@ -405,7 +406,7 @@ export function liftField(field28: Float64Array): Float64Array {
     let acc = 0.0;
     const row = r * inSize;
     for (let i = 0; i < inSize; i++) {
-      acc += m[row + i] * field28[i];
+      acc += at(m, row + i) * at(field28, i);
     }
     out[r] = scale * acc;
   }
@@ -417,12 +418,12 @@ export function liftField(field28: Float64Array): Float64Array {
 // ─────────────────────────────────────────────────────────────────────────────
 function normalizeHV(v: Float64Array): Float64Array {
   let normSq = 0.0;
-  for (let i = 0; i < v.length; i++) normSq += v[i] * v[i];
+  for (let i = 0; i < v.length; i++) normSq += at(v, i) * at(v, i);
   if (normSq <= 0.0 || !Number.isFinite(normSq)) {
     throw new Error("phasor_field.normalizeHV: field has zero or non-finite norm");
   }
   const inv = 1.0 / Math.sqrt(normSq);
   const out = new Float64Array(v.length);
-  for (let i = 0; i < v.length; i++) out[i] = v[i] * inv;
+  for (let i = 0; i < v.length; i++) out[i] = at(v, i) * inv;
   return out;
 }

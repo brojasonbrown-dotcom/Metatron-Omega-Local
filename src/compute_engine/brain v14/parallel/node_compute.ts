@@ -32,6 +32,7 @@ import {
   PHI_NEG2,
   PI,
 } from "../core/constants.ts";
+import { at } from "../core/indexing.ts";
 
 // ── Local helpers (mirrors of fractal_node.ts private fns — kept in lockstep) ─
 
@@ -153,14 +154,14 @@ export function computeNodeShared(
     const field = node.currentField;
     for (let i = 0; i < fieldSize; i++) {
       const bVal = boundary[i % boundary.length] ?? 0;
-      surfaceField[i] = (factor * (bVal - field[i])) as Float64;
+      surfaceField[i] = (factor * (bVal - at(field, i))) as Float64;
     }
   }
 
   // ── Total: sum of the three terms ─────────────────────────────────────────
   const totalField = new Float64Array(fieldSize);
   for (let i = 0; i < fieldSize; i++) {
-    totalField[i] = (summationField[i] + memoryField[i] + surfaceField[i]) as Float64;
+    totalField[i] = (at(summationField, i) + at(memoryField, i) + at(surfaceField, i)) as Float64;
   }
 
   // ── Framework pass (node's REAL framework objects; state evolves) ─────────
@@ -176,13 +177,13 @@ export function computeNodeShared(
     for (const fw of node._frameworkComputes) {
       const fwOutput = fw.compute(realInput, realInput);
       for (let i = 0; i < realInputSize; i++) {
-        frameworkSum[i] += fwOutput[i] * (1.0 / PHI) / node._frameworkComputes.length;
+        frameworkSum[i] += at(fwOutput, i) * (1.0 / PHI) / node._frameworkComputes.length;
       }
     }
     for (let i = 0; i < realInputSize; i++) {
       const contribution = frameworkSum[i];
-      totalField[2 * i] = (totalField[2 * i] + contribution * Math.cos(computePhaseAngle(i, scale))) as Float64;
-      totalField[2 * i + 1] = (totalField[2 * i + 1] + contribution * Math.sin(computePhaseAngle(i, scale))) as Float64;
+      totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i, scale))) as Float64;
+      totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i, scale))) as Float64;
     }
   }
 
@@ -193,13 +194,13 @@ export function computeNodeShared(
       mem.store(realInput);
       const memOutput = mem.recall(realInput);
       for (let i = 0; i < realInputSize; i++) {
-        memorySum[i] += memOutput[i] * (1.0 / (PHI * PHI)) / node._memoryComputes.length;
+        memorySum[i] += at(memOutput, i) * (1.0 / (PHI * PHI)) / node._memoryComputes.length;
       }
     }
     for (let i = 0; i < realInputSize; i++) {
       const contribution = memorySum[i];
-      totalField[2 * i] = (totalField[2 * i] + contribution * Math.cos(computePhaseAngle(i + 1, scale))) as Float64;
-      totalField[2 * i + 1] = (totalField[2 * i + 1] + contribution * Math.sin(computePhaseAngle(i + 1, scale))) as Float64;
+      totalField[2 * i] = (at(totalField, 2 * i) + contribution * Math.cos(computePhaseAngle(i + 1, scale))) as Float64;
+      totalField[2 * i + 1] = (at(totalField, 2 * i + 1) + contribution * Math.sin(computePhaseAngle(i + 1, scale))) as Float64;
     }
   }
 
@@ -208,7 +209,7 @@ export function computeNodeShared(
     const childWeight = (1.0 / PHI) / (childFields.length + 1e-300);
     for (const childField of childFields) {
       for (let i = 0; i < fieldSize; i++) {
-        totalField[i] = (totalField[i] + childField[i] * childWeight) as Float64;
+        totalField[i] = (at(totalField, i) + at(childField, i) * childWeight) as Float64;
       }
     }
   }

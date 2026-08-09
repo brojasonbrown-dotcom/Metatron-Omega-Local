@@ -20,6 +20,7 @@
  */
 
 import type { FractalNode } from "../fractal_node.ts";
+import { at } from "../core/indexing.ts";
 
 /** Field width per node: interleaved complex for N=13 → 2·(13+1) = 28. */
 export const FIELD_SIZE = 28;
@@ -198,7 +199,7 @@ export function partitionTree(flat: FlatTree, poolSize: number): FlatNode[][] {
   for (const level of flat.levels) {
     if (!level) continue;
     level.forEach((fn, i) => {
-      assignments[i % poolSize].push(fn);
+      at(assignments, i % poolSize).push(fn);
     });
   }
   return assignments;

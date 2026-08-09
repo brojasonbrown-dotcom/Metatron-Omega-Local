@@ -37,6 +37,7 @@ import {
   phaseDriftMetric,
   phaseComparison,
 } from "./torus_recurrence.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -426,7 +427,7 @@ export class ContinuityLaw {
   getLastState(nodeId: string): ContinuityState | null {
     const history = this._history.get(nodeId);
     if (!history || history.length === 0) return null;
-    return history[history.length - 1].state;
+    return at(history, history.length - 1).state;
   }
 
   /**

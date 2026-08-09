@@ -26,6 +26,7 @@ import {
   PI,
   COHERENCE_THRESHOLD,
 } from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
 
 /** Float64 type alias for epistemic clarity. [SPEC] */
 type Float64 = number;
@@ -105,7 +106,7 @@ export class InformationDensity {
     // Compute probabilities and entropy
     let entropy = 0.0;
     for (let i = 0; i < n; i++) {
-      const p = magnitudes[i] / totalMag;
+      const p = at(magnitudes, i) / totalMag;
       if (p > 0) {
         entropy -= p * Math.log(p);
       }
@@ -352,7 +353,7 @@ export class InformationDensity {
     // Compute discrete gradient squared
     let sumSq = 0.0;
     for (let i = 0; i < n - 1; i++) {
-      const diff = magnitudes[i + 1] - magnitudes[i];
+      const diff = at(magnitudes, i + 1) - at(magnitudes, i);
       sumSq += diff * diff;
     }
 
@@ -444,7 +445,7 @@ export class InformationDensity {
 
     let sum = 0.0;
     for (let i = 1; i < densities.length; i++) {
-      sum += densities[i] - densities[i - 1];
+      sum += at(densities, i) - at(densities, i - 1);
     }
 
     return (sum / (densities.length - 1)) as Float64;

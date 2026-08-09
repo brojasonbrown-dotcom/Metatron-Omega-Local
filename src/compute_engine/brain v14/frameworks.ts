@@ -28,9 +28,11 @@ import {
 } from "./types.ts";
 
 import type {
-  FrameworkInstance,
-  MemoryInstance,
+  FrameworkEngine,
+  MemoryEngine,
 } from "./types.ts";
+
+import { at } from "./core/indexing.ts";
 
 /** φ — exact to Float64 (≈15 digits). [SPEC] */
 const PHI = RHUFT_CONSTANTS.PHI;
@@ -73,8 +75,8 @@ function dft(input: Float64Array): Float64Array {
     let im = 0.0;
     for (let n = 0; n < N; n++) {
       const angle = (-2.0 * PI * k * n) / N;
-      re += input[n] * Math.cos(angle);
-      im += input[n] * Math.sin(angle);
+      re += at(input, n) * Math.cos(angle);
+      im += at(input, n) * Math.sin(angle);
     }
     result[2 * k] = re;
     result[2 * k + 1] = im;
@@ -93,7 +95,7 @@ function idft(complex: Float64Array): Float64Array {
     let re = 0.0;
     for (let k = 0; k < N; k++) {
       const angle = (2.0 * PI * k * n) / N;
-      re += complex[2 * k] * Math.cos(angle) - complex[2 * k + 1] * Math.sin(angle);
+      re += at(complex, 2 * k) * Math.cos(angle) - at(complex, 2 * k + 1) * Math.sin(angle);
     }
     result[n] = re / N;
   }
@@ -134,7 +136,7 @@ function magnitudeSpectrum(complex: Float64Array): Float64Array {
  *   5. Inverse DFT to reconstruct dampened field
  *   6. Blend with field_state for temporal continuity
  */
-export class F8_SubPlanckian implements FrameworkInstance {
+export class F8_SubPlanckian implements FrameworkEngine {
   readonly name: string = "F8_SubPlanckian";
   readonly scale: number = 0;
   readonly qrf_threshold: number = qrf_attenuation(0); // 1.000000. [SPEC]
@@ -179,10 +181,10 @@ export class F8_SubPlanckian implements FrameworkInstance {
     // Step 5: Apply filters to spectrum and reconstruct
     const filteredSpectrum = new Float64Array(2 * N);
     for (let k = 0; k < N; k++) {
-      const filter = cutoffFilter[k] / permittivity[k];
-      const energyFactor = 1.0 / (1.0 + zeroPointEnergy[k] * 1e34); // normalize
-      filteredSpectrum[2 * k] = spectrum[2 * k] * filter * energyFactor;
-      filteredSpectrum[2 * k + 1] = spectrum[2 * k + 1] * filter * energyFactor;
+      const filter = at(cutoffFilter, k) / at(permittivity, k);
+      const energyFactor = 1.0 / (1.0 + at(zeroPointEnergy, k) * 1e34); // normalize
+      filteredSpectrum[2 * k] = at(spectrum, 2 * k) * filter * energyFactor;
+      filteredSpectrum[2 * k + 1] = at(spectrum, 2 * k + 1) * filter * energyFactor;
     }
 
     const reconstructed = idft(filteredSpectrum);
@@ -192,7 +194,7 @@ export class F8_SubPlanckian implements FrameworkInstance {
     const damping = 1.0 / PHI;
     const result = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      result[i] = reconstructed[i] * damping + field_state[i] * (1.0 - damping);
+      result[i] = at(reconstructed, i) * damping + at(field_state, i) * (1.0 - damping);
     }
 
     return result;
@@ -219,7 +221,7 @@ export class F8_SubPlanckian implements FrameworkInstance {
  *   5. Geometric resonance: detect lattice harmonics in the field
  *   6. Blend with field_state
  */
-export class F4_Geometric implements FrameworkInstance {
+export class F4_Geometric implements FrameworkEngine {
   readonly name: string = "F4_Geometric";
   readonly scale: number = 13;
   readonly qrf_threshold: number = qrf_attenuation(13); // ≈ 0.932124. [SPEC]
@@ -246,7 +248,7 @@ export class F4_Geometric implements FrameworkInstance {
     // Step 2: Spherical harmonics basis computation
     // Y_l^m(θ, φ) for l = 0, 1, 2, 3 and m = -l..l
     // We evaluate at N equally spaced angles θ = 2π·i/N, φ = π·i/N
-    const harmonics: number[][] = []; // [mode_index][sample_index]
+    const harmonics: Float64Array[] = []; // [mode_index][sample_index]
     let modeIndex = 0;
     for (let l = 0; l <= 3; l++) {
       for (let m = -l; m <= l; m++) {
@@ -267,7 +269,7 @@ export class F4_Geometric implements FrameworkInstance {
     for (let h = 0; h < harmonics.length; h++) {
       let dot = 0.0;
       for (let i = 0; i < N; i++) {
-        dot += input[i] * harmonics[h][i];
+        dot += at(input, i) * at(harmonics, h)[i];
       }
       harmonicCoeffs[h] = dot / N; // normalized coefficient
     }
@@ -290,8 +292,8 @@ export class F4_Geometric implements FrameworkInstance {
         let sum = latticeValues[i];
         let degree = 1.0;
         for (let j = 0; j < NUM_NODES; j++) {
-          if (adjacency[i][j] > 0) {
-            sum += latticeValues[j] * adjacency[i][j];
+          if (at(adjacency, i)[j] > 0) {
+            sum += at(latticeValues, j) * at(adjacency, i)[j];
             degree += 1.0;
           }
         }
@@ -312,7 +314,7 @@ export class F4_Geometric implements FrameworkInstance {
       // Harmonic contribution: sum of weighted harmonics
       let harmonicContribution = 0.0;
       for (let h = 0; h < harmonics.length; h++) {
-        harmonicContribution += harmonicCoeffs[h] * harmonics[h][i];
+        harmonicContribution += at(harmonicCoeffs, h) * at(harmonics, h)[i];
       }
 
       // Blend lattice + harmonics with field_state for continuity
@@ -320,7 +322,7 @@ export class F4_Geometric implements FrameworkInstance {
       result[i] =
         latticeContribution * (1.0 - blend) * 0.5 +
         harmonicContribution * blend * 0.5 +
-        field_state[i] * (1.0 / PHI);
+        at(field_state, i) * (1.0 / PHI);
     }
 
     return result;
@@ -413,7 +415,7 @@ export class F4_Geometric implements FrameworkInstance {
  *   6. Spectral density computation and dominant frequency extraction
  *   7. Apply mass-frequency correspondence to field transformation
  */
-export class F5_ColorMusic implements FrameworkInstance {
+export class F5_ColorMusic implements FrameworkEngine {
   readonly name: string = "F5_ColorMusic";
   readonly scale: number = 21;
   readonly qrf_threshold: number = qrf_attenuation(21); // ≈ 0.892665. [SPEC]
@@ -438,7 +440,7 @@ export class F5_ColorMusic implements FrameworkInstance {
     // Step 3: φ-scaled harmonic series
     // Generate harmonic series f_n = f_0 · φ^(-n) for n = 0..N-1
     const harmonicSeries = new Float64Array(N);
-    const baseFreq = magnitudes[0] > 0 ? magnitudes[0] : 1.0;
+    const baseFreq = at(magnitudes, 0) > 0 ? magnitudes[0] : 1.0;
     for (let n = 0; n < N; n++) {
       harmonicSeries[n] = baseFreq * Math.pow(PHI, -n);
     }
@@ -449,7 +451,7 @@ export class F5_ColorMusic implements FrameworkInstance {
     // Map frequency to wavelength and then to RGB-like weights
     const colorWeights = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const freq = magnitudes[i] > 0 ? magnitudes[i] : 1e-300;
+      const freq = at(magnitudes, i) > 0 ? magnitudes[i] : 1e-300;
       const wavelength = C / freq; // meters
       const wavelengthNm = wavelength * 1e9; // nanometers
 
@@ -467,8 +469,8 @@ export class F5_ColorMusic implements FrameworkInstance {
     for (let i = 0; i < N; i++) {
       let intervalScore = 0.0;
       for (let j = 1; j < N && j < 12; j++) {
-        if (magnitudes[i] > 0 && magnitudes[j] > 0) {
-          const ratio = magnitudes[j] / magnitudes[i];
+        if (at(magnitudes, i) > 0 && at(magnitudes, j) > 0) {
+          const ratio = at(magnitudes, j) / at(magnitudes, i);
           // Check for φ-proximity to musical intervals
           const perfectFifth = 3.0 / 2.0;
           const majorThird = 5.0 / 4.0;
@@ -492,10 +494,10 @@ export class F5_ColorMusic implements FrameworkInstance {
     // Transform the field based on mass-frequency-color-music correspondence
     const result = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const massFreq = input[i] * massFreqConversion;
-      const harmonicWeight = harmonicSeries[i % N] / (baseFreq + 1e-300);
+      const massFreq = at(input, i) * massFreqConversion;
+      const harmonicWeight = at(harmonicSeries, i % N) / (baseFreq + 1e-300);
       const colorWeight = colorWeights[i];
-      const musicWeight = 1.0 + musicalIntervals[i];
+      const musicWeight = 1.0 + at(musicalIntervals, i);
 
       // Combined transformation: φ-scaled spectral processing
       const spectralTransform =
@@ -503,7 +505,7 @@ export class F5_ColorMusic implements FrameworkInstance {
 
       // Normalize and blend with field_state
       const normalized = Math.atan(spectralTransform) / (PI / 2.0); // tanh-like normalization
-      result[i] = normalized * (1.0 / PHI) + field_state[i] * (1.0 - 1.0 / PHI);
+      result[i] = normalized * (1.0 / PHI) + at(field_state, i) * (1.0 - 1.0 / PHI);
     }
 
     return result;
@@ -542,7 +544,7 @@ const HEBREW_GEMATRIA: readonly number[] = [
  *   5. Septenary decomposition within 22-fold structure
  *   6. Symbolic compression and reconstruction
  */
-export class F6_Hebrew implements FrameworkInstance {
+export class F6_Hebrew implements FrameworkEngine {
   readonly name: string = "F6_Hebrew";
   readonly scale: number = 22;
   readonly qrf_threshold: number = qrf_attenuation(22); // ≈ 0.887851. [SPEC]
@@ -572,7 +574,7 @@ export class F6_Hebrew implements FrameworkInstance {
       for (let j = 0; j < NUM_LETTERS; j++) {
         const step = (j - i + NUM_LETTERS) % NUM_LETTERS;
         // Weight by inverse gematria: more fundamental letters = higher weight
-        const weight = 1.0 / (gematriaValues[step] + 1.0);
+        const weight = 1.0 / (at(gematriaValues, step) + 1.0);
         permutationMatrix[i][j] = weight;
       }
     }
@@ -584,7 +586,7 @@ export class F6_Hebrew implements FrameworkInstance {
       let sum = 0.0;
       for (let j = 0; j < NUM_LETTERS; j++) {
         const inputIdx = (i + j) % N;
-        sum += input[inputIdx] * permutationMatrix[letterIdx][j];
+        sum += at(input, inputIdx) * permutationMatrix[letterIdx][j];
       }
       // Normalize by φ-scaled sum of weights
       let weightSum = 0.0;
@@ -605,8 +607,8 @@ export class F6_Hebrew implements FrameworkInstance {
         const inputIdx = idx % N;
         // φ-scaled level weighting
         const levelWeight = Math.pow(PHI, -level) / (1.0 - Math.pow(PHI, -SEPTENARY_LEVELS)) * (1.0 - 1.0 / PHI);
-        const letterWeight = 1.0 / (gematriaValues[letter] + 1.0);
-        encoded154[idx] = input[inputIdx] * levelWeight * letterWeight;
+        const letterWeight = 1.0 / (at(gematriaValues, letter) + 1.0);
+        encoded154[idx] = at(input, inputIdx) * levelWeight * letterWeight;
       }
     }
 
@@ -637,7 +639,7 @@ export class F6_Hebrew implements FrameworkInstance {
       for (let level = 0; level < SEPTENARY_LEVELS; level++) {
         const encodedIdx = letterIdx * SEPTENARY_LEVELS + level;
         const levelWeight = Math.pow(PHI, -level);
-        levelSum += encoded154[encodedIdx] * levelWeight;
+        levelSum += at(encoded154, encodedIdx) * levelWeight;
         weightSum += levelWeight;
       }
       septenaryTransformed[i] = levelSum / (weightSum + 1e-300);
@@ -648,12 +650,12 @@ export class F6_Hebrew implements FrameworkInstance {
     for (let i = 0; i < N; i++) {
       // Combine cyclic transformation, 154-encoding, and septenary decomposition
       const combined =
-        cyclicTransformed[i] * (1.0 / PHI) +
-        septenaryTransformed[i] * (1.0 / (PHI * PHI)) +
+        at(cyclicTransformed, i) * (1.0 / PHI) +
+        at(septenaryTransformed, i) * (1.0 / (PHI * PHI)) +
         normalizedEntropy * (1.0 / (PHI * PHI * PHI));
 
       // Blend with field_state for temporal continuity
-      result[i] = combined * (1.0 - 1.0 / PHI) + field_state[i] * (1.0 / PHI);
+      result[i] = combined * (1.0 - 1.0 / PHI) + at(field_state, i) * (1.0 / PHI);
     }
 
     return result;
@@ -682,7 +684,7 @@ export class F6_Hebrew implements FrameworkInstance {
  *   7. Equilibrium detection: dF/dt → 0
  *   8. Geometric friction based on entropy gradient
  */
-export class F7_Thermodynamic implements FrameworkInstance {
+export class F7_Thermodynamic implements FrameworkEngine {
   readonly name: string = "F7_Thermodynamic";
   readonly scale: number = 34;
   readonly qrf_threshold: number = qrf_attenuation(34); // ≈ 0.832074. [SPEC]
@@ -719,7 +721,7 @@ export class F7_Thermodynamic implements FrameworkInstance {
     // Step 3: Internal energy U = Σ|Ψ_i|²
     let internalEnergy = 0.0;
     for (let i = 0; i < N; i++) {
-      internalEnergy += field_state[i] * field_state[i];
+      internalEnergy += at(field_state, i) * at(field_state, i);
     }
 
     // Step 4: Temperature T = energy_density · φ (φ-scale-proportional temperature)
@@ -749,7 +751,7 @@ export class F7_Thermodynamic implements FrameworkInstance {
     for (let i = 0; i < N; i++) {
       const prev = i > 0 ? field_state[i - 1] : field_state[N - 1];
       const next = i < N - 1 ? field_state[i + 1] : field_state[0];
-      const laplacian = next - 2.0 * field_state[i] + prev; // discrete ∇²
+      const laplacian = next - 2.0 * at(field_state, i) + prev; // discrete ∇²
       thermalDiffusion[i] = thermalDiffusivity * laplacian;
     }
 
@@ -759,7 +761,7 @@ export class F7_Thermodynamic implements FrameworkInstance {
     const friction = new Float64Array(N);
     for (let i = 0; i < N; i++) {
       const prevEntropy = i > 0 ? probabilities[i - 1] : probabilities[N - 1];
-      const entropyGrad = Math.abs(probabilities[i] - prevEntropy);
+      const entropyGrad = Math.abs(at(probabilities, i) - prevEntropy);
       friction[i] = kappa * entropyGrad;
     }
 
@@ -768,16 +770,16 @@ export class F7_Thermodynamic implements FrameworkInstance {
     for (let i = 0; i < N; i++) {
       // Thermodynamic update: input + gradient descent + thermal diffusion - friction
       const thermodynamicUpdate =
-        input[i] * (1.0 - kappa) + // input with geometric friction damping
-        gradientDescent[i] + // free energy minimization
-        thermalDiffusion[i] * (1.0 - normalizedEntropy) - // diffusion (entropy-dependent)
-        friction[i] * field_state[i]; // geometric friction
+        at(input, i) * (1.0 - kappa) + // input with geometric friction damping
+        at(gradientDescent, i) + // free energy minimization
+        at(thermalDiffusion, i) * (1.0 - normalizedEntropy) - // diffusion (entropy-dependent)
+        at(friction, i) * at(field_state, i); // geometric friction
 
       // Blend with field_state for temporal continuity
       const blendFactor = 1.0 / PHI; // φ-weighted continuity
       result[i] =
         thermodynamicUpdate * (1.0 - blendFactor) +
-        field_state[i] * blendFactor;
+        at(field_state, i) * blendFactor;
     }
 
     return result;
@@ -810,7 +812,7 @@ export class F7_Thermodynamic implements FrameworkInstance {
  *   4. Feedback loops: top-down expectation meets bottom-up input
  *   5. Cognitive bias: φ-scaled normalization prevents runaway
  */
-export class F1_Septenary implements FrameworkInstance {
+export class F1_Septenary implements FrameworkEngine {
   readonly name: string = "F1_Septenary";
   readonly scale: number = 55;
   readonly qrf_threshold: number = qrf_attenuation(55); // ≈ 0.742763. [SPEC]
@@ -833,7 +835,7 @@ export class F1_Septenary implements FrameworkInstance {
     }
     const normFactor = inputMax > 0 ? 1.0 / inputMax : 1.0;
     for (let i = 0; i < N; i++) {
-      level0[i] = input[i] * normFactor;
+      level0[i] = at(input, i) * normFactor;
     }
     levelOutputs.push(level0);
 
@@ -857,7 +859,7 @@ export class F1_Septenary implements FrameworkInstance {
       for (let w = -windowSize; w <= windowSize; w++) {
         const idx = (i + w + N) % N;
         const weight = Math.pow(PHI_INV, Math.abs(w)); // φ-decay weighting
-        sum += level1[idx] * weight;
+        sum += at(level1, idx) * weight;
         count += weight;
       }
       level2[i] = sum / (count + 1e-300);
@@ -872,7 +874,7 @@ export class F1_Septenary implements FrameworkInstance {
       for (let j = 1; j <= correlationWindow; j++) {
         const idx = (i + j) % N;
         const weight = Math.pow(PHI_INV, j);
-        correlation += level2[i] * level2[idx] * weight;
+        correlation += at(level2, i) * at(level2, idx) * weight;
       }
       level3[i] = correlation * PHI_INV; // φ-scaled correlation
     }
@@ -882,11 +884,11 @@ export class F1_Septenary implements FrameworkInstance {
     const level4 = new Float64Array(N);
     for (let i = 0; i < N; i++) {
       const prev = i > 0 ? level3[i - 1] : level3[N - 1];
-      const trend = level3[i] - prev; // first-order trend
+      const trend = at(level3, i) - prev; // first-order trend
       // Predict next value with φ-scaled confidence
-      const prediction = level3[i] + trend * PHI_INV;
+      const prediction = at(level3, i) + trend * PHI_INV;
       // Narrative = actual + prediction error (surprise)
-      const predictionError = level3[i] - prediction;
+      const predictionError = at(level3, i) - prediction;
       level4[i] = predictionError * PHI_INV; // surprise signal, φ-scaled
     }
     levelOutputs.push(level4);
@@ -895,17 +897,17 @@ export class F1_Septenary implements FrameworkInstance {
     const level5 = new Float64Array(N);
     let globalMean = 0.0;
     for (let i = 0; i < N; i++) {
-      globalMean += level4[i];
+      globalMean += at(level4, i);
     }
     globalMean /= N;
     let globalVariance = 0.0;
     for (let i = 0; i < N; i++) {
-      globalVariance += Math.pow(level4[i] - globalMean, 2);
+      globalVariance += Math.pow(at(level4, i) - globalMean, 2);
     }
     globalVariance = Math.sqrt(globalVariance / N);
     for (let i = 0; i < N; i++) {
       // Worldview = local deviation from global norm, φ-scaled
-      const deviation = (level4[i] - globalMean) / (globalVariance + 1e-300);
+      const deviation = (at(level4, i) - globalMean) / (globalVariance + 1e-300);
       level5[i] = deviation * PHI_INV;
     }
     levelOutputs.push(level5);
@@ -919,7 +921,7 @@ export class F1_Septenary implements FrameworkInstance {
       let weightSum = 0.0;
       for (let l = 0; l < levelOutputs.length; l++) {
         const weight = Math.pow(PHI_INV, l); // higher levels weighted less
-        transcendence += levelOutputs[l][i] * weight;
+        transcendence += at(levelOutputs, l)[i] * weight;
         weightSum += weight;
       }
       level6[i] = transcendence / (weightSum + 1e-300);
@@ -932,7 +934,7 @@ export class F1_Septenary implements FrameworkInstance {
     for (let i = 0; i < N; i++) {
       let variance = 0.0;
       for (let l = 0; l < NUM_LEVELS; l++) {
-        variance += Math.pow(levelOutputs[l][i] - level6[i], 2);
+        variance += Math.pow(at(levelOutputs, l)[i] - at(level6, i), 2);
       }
       informationContent[i] = Math.sqrt(variance / NUM_LEVELS);
     }
@@ -941,13 +943,13 @@ export class F1_Septenary implements FrameworkInstance {
     const attentionWeights = new Float64Array(N);
     let maxInfo = 0.0;
     for (let i = 0; i < N; i++) {
-      if (informationContent[i] > maxInfo) maxInfo = informationContent[i];
+      if (at(informationContent, i) > maxInfo) maxInfo = informationContent[i];
     }
     let attentionSum = 0.0;
     for (let i = 0; i < N; i++) {
       // φ-scaled attention: focus on high-information regions
-      attentionWeights[i] = Math.exp((informationContent[i] - maxInfo) * PHI);
-      attentionSum += attentionWeights[i];
+      attentionWeights[i] = Math.exp((at(informationContent, i) - maxInfo) * PHI);
+      attentionSum += at(attentionWeights, i);
     }
     for (let i = 0; i < N; i++) {
       attentionWeights[i] /= (attentionSum + 1e-300);
@@ -959,8 +961,8 @@ export class F1_Septenary implements FrameworkInstance {
     for (let l = 0; l < NUM_LEVELS - 1; l++) {
       let kl = 0.0;
       for (let i = 0; i < N; i++) {
-        const pNext = Math.abs(levelOutputs[l + 1][i]) + 1e-300;
-        const pCurrent = Math.abs(levelOutputs[l][i]) + 1e-300;
+        const pNext = Math.abs(at(levelOutputs, l + 1)[i]) + 1e-300;
+        const pCurrent = Math.abs(at(levelOutputs, l)[i]) + 1e-300;
         kl += pNext * Math.log(pNext / pCurrent);
       }
       klDivergences[l] = kl / N; // average KL per element
@@ -971,7 +973,7 @@ export class F1_Septenary implements FrameworkInstance {
     const result = new Float64Array(N);
     for (let i = 0; i < N; i++) {
       // Attention-modulated output: focus on high-information regions
-      const attentionOutput = level6[i] * attentionWeights[i] * PHI;
+      const attentionOutput = at(level6, i) * at(attentionWeights, i) * PHI;
 
       // Blend with field_state for temporal continuity
       // Cognitive bias correction: φ-scaled normalization prevents runaway
@@ -980,7 +982,7 @@ export class F1_Septenary implements FrameworkInstance {
 
       result[i] =
         correctedOutput * (1.0 - 1.0 / PHI) +
-        field_state[i] * (1.0 / PHI);
+        at(field_state, i) * (1.0 / PHI);
     }
 
     return result;
@@ -1007,7 +1009,7 @@ export class F1_Septenary implements FrameworkInstance {
  *   5. Information conservation: verify ∫|Ψ|² = const across scales
  *   6. Bulk-to-boundary reconstruction via φ-scaled radial projection
  */
-export class F9_Hypergalactic implements FrameworkInstance {
+export class F9_Hypergalactic implements FrameworkEngine {
   readonly name: string = "F9_Hypergalactic";
   readonly scale: number = 292;
   readonly qrf_threshold: number = qrf_attenuation(292); // ≈ 0.206221. [SPEC]
@@ -1026,7 +1028,7 @@ export class F9_Hypergalactic implements FrameworkInstance {
       // Bulk field: input weighted by radial volume element r^(d-1) where d = φ
       const dimension = PHI; // effective dimension = φ
       const volumeElement = Math.pow(r, dimension - 1.0);
-      bulkField[i] = input[i] * volumeElement;
+      bulkField[i] = at(input, i) * volumeElement;
 
       // Boundary field: bulk field projected to boundary via φ-scaled kernel
       // K(r, r') = 1 / (1 + |r - r'|^φ) — long-range φ-scaled interaction
@@ -1035,7 +1037,7 @@ export class F9_Hypergalactic implements FrameworkInstance {
         const rPrime = Math.pow(PHI, j / (N + 1e-300));
         const distance = Math.abs(r - rPrime);
         const kernel = 1.0 / (1.0 + Math.pow(distance, PHI));
-        boundaryProjection += input[j] * kernel;
+        boundaryProjection += at(input, j) * kernel;
       }
       boundaryField[i] = boundaryProjection / N;
     }
@@ -1081,8 +1083,8 @@ export class F9_Hypergalactic implements FrameworkInstance {
       const bulkWeight = 1.0 - boundaryWeight;
 
       cosmicField[i] =
-        bulkField[i] * bulkWeight +
-        boundaryField[i] * boundaryWeight;
+        at(bulkField, i) * bulkWeight +
+        at(boundaryField, i) * boundaryWeight;
     }
 
     // Step 6: Information conservation verification
@@ -1090,8 +1092,8 @@ export class F9_Hypergalactic implements FrameworkInstance {
     let inputInformation = 0.0;
     let outputInformation = 0.0;
     for (let i = 0; i < N; i++) {
-      inputInformation += input[i] * input[i];
-      outputInformation += cosmicField[i] * cosmicField[i];
+      inputInformation += at(input, i) * at(input, i);
+      outputInformation += at(cosmicField, i) * at(cosmicField, i);
     }
     // Conservation factor: ensure output doesn't exceed input by more than φ-factor
     const conservationFactor =
@@ -1109,12 +1111,12 @@ export class F9_Hypergalactic implements FrameworkInstance {
           : 1.0;
 
       // Apply conservation factor
-      const conservedValue = cosmicField[i] * conservationFactor * holographicDampening;
+      const conservedValue = at(cosmicField, i) * conservationFactor * holographicDampening;
 
       // Blend with field_state for temporal continuity
       result[i] =
         conservedValue * (1.0 - 1.0 / PHI) +
-        field_state[i] * (1.0 / PHI);
+        at(field_state, i) * (1.0 / PHI);
     }
 
     return result;
@@ -1134,7 +1136,7 @@ export class F9_Hypergalactic implements FrameworkInstance {
     ];
     let x = p[0];
     for (let i = 1; i < p.length; i++) {
-      x += p[i] / (z + i);
+      x += at(p, i) / (z + i);
     }
     const t = z + p.length - 0.5;
     return Math.sqrt(2.0 * PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
@@ -1164,7 +1166,7 @@ export class F9_Hypergalactic implements FrameworkInstance {
  *   5. Pattern completion: reconstruct missing components from best match
  *   6. Information content: H = -Σ p log p
  */
-export class L1_Pattern implements MemoryInstance {
+export class L1_Pattern implements MemoryEngine {
   readonly name: string = "L1_Pattern";
   readonly scale: number = 0; // Planck-scale memory (fastest). [SPEC]
 
@@ -1208,7 +1210,7 @@ export class L1_Pattern implements MemoryInstance {
     let bestIdx = 0;
     let bestSim = similarities[0];
     for (let i = 1; i < similarities.length; i++) {
-      if (similarities[i] > bestSim) {
+      if (at(similarities, i) > bestSim) {
         bestSim = similarities[i];
         bestIdx = i;
       }
@@ -1222,10 +1224,10 @@ export class L1_Pattern implements MemoryInstance {
       if (hasInformation) {
         // Use input pattern with φ-scaled temporal decay
         const decay = 1.0 / this.temporal_scale;
-        result[i] = pattern[i] * (1.0 - decay) + bestPrototype[i] * decay;
+        result[i] = at(pattern, i) * (1.0 - decay) + at(bestPrototype, i) * decay;
       } else {
         // Missing information: complete from prototype
-        result[i] = bestPrototype[i] * bestSim; // weight by similarity
+        result[i] = at(bestPrototype, i) * bestSim; // weight by similarity
       }
     }
 
@@ -1235,7 +1237,7 @@ export class L1_Pattern implements MemoryInstance {
       const mean = new Float64Array(N);
       for (const proto of this._prototypes) {
         for (let i = 0; i < N; i++) {
-          mean[i] += proto[i];
+          mean[i] += at(proto, i);
         }
       }
       for (let i = 0; i < N; i++) {
@@ -1247,7 +1249,7 @@ export class L1_Pattern implements MemoryInstance {
       for (let i = 0; i < N; i++) {
         let sum = 0.0;
         for (const proto of this._prototypes) {
-          sum += (proto[i] - mean[i]) * (pattern[i] - mean[i]);
+          sum += (at(proto, i) - at(mean, i)) * (at(pattern, i) - at(mean, i));
         }
         pc[i] = sum;
       }
@@ -1255,7 +1257,7 @@ export class L1_Pattern implements MemoryInstance {
       // Normalize PC
       let pcNorm = 0.0;
       for (let i = 0; i < N; i++) {
-        pcNorm += pc[i] * pc[i];
+        pcNorm += at(pc, i) * at(pc, i);
       }
       pcNorm = Math.sqrt(pcNorm);
       if (pcNorm > 0) {
@@ -1267,10 +1269,10 @@ export class L1_Pattern implements MemoryInstance {
       // Project pattern onto PC and blend with result
       let projection = 0.0;
       for (let i = 0; i < N; i++) {
-        projection += pattern[i] * pc[i];
+        projection += at(pattern, i) * at(pc, i);
       }
       for (let i = 0; i < N; i++) {
-        result[i] = result[i] * (1.0 - 1.0 / PHI) + projection * pc[i] * (1.0 / PHI);
+        result[i] = at(result, i) * (1.0 - 1.0 / PHI) + projection * at(pc, i) * (1.0 / PHI);
       }
     }
 
@@ -1290,9 +1292,9 @@ export class L1_Pattern implements MemoryInstance {
     let normA = 0.0;
     let normB = 0.0;
     for (let i = 0; i < N; i++) {
-      dot += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+      dot += at(a, i) * at(b, i);
+      normA += at(a, i) * at(a, i);
+      normB += at(b, i) * at(b, i);
     }
     const cosineSim = normA > 0 && normB > 0 ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0.0;
 
@@ -1300,8 +1302,8 @@ export class L1_Pattern implements MemoryInstance {
     let meanA = 0.0;
     let meanB = 0.0;
     for (let i = 0; i < N; i++) {
-      meanA += a[i];
-      meanB += b[i];
+      meanA += at(a, i);
+      meanB += at(b, i);
     }
     meanA /= N;
     meanB /= N;
@@ -1310,8 +1312,8 @@ export class L1_Pattern implements MemoryInstance {
     let varA = 0.0;
     let varB = 0.0;
     for (let i = 0; i < N; i++) {
-      const da = a[i] - meanA;
-      const db = b[i] - meanB;
+      const da = at(a, i) - meanA;
+      const db = at(b, i) - meanB;
       cov += da * db;
       varA += da * da;
       varB += db * db;
@@ -1348,7 +1350,7 @@ export class L1_Pattern implements MemoryInstance {
  *   5. Long-term potentiation: strengthen frequently used weights
  *   6. Long-term depression: weaken infrequently used weights
  */
-export class L2_Hebbian implements MemoryInstance {
+export class L2_Hebbian implements MemoryEngine {
   readonly name: string = "L2_Hebbian";
   readonly scale: number = 96; // Nuclear scale. [SPEC]
 
@@ -1399,7 +1401,7 @@ export class L2_Hebbian implements MemoryInstance {
 
       for (let i = 0; i < N; i++) {
         for (let j = 0; j < N; j++) {
-          this._correlationMatrix[i][j] += eta * histPattern[i] * histPattern[j];
+          this._correlationMatrix[i][j] += eta * at(histPattern, i) * at(histPattern, j);
         }
       }
     }
@@ -1434,7 +1436,7 @@ export class L2_Hebbian implements MemoryInstance {
     for (let i = 0; i < N; i++) {
       let sum = 0.0;
       for (let j = 0; j < N; j++) {
-        sum += normalizedWeights[i][j] * pattern[j];
+        sum += at(normalizedWeights, i)[j] * at(pattern, j);
       }
       result[i] = sum;
     }
@@ -1447,7 +1449,7 @@ export class L2_Hebbian implements MemoryInstance {
       if (activation > activationThreshold) {
         // LTP: strengthen — add φ-scaled correlation boost
         for (let j = 0; j < N; j++) {
-          this._correlationMatrix[i][j] += this.learning_rate * pattern[i] * pattern[j] * PHI_INV;
+          this._correlationMatrix[i][j] += this.learning_rate * at(pattern, i) * at(pattern, j) * PHI_INV;
         }
       } else if (activation < activationThreshold * PHI_INV) {
         // LTD: weaken — subtract φ-scaled decay
@@ -1489,7 +1491,7 @@ export class L2_Hebbian implements MemoryInstance {
  *   5. Frequency adaptation: ω_i evolves based on coupling strength
  *   6. Natural frequency distribution: φ-scaled spread around mean
  */
-export class L3_Kuramoto implements MemoryInstance {
+export class L3_Kuramoto implements MemoryEngine {
   readonly name: string = "L3_Kuramoto";
   readonly scale: number = 120; // Atomic scale. [SPEC]
 
@@ -1570,7 +1572,7 @@ export class L3_Kuramoto implements MemoryInstance {
       dTheta += coupling;
 
       // Perturbation from pattern: pattern amplitude drives phase shift
-      const perturbation = pattern[i] * (1.0 / PHI) * (1.0 - orderParameter); // stronger perturbation when less synchronized
+      const perturbation = at(pattern, i) * (1.0 / PHI) * (1.0 - orderParameter); // stronger perturbation when less synchronized
       dTheta += perturbation;
 
       // Update phase (Euler step, dt = 1/φ for stability)
@@ -1578,8 +1580,8 @@ export class L3_Kuramoto implements MemoryInstance {
       newPhases[i] = this._phases[i] + dTheta * dt;
 
       // Wrap to [0, 2π)
-      newPhases[i] = newPhases[i] % (2.0 * PI);
-      if (newPhases[i] < 0) newPhases[i] += 2.0 * PI;
+      newPhases[i] = at(newPhases, i) % (2.0 * PI);
+      if (at(newPhases, i) < 0) newPhases[i] += 2.0 * PI;
     }
 
     // Update stored phases
@@ -1601,7 +1603,7 @@ export class L3_Kuramoto implements MemoryInstance {
     // Output = pattern + phase-synchronization signal
     for (let i = 0; i < N; i++) {
       const syncSignal = Math.sin(meanPhase - this._phases[i]) * this.coupling_strength * orderParameter;
-      result[i] = pattern[i] + syncSignal;
+      result[i] = at(pattern, i) + syncSignal;
     }
 
     return result;
@@ -1632,7 +1634,7 @@ export class L3_Kuramoto implements MemoryInstance {
  *   5. Sensory fusion: coherence-weighted combination
  *   6. Temporal integration: moving average with φ-scaled window
  */
-export class L4_Sensory implements MemoryInstance {
+export class L4_Sensory implements MemoryEngine {
   readonly name: string = "L4_Sensory";
   readonly scale: number = 168; // Biological scale. [SPEC]
 
@@ -1682,13 +1684,13 @@ export class L4_Sensory implements MemoryInstance {
     // Normalize salience to [0, 1] via φ-scaled softmax
     let maxSalience = 0.0;
     for (let i = 0; i < N; i++) {
-      if (salience[i] > maxSalience) maxSalience = salience[i];
+      if (at(salience, i) > maxSalience) maxSalience = salience[i];
     }
     const attentionWeights = new Float64Array(N);
     let attentionSum = 0.0;
     for (let i = 0; i < N; i++) {
-      attentionWeights[i] = Math.exp((salience[i] - maxSalience) * PHI);
-      attentionSum += attentionWeights[i];
+      attentionWeights[i] = Math.exp((at(salience, i) - maxSalience) * PHI);
+      attentionSum += at(attentionWeights, i);
     }
     for (let i = 0; i < N; i++) {
       attentionWeights[i] /= (attentionSum + 1e-300);
@@ -1704,7 +1706,7 @@ export class L4_Sensory implements MemoryInstance {
           const weight = Math.pow(PHI_INV, this._sensoryHistory.length - 1 - h); // recent = more weight
           const hist = this._sensoryHistory[h];
           if (i < hist.length) {
-            sum += hist[i] * weight;
+            sum += at(hist, i) * weight;
             weightSum += weight;
           }
         }
@@ -1721,7 +1723,7 @@ export class L4_Sensory implements MemoryInstance {
       for (let j = -2; j <= 2; j++) { // local neighborhood
         if (j === 0) continue;
         const idx = (i + j + N) % N;
-        correlation += pattern[i] * pattern[idx];
+        correlation += at(pattern, i) * at(pattern, idx);
         count++;
       }
       bindingStrength[i] = count > 0 ? correlation / count : 0.0;
@@ -1731,9 +1733,9 @@ export class L4_Sensory implements MemoryInstance {
     for (let i = 0; i < N; i++) {
       // Sensory fusion: current pattern + stored sensory + temporal average + binding
       const sensoryComponent = this._sensory[i] * this.decay_rate;
-      const patternComponent = pattern[i] * (1.0 - this.decay_rate);
-      const temporalComponent = temporalAverage[i] * (1.0 / PHI);
-      const bindingComponent = bindingStrength[i] * (1.0 / (PHI * PHI));
+      const patternComponent = at(pattern, i) * (1.0 - this.decay_rate);
+      const temporalComponent = at(temporalAverage, i) * (1.0 / PHI);
+      const bindingComponent = at(bindingStrength, i) * (1.0 / (PHI * PHI));
 
       // Attention-weighted fusion: high-salience regions get more weight
       const attentionWeight = attentionWeights[i];
@@ -1776,7 +1778,7 @@ export class L4_Sensory implements MemoryInstance {
  *   5. Global state update: propagate global coherence to all nodes
  *   6. Forgetting curve: exponential decay with φ-scaled time constant
  */
-export class L4p_WeightedRAM implements MemoryInstance {
+export class L4p_WeightedRAM implements MemoryEngine {
   readonly name: string = "L4p_WeightedRAM";
   readonly scale: number = 192; // Human scale (global integration). [SPEC]
 
@@ -1808,7 +1810,7 @@ export class L4p_WeightedRAM implements MemoryInstance {
         const consolidationFactor = Math.min(1.0, this._consolidationCounts[i] / this.consolidation_threshold);
         this._global[i] =
           this._global[i] * (1.0 - consolidationFactor) +
-          pattern[i] * consolidationFactor;
+          at(pattern, i) * consolidationFactor;
       }
     }
   }
@@ -1837,7 +1839,7 @@ export class L4p_WeightedRAM implements MemoryInstance {
     let coherenceSum = 0.0;
     for (let i = 0; i < N; i++) {
       coherenceWeights[i] = Math.abs(pattern[i]) + 1e-300;
-      coherenceSum += coherenceWeights[i];
+      coherenceSum += at(coherenceWeights, i);
     }
     for (let i = 0; i < N; i++) {
       coherenceWeights[i] /= coherenceSum;
@@ -1874,21 +1876,21 @@ export class L4p_WeightedRAM implements MemoryInstance {
     // Step 6: Global state update — integrate all components
     for (let i = 0; i < N; i++) {
       // WeightedRAM integration: global memory + pattern + coherence weights
-      const globalWeight = coherenceWeights[i] * (1.0 + longTermWeights[i]); // coherence + consolidation
-      const patternWeight = (1.0 - coherenceWeights[i]) * (1.0 - longTermWeights[i]); // novel + short-term
+      const globalWeight = at(coherenceWeights, i) * (1.0 + at(longTermWeights, i)); // coherence + consolidation
+      const patternWeight = (1.0 - at(coherenceWeights, i)) * (1.0 - at(longTermWeights, i)); // novel + short-term
       const infoWeight = infoDensity * (1.0 / PHI); // information density bonus
 
       const weightSum = globalWeight + patternWeight + infoWeight + 1e-300;
 
       const integrated =
         this._global[i] * (globalWeight / weightSum) +
-        pattern[i] * (patternWeight / weightSum) +
+        at(pattern, i) * (patternWeight / weightSum) +
         normalizedInfo * (infoWeight / weightSum); // information density component
 
       // Blend with field continuity
       result[i] =
         integrated * (1.0 - 1.0 / PHI) +
-        pattern[i] * (1.0 / PHI);
+        at(pattern, i) * (1.0 / PHI);
     }
 
     return result;
@@ -1905,7 +1907,7 @@ export class L4p_WeightedRAM implements MemoryInstance {
 // =============================================================================
 
 /** All 7 framework instances in RHUFT v13 activation order. [SPEC] */
-export const ALL_FRAMEWORKS: ReadonlyArray<FrameworkInstance> = [
+export const ALL_FRAMEWORKS: ReadonlyArray<FrameworkEngine> = [
   new F8_SubPlanckian(),
   new F4_Geometric(),
   new F5_ColorMusic(),
@@ -1916,7 +1918,7 @@ export const ALL_FRAMEWORKS: ReadonlyArray<FrameworkInstance> = [
 ];
 
 /** All 5 memory instances in RHUFT v13 temporal hierarchy order. [SPEC] */
-export const ALL_MEMORIES: ReadonlyArray<MemoryInstance> = [
+export const ALL_MEMORIES: ReadonlyArray<MemoryEngine> = [
   new L1_Pattern(),
   new L2_Hebbian(),
   new L3_Kuramoto(),
@@ -1925,9 +1927,9 @@ export const ALL_MEMORIES: ReadonlyArray<MemoryInstance> = [
 ];
 
 /** Framework activation map by scale: which frameworks are ACTIVE at each scale. [SPEC] */
-export function get_active_frameworks(scale_n: number): FrameworkInstance[] {
+export function get_active_frameworks(scale_n: number): FrameworkEngine[] {
   const qrf_scale: number = qrf_attenuation(scale_n);
-  const active: FrameworkInstance[] = [];
+  const active: FrameworkEngine[] = [];
 
   for (const fw of ALL_FRAMEWORKS) {
     if (qrf_scale >= fw.qrf_threshold) {
@@ -1939,9 +1941,9 @@ export function get_active_frameworks(scale_n: number): FrameworkInstance[] {
 }
 
 /** Memory activation map by scale: which memory levels are ACTIVE at each scale. [SPEC] */
-export function get_active_memories(scale_n: number): MemoryInstance[] {
+export function get_active_memories(scale_n: number): MemoryEngine[] {
   const qrf_scale: number = qrf_attenuation(scale_n);
-  const active: MemoryInstance[] = [];
+  const active: MemoryEngine[] = [];
 
   for (const mem of ALL_MEMORIES) {
     if (qrf_scale >= mem.coherence()) {

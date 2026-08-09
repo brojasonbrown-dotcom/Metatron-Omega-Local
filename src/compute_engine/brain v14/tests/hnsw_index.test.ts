@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { HnswIndex } from "./../cognition/hnsw_index.ts";
 import { resonance } from "./../adapters/language_codec.ts";
 import { fieldFromLuminanceGrid } from "./../adapters/sensors/signal_codec.ts";
+import { at } from "../core/indexing.ts";
 
 function makeField(seed: number): Float64Array {
   const w = 8, h = 8;
@@ -36,7 +37,7 @@ describe("HnswIndex", () => {
     const hits = idx.search(makeField(300), 5);
     expect(hits.length).toBe(5);
     for (let i = 1; i < hits.length; i++) {
-      expect(hits[i - 1].resonance).toBeGreaterThanOrEqual(hits[i].resonance);
+      expect(at(hits, i - 1).resonance).toBeGreaterThanOrEqual(at(hits, i).resonance);
     }
   });
 

@@ -30,6 +30,7 @@ import { CTRL, FIELD_SIZE, OFF_COHERENCE, OFF_ENERGY, nodeRow, type FlatNode } f
 import { computeNodeShared, type SharedNodeRef } from "./node_compute.ts";
 import { FractalNode } from "../fractal_node.ts";
 import { ScaleMapper } from "../scale_mapper.ts";
+import { at } from "../core/indexing.ts";
 
 export interface NodeWorkerData {
   readonly workerId: number;
@@ -67,7 +68,7 @@ function buildAndOwnTree(data: NodeWorkerData): {
   // Flatten with the same BFS index assignment as layout.flattenTree.
   const order: FractalNode[] = [root];
   for (let head = 0; head < order.length; head++) {
-    for (const child of order[head].children) order.push(child);
+    for (const child of at(order, head).children) order.push(child);
   }
   const indexOf = new Map<FractalNode, number>();
   order.forEach((n, i) => indexOf.set(n, i));

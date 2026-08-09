@@ -1,3 +1,4 @@
+import { at } from "./core/indexing.ts";
 /**
  * RHUFT v13 — Worker Thread for Parallel Framework/Memory Compute
  *
@@ -30,8 +31,8 @@ function dft(input: Float64Array): Float64Array {
     let im = 0.0;
     for (let n = 0; n < N; n++) {
       const angle = (-2.0 * PI * k * n) / N;
-      re += input[n] * Math.cos(angle);
-      im += input[n] * Math.sin(angle);
+      re += at(input, n) * Math.cos(angle);
+      im += at(input, n) * Math.sin(angle);
     }
     result[2 * k] = re;
     result[2 * k + 1] = im;
@@ -57,7 +58,7 @@ function idft(complex: Float64Array): Float64Array {
     let re = 0.0;
     for (let k = 0; k < N; k++) {
       const angle = (2.0 * PI * k * n) / N;
-      re += complex[2 * k] * Math.cos(angle) - complex[2 * k + 1] * Math.sin(angle);
+      re += at(complex, 2 * k) * Math.cos(angle) - at(complex, 2 * k + 1) * Math.sin(angle);
     }
     result[n] = re / N;
   }
@@ -105,16 +106,16 @@ function computeF8_SubPlanckian(input: Float64Array, fieldState: Float64Array): 
   }
   const filteredSpectrum = new Float64Array(2 * N);
   for (let k = 0; k < N; k++) {
-    const filter = cutoffFilter[k] / permittivity[k];
-    const energyFactor = 1.0 / (1.0 + zeroPointEnergy[k] * 1e34);
-    filteredSpectrum[2 * k] = spectrum[2 * k] * filter * energyFactor;
-    filteredSpectrum[2 * k + 1] = spectrum[2 * k + 1] * filter * energyFactor;
+    const filter = at(cutoffFilter, k) / at(permittivity, k);
+    const energyFactor = 1.0 / (1.0 + at(zeroPointEnergy, k) * 1e34);
+    filteredSpectrum[2 * k] = at(spectrum, 2 * k) * filter * energyFactor;
+    filteredSpectrum[2 * k + 1] = at(spectrum, 2 * k + 1) * filter * energyFactor;
   }
   const reconstructed = idft(filteredSpectrum);
   const damping = 1.0 / PHI;
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    result[i] = reconstructed[i] * damping + fieldState[i] * (1.0 - damping);
+    result[i] = at(reconstructed, i) * damping + at(fieldState, i) * (1.0 - damping);
   }
   return result;
 }
@@ -132,7 +133,7 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
       adjacency[i][j] = isFibonacci && i !== j ? 1.0 : 0.0;
     }
   }
-  const harmonics: number[][] = [];
+  const harmonics: Float64Array[] = [];
   for (let l = 0; l <= 3; l++) {
     for (let m = -l; m <= l; m++) {
       const mode = new Float64Array(N);
@@ -148,7 +149,7 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
   for (let h = 0; h < harmonics.length; h++) {
     let dot = 0.0;
     for (let i = 0; i < N; i++) {
-      dot += input[i] * harmonics[h][i];
+      dot += at(input, i) * at(harmonics, h)[i];
     }
     harmonicCoeffs[h] = dot / N;
   }
@@ -162,8 +163,8 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
       let sum = latticeValues[i];
       let degree = 1.0;
       for (let j = 0; j < NUM_NODES; j++) {
-        if (adjacency[i][j] > 0) {
-          sum += latticeValues[j] * adjacency[i][j];
+        if (at(adjacency, i)[j] > 0) {
+          sum += at(latticeValues, j) * at(adjacency, i)[j];
           degree += 1.0;
         }
       }
@@ -179,10 +180,10 @@ function computeF4_Geometric(input: Float64Array, fieldState: Float64Array, scal
     const latticeContribution = latticeValues[latticeIdx];
     let harmonicContribution = 0.0;
     for (let h = 0; h < harmonics.length; h++) {
-      harmonicContribution += harmonicCoeffs[h] * harmonics[h][i];
+      harmonicContribution += at(harmonicCoeffs, h) * at(harmonics, h)[i];
     }
     const blend = PHI_INV;
-    result[i] = latticeContribution * (1.0 - blend) * 0.5 + harmonicContribution * blend * 0.5 + fieldState[i] * (1.0 / PHI);
+    result[i] = latticeContribution * (1.0 - blend) * 0.5 + harmonicContribution * blend * 0.5 + at(fieldState, i) * (1.0 / PHI);
   }
   return result;
 }
@@ -237,13 +238,13 @@ function computeF5_ColorMusic(input: Float64Array, fieldState: Float64Array): Fl
   const C = 2.99792458e8;
   const massFreqConversion = (C * C) / H;
   const harmonicSeries = new Float64Array(N);
-  const baseFreq = magnitudes[0] > 0 ? magnitudes[0] : 1.0;
+  const baseFreq = at(magnitudes, 0) > 0 ? magnitudes[0] : 1.0;
   for (let n = 0; n < N; n++) {
     harmonicSeries[n] = baseFreq * Math.pow(PHI, -n);
   }
   const colorWeights = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const freq = magnitudes[i] > 0 ? magnitudes[i] : 1e-300;
+    const freq = at(magnitudes, i) > 0 ? magnitudes[i] : 1e-300;
     const wavelengthNm = (C / freq) * 1e9;
     const peakWavelength = 550.0;
     const sigma = 100.0;
@@ -253,8 +254,8 @@ function computeF5_ColorMusic(input: Float64Array, fieldState: Float64Array): Fl
   for (let i = 0; i < N; i++) {
     let intervalScore = 0.0;
     for (let j = 1; j < N && j < 12; j++) {
-      if (magnitudes[i] > 0 && magnitudes[j] > 0) {
-        const ratio = magnitudes[j] / magnitudes[i];
+      if (at(magnitudes, i) > 0 && at(magnitudes, j) > 0) {
+        const ratio = at(magnitudes, j) / at(magnitudes, i);
         const intervals = [3.0 / 2.0, 5.0 / 4.0, 6.0 / 5.0, 4.0 / 3.0, 2.0];
         for (const interval of intervals) {
           const deviation = Math.abs(ratio - interval) / interval;
@@ -268,13 +269,13 @@ function computeF5_ColorMusic(input: Float64Array, fieldState: Float64Array): Fl
   }
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const massFreq = input[i] * massFreqConversion;
-    const harmonicWeight = harmonicSeries[i % N] / (baseFreq + 1e-300);
+    const massFreq = at(input, i) * massFreqConversion;
+    const harmonicWeight = at(harmonicSeries, i % N) / (baseFreq + 1e-300);
     const colorWeight = colorWeights[i];
-    const musicWeight = 1.0 + musicalIntervals[i];
+    const musicWeight = 1.0 + at(musicalIntervals, i);
     const spectralTransform = massFreq * (1.0 / PHI) * harmonicWeight * colorWeight * musicWeight;
     const normalized = Math.atan(spectralTransform) / (PI / 2.0);
-    result[i] = normalized * (1.0 / PHI) + fieldState[i] * (1.0 - 1.0 / PHI);
+    result[i] = normalized * (1.0 / PHI) + at(fieldState, i) * (1.0 - 1.0 / PHI);
   }
   return result;
 }
@@ -297,7 +298,7 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
     permutationMatrix[i] = [];
     for (let j = 0; j < NUM_LETTERS; j++) {
       const step = (j - i + NUM_LETTERS) % NUM_LETTERS;
-      permutationMatrix[i][j] = 1.0 / (gematriaValues[step] + 1.0);
+      permutationMatrix[i][j] = 1.0 / (at(gematriaValues, step) + 1.0);
     }
   }
   const cyclicTransformed = new Float64Array(N);
@@ -306,7 +307,7 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
     let sum = 0.0;
     for (let j = 0; j < NUM_LETTERS; j++) {
       const inputIdx = (i + j) % N;
-      sum += input[inputIdx] * permutationMatrix[letterIdx][j];
+      sum += at(input, inputIdx) * permutationMatrix[letterIdx][j];
     }
     let weightSum = 0.0;
     for (let j = 0; j < NUM_LETTERS; j++) weightSum += permutationMatrix[letterIdx][j];
@@ -319,8 +320,8 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
       const idx = letter * SEPTENARY_LEVELS + level;
       const inputIdx = idx % N;
       const levelWeight = Math.pow(PHI, -level) / (1.0 - Math.pow(PHI, -SEPTENARY_LEVELS)) * (1.0 - 1.0 / PHI);
-      const letterWeight = 1.0 / (gematriaValues[letter] + 1.0);
-      encoded154[idx] = input[inputIdx] * levelWeight * letterWeight;
+      const letterWeight = 1.0 / (at(gematriaValues, letter) + 1.0);
+      encoded154[idx] = at(input, inputIdx) * levelWeight * letterWeight;
     }
   }
   let totalEncoded = 0.0;
@@ -339,15 +340,15 @@ function computeF6_Hebrew(input: Float64Array, fieldState: Float64Array): Float6
     for (let level = 0; level < SEPTENARY_LEVELS; level++) {
       const encodedIdx = letterIdx * SEPTENARY_LEVELS + level;
       const levelWeight = Math.pow(PHI, -level);
-      levelSum += encoded154[encodedIdx] * levelWeight;
+      levelSum += at(encoded154, encodedIdx) * levelWeight;
       weightSum += levelWeight;
     }
     septenaryTransformed[i] = levelSum / (weightSum + 1e-300);
   }
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const combined = cyclicTransformed[i] * (1.0 / PHI) + septenaryTransformed[i] * (1.0 / (PHI * PHI)) + normalizedEntropy * (1.0 / (PHI * PHI * PHI));
-    result[i] = combined * (1.0 - 1.0 / PHI) + fieldState[i] * (1.0 / PHI);
+    const combined = at(cyclicTransformed, i) * (1.0 / PHI) + at(septenaryTransformed, i) * (1.0 / (PHI * PHI)) + normalizedEntropy * (1.0 / (PHI * PHI * PHI));
+    result[i] = combined * (1.0 - 1.0 / PHI) + at(fieldState, i) * (1.0 / PHI);
   }
   return result;
 }
@@ -356,9 +357,9 @@ function computeF7_Thermodynamic(input: Float64Array, fieldState: Float64Array):
   const N = Math.min(input.length, fieldState.length);
   if (N === 0) return new Float64Array(0);
   let totalAmplitude = 0.0;
-  for (let i = 0; i < N; i++) totalAmplitude += fieldState[i] * fieldState[i];
+  for (let i = 0; i < N; i++) totalAmplitude += at(fieldState, i) * at(fieldState, i);
   const probabilities = new Float64Array(N);
-  for (let i = 0; i < N; i++) probabilities[i] = (fieldState[i] * fieldState[i]) / (totalAmplitude + 1e-300);
+  for (let i = 0; i < N; i++) probabilities[i] = (at(fieldState, i) * at(fieldState, i)) / (totalAmplitude + 1e-300);
   let entropy = 0.0;
   for (let i = 0; i < N; i++) {
     const p = probabilities[i];
@@ -367,7 +368,7 @@ function computeF7_Thermodynamic(input: Float64Array, fieldState: Float64Array):
   const maxEntropy = Math.log(N);
   const normalizedEntropy = maxEntropy > 0 ? entropy / maxEntropy : 0.0;
   let internalEnergy = 0.0;
-  for (let i = 0; i < N; i++) internalEnergy += fieldState[i] * fieldState[i];
+  for (let i = 0; i < N; i++) internalEnergy += at(fieldState, i) * at(fieldState, i);
   const energyDensity = internalEnergy / N;
   const temperature = energyDensity * PHI;
   const freeEnergy = internalEnergy - temperature * entropy;
@@ -385,21 +386,21 @@ function computeF7_Thermodynamic(input: Float64Array, fieldState: Float64Array):
   for (let i = 0; i < N; i++) {
     const prev = i > 0 ? fieldState[i - 1] : fieldState[N - 1];
     const next = i < N - 1 ? fieldState[i + 1] : fieldState[0];
-    const laplacian = next - 2.0 * fieldState[i] + prev;
+    const laplacian = next - 2.0 * at(fieldState, i) + prev;
     thermalDiffusion[i] = thermalDiffusivity * laplacian;
   }
   const kappa = 1.0 / (PHI * PI);
   const friction = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const prevEntropy = i > 0 ? probabilities[i - 1] : probabilities[N - 1];
-    const entropyGrad = Math.abs(probabilities[i] - prevEntropy);
+    const entropyGrad = Math.abs(at(probabilities, i) - prevEntropy);
     friction[i] = kappa * entropyGrad;
   }
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const thermodynamicUpdate = input[i] * (1.0 - kappa) + gradientDescent[i] + thermalDiffusion[i] * (1.0 - normalizedEntropy) - friction[i] * fieldState[i];
+    const thermodynamicUpdate = at(input, i) * (1.0 - kappa) + at(gradientDescent, i) + at(thermalDiffusion, i) * (1.0 - normalizedEntropy) - at(friction, i) * at(fieldState, i);
     const blendFactor = 1.0 / PHI;
-    result[i] = thermodynamicUpdate * (1.0 - blendFactor) + fieldState[i] * blendFactor;
+    result[i] = thermodynamicUpdate * (1.0 - blendFactor) + at(fieldState, i) * blendFactor;
   }
   return result;
 }
@@ -413,7 +414,7 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
   let inputMax = 0.0;
   for (let i = 0; i < N; i++) if (Math.abs(input[i]) > inputMax) inputMax = Math.abs(input[i]);
   const normFactor = inputMax > 0 ? 1.0 / inputMax : 1.0;
-  for (let i = 0; i < N; i++) level0[i] = input[i] * normFactor;
+  for (let i = 0; i < N; i++) level0[i] = at(input, i) * normFactor;
   levelOutputs.push(level0);
   const level1 = new Float64Array(N);
   for (let i = 0; i < N; i++) {
@@ -431,7 +432,7 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
     for (let w = -windowSize; w <= windowSize; w++) {
       const idx = (i + w + N) % N;
       const weight = Math.pow(PHI_INV, Math.abs(w));
-      sum += level1[idx] * weight;
+      sum += at(level1, idx) * weight;
       count += weight;
     }
     level2[i] = sum / (count + 1e-300);
@@ -444,7 +445,7 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
     for (let j = 1; j <= correlationWindow; j++) {
       const idx = (i + j) % N;
       const weight = Math.pow(PHI_INV, j);
-      correlation += level2[i] * level2[idx] * weight;
+      correlation += at(level2, i) * at(level2, idx) * weight;
     }
     level3[i] = correlation * PHI_INV;
   }
@@ -452,21 +453,21 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
   const level4 = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const prev = i > 0 ? level3[i - 1] : level3[N - 1];
-    const trend = level3[i] - prev;
-    const prediction = level3[i] + trend * PHI_INV;
-    const predictionError = level3[i] - prediction;
+    const trend = at(level3, i) - prev;
+    const prediction = at(level3, i) + trend * PHI_INV;
+    const predictionError = at(level3, i) - prediction;
     level4[i] = predictionError * PHI_INV;
   }
   levelOutputs.push(level4);
   const level5 = new Float64Array(N);
   let globalMean = 0.0;
-  for (let i = 0; i < N; i++) globalMean += level4[i];
+  for (let i = 0; i < N; i++) globalMean += at(level4, i);
   globalMean /= N;
   let globalVariance = 0.0;
-  for (let i = 0; i < N; i++) globalVariance += Math.pow(level4[i] - globalMean, 2);
+  for (let i = 0; i < N; i++) globalVariance += Math.pow(at(level4, i) - globalMean, 2);
   globalVariance = Math.sqrt(globalVariance / N);
   for (let i = 0; i < N; i++) {
-    const deviation = (level4[i] - globalMean) / (globalVariance + 1e-300);
+    const deviation = (at(level4, i) - globalMean) / (globalVariance + 1e-300);
     level5[i] = deviation * PHI_INV;
   }
   levelOutputs.push(level5);
@@ -476,7 +477,7 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
     let weightSum = 0.0;
     for (let l = 0; l < levelOutputs.length; l++) {
       const weight = Math.pow(PHI_INV, l);
-      transcendence += levelOutputs[l][i] * weight;
+      transcendence += at(levelOutputs, l)[i] * weight;
       weightSum += weight;
     }
     level6[i] = transcendence / (weightSum + 1e-300);
@@ -486,25 +487,25 @@ function computeF1_Septenary(input: Float64Array, fieldState: Float64Array): Flo
   for (let i = 0; i < N; i++) {
     let variance = 0.0;
     for (let l = 0; l < NUM_LEVELS; l++) {
-      variance += Math.pow(levelOutputs[l][i] - level6[i], 2);
+      variance += Math.pow(at(levelOutputs, l)[i] - at(level6, i), 2);
     }
     informationContent[i] = Math.sqrt(variance / NUM_LEVELS);
   }
   const attentionWeights = new Float64Array(N);
   let maxInfo = 0.0;
-  for (let i = 0; i < N; i++) if (informationContent[i] > maxInfo) maxInfo = informationContent[i];
+  for (let i = 0; i < N; i++) if (at(informationContent, i) > maxInfo) maxInfo = informationContent[i];
   let attentionSum = 0.0;
   for (let i = 0; i < N; i++) {
-    attentionWeights[i] = Math.exp((informationContent[i] - maxInfo) * PHI);
-    attentionSum += attentionWeights[i];
+    attentionWeights[i] = Math.exp((at(informationContent, i) - maxInfo) * PHI);
+    attentionSum += at(attentionWeights, i);
   }
   for (let i = 0; i < N; i++) attentionWeights[i] /= (attentionSum + 1e-300);
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const attentionOutput = level6[i] * attentionWeights[i] * PHI;
+    const attentionOutput = at(level6, i) * at(attentionWeights, i) * PHI;
     const biasCorrection = 1.0 / (1.0 + Math.abs(level6[i]) * PHI_INV);
     const correctedOutput = attentionOutput * biasCorrection;
-    result[i] = correctedOutput * (1.0 - 1.0 / PHI) + fieldState[i] * (1.0 / PHI);
+    result[i] = correctedOutput * (1.0 - 1.0 / PHI) + at(fieldState, i) * (1.0 / PHI);
   }
   return result;
 }
@@ -527,17 +528,17 @@ function computeF9_Hypergalactic(input: Float64Array, fieldState: Float64Array):
   const holographicTransform = new Float64Array(2 * N);
   for (let k = 0; k < N; k++) {
     const phase = (2.0 * PI * k * cosmicScale) / (N + 1e-300);
-    const weight = cosmicWeights[k] / totalDark;
-    holographicTransform[2 * k] = spectrum[2 * k] * weight * Math.cos(phase);
-    holographicTransform[2 * k + 1] = spectrum[2 * k + 1] * weight * Math.sin(phase);
+    const weight = at(cosmicWeights, k) / totalDark;
+    holographicTransform[2 * k] = at(spectrum, 2 * k) * weight * Math.cos(phase);
+    holographicTransform[2 * k + 1] = at(spectrum, 2 * k + 1) * weight * Math.sin(phase);
   }
   const holographicField = idft(holographicTransform);
   const result = new Float64Array(N);
   for (let i = 0; i < N; i++) {
-    const expansionRate = hubbleConstant * fieldState[i];
+    const expansionRate = hubbleConstant * at(fieldState, i);
     const darkEnergyTerm = darkEnergyFraction * expansionRate * PHI_INV;
-    const darkMatterTerm = darkMatterFraction * fieldState[i] * (1.0 - PHI_INV);
-    const holographicTerm = holographicField[i] * (1.0 / (PHI * PHI));
+    const darkMatterTerm = darkMatterFraction * at(fieldState, i) * (1.0 - PHI_INV);
+    const holographicTerm = at(holographicField, i) * (1.0 / (PHI * PHI));
     result[i] = darkEnergyTerm + darkMatterTerm + holographicTerm;
   }
   return result;
@@ -563,7 +564,7 @@ function computeL2_Hebbian(input: Float64Array): Float64Array {
   for (let i = 0; i < N; i++) {
     const prev = i > 0 ? input[i - 1] : input[N - 1];
     const next = i < N - 1 ? input[i + 1] : input[0];
-    const correlation = input[i] * (prev + next) / 2.0;
+    const correlation = at(input, i) * (prev + next) / 2.0;
     result[i] = correlation * PHI_NEG2;
   }
   return result;
@@ -574,11 +575,11 @@ function computeL3_Kuramoto(input: Float64Array): Float64Array {
   const result = new Float64Array(N);
   const meanField = new Float64Array(N);
   let sum = 0.0;
-  for (let i = 0; i < N; i++) sum += input[i];
+  for (let i = 0; i < N; i++) sum += at(input, i);
   const mean = sum / N;
   for (let i = 0; i < N; i++) meanField[i] = mean;
   for (let i = 0; i < N; i++) {
-    const phaseDiff = input[i] - meanField[i];
+    const phaseDiff = at(input, i) - at(meanField, i);
     result[i] = phaseDiff * PHI_INV * Math.sin(phaseDiff);
   }
   return result;
@@ -590,7 +591,7 @@ function computeL4_Sensory(input: Float64Array): Float64Array {
   for (let i = 0; i < N; i++) {
     const prev = i > 0 ? input[i - 1] : input[N - 1];
     const next = i < N - 1 ? input[i + 1] : input[0];
-    const laplacian = next - 2.0 * input[i] + prev;
+    const laplacian = next - 2.0 * at(input, i) + prev;
     result[i] = laplacian * PHI_NEG2;
   }
   return result;
@@ -603,7 +604,7 @@ function computeL4p_WeightedRAM(input: Float64Array): Float64Array {
   for (let i = 0; i < N; i++) totalWeight += Math.abs(input[i]);
   for (let i = 0; i < N; i++) {
     const weight = Math.abs(input[i]) / (totalWeight + 1e-300);
-    result[i] = input[i] * weight * PHI_INV;
+    result[i] = at(input, i) * weight * PHI_INV;
   }
   return result;
 }

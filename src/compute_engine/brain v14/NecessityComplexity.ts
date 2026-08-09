@@ -26,6 +26,7 @@ import {
   PHI_NEG5,
   PHI_NEG8,
 } from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
 
 /** [MATH] IEEE-754 double-precision alias for deterministic Float64 semantics. */
 type Float64 = number;
@@ -181,7 +182,7 @@ export class NecessityComplexity {
     for (let i = 0; i < matrix.length; i++) {
       const row = matrix[i];
       for (let j = 0; j < row.length; j++) {
-        const v = row[j] ?? 0;
+        const v = at(row, j) ?? 0;
         sumSq += v * v;
       }
     }
@@ -442,7 +443,7 @@ export class NecessityComplexity {
     if (totalMag === 0) return 0.0 as Float64;
     let entropy = 0.0;
     for (let i = 0; i < n; i++) {
-      const p = magnitudes[i] / totalMag;
+      const p = at(magnitudes, i) / totalMag;
       if (p > 0) {
         entropy -= p * Math.log(p);
       }

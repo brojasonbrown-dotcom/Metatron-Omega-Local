@@ -27,6 +27,7 @@ import {
   CLOSURE_COUPLING,
   QRF_CRITICAL_SCALE,
 } from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. Type Aliases & Constants
@@ -158,7 +159,7 @@ export class DimensionalStability {
     }
     for (let a = 0; a < DIMENSION_COUNT; a++) {
       for (let b = a + 1; b < DIMENSION_COUNT; b++) {
-        const sym = ((tensor[a][b] + tensor[b][a]) / 2.0) as Float64;
+        const sym = ((at(tensor, a)[b] + at(tensor, b)[a]) / 2.0) as Float64;
         tensor[a][b] = sym;
         tensor[b][a] = sym;
       }
@@ -209,7 +210,7 @@ export class DimensionalStability {
     if (len === 0) return 0.0 as Float64;
     let dot = 0.0, na = 0.0, nb = 0.0;
     for (let i = 0; i < len; i++) {
-      dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i];
+      dot += at(a, i) * at(b, i); na += at(a, i) * at(a, i); nb += at(b, i) * at(b, i);
     }
     return (Math.abs(dot) / (Math.sqrt(na) * Math.sqrt(nb) + 1e-15)) as Float64;
   }
@@ -223,7 +224,7 @@ export class DimensionalStability {
     if (len === 0) return 0.0 as Float64;
     let d = 0.0;
     for (let i = 0; i < len; i++) {
-      d += Math.abs(a[i] - b[i]) / (Math.max(Math.abs(a[i]), Math.abs(b[i])) + 1e-15);
+      d += Math.abs(at(a, i) - at(b, i)) / (Math.max(Math.abs(a[i]), Math.abs(b[i])) + 1e-15);
     }
     return (d / len) as Float64;
   }
@@ -236,10 +237,10 @@ export class DimensionalStability {
     const len = Math.min(a.length, b.length);
     if (len === 0) return 0.0 as Float64;
     let ma = 0.0, mb = 0.0;
-    for (let i = 0; i < len; i++) { ma += a[i]; mb += b[i]; }
+    for (let i = 0; i < len; i++) { ma += at(a, i); mb += at(b, i); }
     ma /= len; mb /= len;
     let va = 0.0, vb = 0.0;
-    for (let i = 0; i < len; i++) { va += (a[i] - ma) ** 2; vb += (b[i] - mb) ** 2; }
+    for (let i = 0; i < len; i++) { va += (at(a, i) - ma) ** 2; vb += (at(b, i) - mb) ** 2; }
     const sa = Math.sqrt(va / len), sb = Math.sqrt(vb / len);
     return (Math.abs(sa - sb) / (sa + sb + 1e-15)) as Float64;
   }
@@ -266,7 +267,7 @@ export class DimensionalStability {
     if (N === 0) return 0.0 as Float64;
     const ideal = this.computeIdealSmooth(values);
     let deficit = 0.0;
-    for (let i = 0; i < N; i++) { const d = values[i] - ideal[i]; deficit += d * d; }
+    for (let i = 0; i < N; i++) { const d = at(values, i) - at(ideal, i); deficit += d * d; }
     return (deficit / N) as Float64;
   }
 
@@ -336,27 +337,27 @@ export class DimensionalStability {
       let max = 0.0, p = 0, q = 0;
       for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
-          const av = Math.abs(M[i][j]);
+          const av = Math.abs(at(M, i)[j]);
           if (av > max) { max = av; p = i; q = j; }
         }
       }
       if (max < 1e-15) break;
-      const diff = M[q][q] - M[p][p];
-      const phi = 0.5 * Math.atan2(2.0 * M[p][q], diff);
+      const diff = at(M, q)[q] - at(M, p)[p];
+      const phi = 0.5 * Math.atan2(2.0 * at(M, p)[q], diff);
       const c = Math.cos(phi), s = Math.sin(phi);
-      const app = M[p][p], aqq = M[q][q], apq = M[p][q];
+      const app = at(M, p)[p], aqq = at(M, q)[q], apq = at(M, p)[q];
       M[p][p] = (c * c * app - 2.0 * c * s * apq + s * s * aqq) as Float64;
       M[q][q] = (s * s * app + 2.0 * c * s * apq + c * c * aqq) as Float64;
       M[p][q] = 0.0 as Float64; M[q][p] = 0.0 as Float64;
       for (let i = 0; i < n; i++) {
         if (i !== p && i !== q) {
-          const aip = M[i][p], aiq = M[i][q];
-          M[i][p] = (c * aip - s * aiq) as Float64; M[p][i] = M[i][p];
-          M[i][q] = (s * aip + c * aiq) as Float64; M[q][i] = M[i][q];
+          const aip = at(M, i)[p], aiq = at(M, i)[q];
+          M[i][p] = (c * aip - s * aiq) as Float64; M[p][i] = at(M, i)[p];
+          M[i][q] = (s * aip + c * aiq) as Float64; M[q][i] = at(M, i)[q];
         }
       }
       for (let i = 0; i < n; i++) {
-        const vip = V[i][p], viq = V[i][q];
+        const vip = at(V, i)[p], viq = at(V, i)[q];
         V[i][p] = (c * vip - s * viq) as Float64;
         V[i][q] = (s * vip + c * viq) as Float64;
       }
@@ -435,7 +436,7 @@ export class DimensionalStability {
     if (len === 0) return 0.0 as Float64;
     let dot = 0.0, nc = 0.0, np = 0.0;
     for (let i = 0; i < len; i++) {
-      dot += curr[i] * prev[i]; nc += curr[i] * curr[i]; np += prev[i] * prev[i];
+      dot += at(curr, i) * at(prev, i); nc += at(curr, i) * at(curr, i); np += at(prev, i) * at(prev, i);
     }
     const tc = (Math.abs(dot) / (Math.sqrt(nc) * Math.sqrt(np) + 1e-15)) as Float64;
     const eps = this.currentEpsilon + this.previousEpsilon + 1e-15;
@@ -487,7 +488,7 @@ export class DimensionalStability {
     let sc = 0.0, pairs = 0;
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
-        sc += Math.abs(scale[i] - scale[j]) / (Math.max(Math.abs(scale[i]), Math.abs(scale[j])) + 1e-15);
+        sc += Math.abs(at(scale, i) - at(scale, j)) / (Math.max(Math.abs(scale[i]), Math.abs(scale[j])) + 1e-15);
         pairs++;
       }
     }
@@ -496,7 +497,7 @@ export class DimensionalStability {
     const len = Math.min(curr.length, prev.length);
     let tSum = 0.0;
     for (let i = 0; i < len; i++) {
-      tSum += Math.abs(curr[i] - prev[i]) / (Math.max(Math.abs(curr[i]), Math.abs(prev[i])) + 1e-15);
+      tSum += Math.abs(at(curr, i) - at(prev, i)) / (Math.max(Math.abs(curr[i]), Math.abs(prev[i])) + 1e-15);
     }
     const T = len > 0 ? tSum / len : 0.0;
     return (w_m * M + w_meas * Meas + w_c * C + w_s * SC + w_t * T) as Float64;

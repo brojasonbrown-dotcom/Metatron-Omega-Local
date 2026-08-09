@@ -40,6 +40,7 @@ import { ParallelEngine } from "./parallel/parallel_engine.ts";
 /** EMA rate for the measured tick cost (η = φ⁻² — the engine's own law). */
 const EMA_RATE = 0.3819660112501051;
 import { COHERENCE_THRESHOLD } from "./core/constants.ts";
+import { at } from "./core/indexing.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. FractalNodeEngine Class
@@ -575,7 +576,7 @@ export class FractalNodeEngine {
     const rootField = this._root_node.state.field_state;
     const minLen = Math.min(rootField.length, processed.length);
     for (let i = 0; i < minLen; i++) {
-      rootField[i] = (rootField[i] + processed[i]) as Float64;
+      rootField[i] = (at(rootField, i) + at(processed, i)) as Float64;
     }
 
     // 3. Run tick and return result
