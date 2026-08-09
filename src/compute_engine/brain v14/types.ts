@@ -455,6 +455,36 @@ export interface EngineConfig {
   readonly resonance_target: number;
   readonly hardware_adaptive: boolean;
   readonly target_resource_usage: number;
+  /**
+   * Governor warm-up grace: ticks to suppress shrink decisions after boot /
+   * reset so JIT cold-start and first-touch allocation spikes are absorbed by
+   * the EMA before the governor judges the tree. [FIX] — without this the
+   * governor measured the ~794ms cold tick on a depth-7 tree and permanently
+   * capped the engine at depth 6 (281 nodes) before ever timing steady-state.
+   * Default 5 (EMA rate φ⁻² reaches ~91% settled within 5 ticks).
+   */
+  readonly governor_warmup_ticks?: number;
+  /**
+   * Enable the parallel wavefront engine (worker threads + SharedArrayBuffer)
+   * for the per-tick node compute. Bit-identical to serial; falls back to
+   * serial below the parallel threshold or if workers are unavailable.
+   * Default false (opt-in). [SPEC]
+   */
+  readonly parallel?: boolean;
+  /** Force the serial path even when `parallel` is enabled (testing/diff). */
+  readonly parallel_force_serial?: boolean;
+  /**
+   * Operator force-depth override. When set (and > 0), the governor's measured
+   * shrink path may not cut the tree below this depth — the operator, not the
+   * cadence budget, sets the floor. The tree may still GROW above it on measured
+   * headroom. This is the "remove the limiter" knob: it trades UI responsiveness
+   * for raw computational depth, honestly (tick-cost telemetry keeps reporting the
+   * real ms so the cost is always visible). [SPEC]
+   *
+   * Hard ceiling is the canonical-scale ladder: from root 292 there are only 9
+   * descents to Planck, so depths > 9 have no children to build and clamp to 9.
+   */
+  readonly force_depth?: number;
 }
 
 /** Engine runtime state. [SPEC] */

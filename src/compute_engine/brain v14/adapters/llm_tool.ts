@@ -45,13 +45,36 @@ const MAX_ATTEMPTS = TIMEOUT_LADDER_MS.length;
 
 export class LlmTool {
   private _baseUrl: string;
+  /** The model that serves language tools (nameThis/define/relate/lexical/phrase/answer). */
+  private _languageModel: string;
+  /** The model that serves structural verification (verifyStructure). */
+  private _verifyModel: string;
 
-  constructor(baseUrl: string) {
+  /**
+   * Model-parametric so the InstrumentRouter can serve ANY installed Ollama
+   * model, not just the phi+mathstral pair. Both arguments are optional and
+   * default to the historical pair, so every existing `new LlmTool(url)` caller
+   * (run_mind, integration tests) is unchanged. [SPEC]
+   */
+  constructor(baseUrl: string, languageModel: string = PHI_MODEL, verifyModel: string = MATHSTRAL_MODEL) {
     this._baseUrl = baseUrl;
+    this._languageModel = languageModel;
+    this._verifyModel = verifyModel;
   }
 
   setBaseUrl(url: string): void {
     this._baseUrl = url;
+  }
+
+  /**
+   * Hot-swap which Ollama models serve, with no restart and no re-construction.
+   * The router calls this on an explicit instrument/model switch; the very next
+   * tool call then hits the newly chosen model. Honest: it only re-points the
+   * tool, it does not assert the model is installed (that check is the router's).
+   */
+  setModels(languageModel: string, verifyModel: string): void {
+    this._languageModel = languageModel;
+    this._verifyModel = verifyModel;
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -65,7 +88,7 @@ export class LlmTool {
       `Perception: ${perceptDescription}\n` +
       `Reply ONLY with JSON: {"labels": ["word1", "word2"], "confidence": 0.0 to 1.0}. ` +
       `Give 1-5 short lowercase noun labels for what this perception most likely is.`;
-    return this._callJson(PHI_MODEL, prompt, validateNameThis);
+    return this._callJson(this._languageModel, prompt, validateNameThis);
   }
 
   /** phi: define a word the engine has heard but does not understand deeply. */
@@ -77,7 +100,7 @@ export class LlmTool {
       `Define the word "${word}" concretely, the way a dictionary does: what it IS and what it does or is used for.\n` +
       `Rules: state real facts about "${word}" itself; do NOT write phrases like "one or two sentences" or describe your own answer.\n` +
       `Reply ONLY with JSON: {"word": "${word}", "definition": "<the actual meaning>", "related": ["<up to 8 related words>"]}.`;
-    return this._callJson(PHI_MODEL, prompt, validateDefine);
+    return this._callJson(this._languageModel, prompt, validateDefine);
   }
 
   /** phi: explain the relation between two concepts the engine finds resonant. */
@@ -86,7 +109,7 @@ export class LlmTool {
       `State the concrete relationship between "${wordA}" and "${wordB}" — how one involves the other in the real world.\n` +
       `Rules: name the actual connection (e.g. part-of, causes, lives-in, is-a); do NOT write "one or two sentences" or describe your own answer.\n` +
       `Reply ONLY with JSON: {"relation": "<the actual connection>", "strength": 0.0 to 1.0}.`;
-    return this._callJson(PHI_MODEL, prompt, validateRelate);
+    return this._callJson(this._languageModel, prompt, validateRelate);
   }
 
   /** mathstral: verify a structural/numeric hypothesis produced by the engine. */
@@ -95,7 +118,7 @@ export class LlmTool {
       `You verify mathematical/structural claims. Claim: ${claim}\n` +
       `Reply ONLY with JSON: {"verdict": "valid" or "invalid" or "uncertain", ` +
       `"reasoning": "one or two sentences"}.`;
-    return this._callJson(MATHSTRAL_MODEL, prompt, validateVerify);
+    return this._callJson(this._verifyModel, prompt, validateVerify);
   }
 
   /**
@@ -111,7 +134,7 @@ export class LlmTool {
       `"gloss" is what "${word}" concretely IS or DOES — real facts about the word itself, never a description of your own reply. ` +
       `"relations" lists up to 8 other real words with their connection: kind is one of "is-a", "related-to", "opposite-of", "part-of".\n` +
       `Reply ONLY with JSON: {"word": "${word}", "pos": "noun", "gloss": "<the actual meaning>", "relations": [{"kind": "is-a", "to": "<word>"}]}.`;
-    return this._callJson(PHI_MODEL, prompt, validateLexical);
+    return this._callJson(this._languageModel, prompt, validateLexical);
   }
 
   /**
@@ -134,7 +157,7 @@ export class LlmTool {
       `Its mood is ${mood}. ` +
       `Speak ONE short first-person sentence (max 20 words) expressing what it notices or wonders. ` +
       `No quotes, no preamble.`;
-    const out = await this._generate(PHI_MODEL, prompt, false, TIMEOUT_LADDER_MS[0]);
+    const out = await this._generate(this._languageModel, prompt, false, TIMEOUT_LADDER_MS[0]);
     if (!out.ok) return out;
     const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 300);
     if (text.length === 0) {
@@ -161,6 +184,7 @@ export class LlmTool {
       engineFacts: string;
       concepts: Array<{ labels: string[]; resonance: number }>;
     },
+    depth: "standard" | "deep" = "standard",
   ): Promise<ToolOutcome<string>> {
     const conceptBlock =
       context.concepts.length === 0
@@ -168,25 +192,68 @@ export class LlmTool {
         : context.concepts
             .map((c) => `- ${c.labels.join(", ") || "unnamed"} (resonance ${c.resonance.toFixed(3)})`)
             .join("\n");
-    // BOUNDED MULTI-SENTENCE (the "one paragraph" fix): the previous cap of
-    // ONE sentence / 30 words / 300 chars was the truncation the user saw. The
-    // answer may now run to a short paragraph — still finite (the UI can never
-    // hang on an endless stream) and still grounded (no new numbers).
+    // LENGTH (no compromise on intelligence): the old ceiling was a hard
+    // 640-token / 110-word / 900-char cap — that WAS the clipped, shallow
+    // output. The depth now follows the question: a simple lookup stays tight,
+    // an analytical question gets room to develop. phi is instruction-weak, so
+    // the budget is generous and the truncation-continuation (below) finishes
+    // any answer the model wants to run long — the cap is no longer the binding
+    // constraint on depth.
+    const deep = depth === "deep";
+    const numPredict = deep ? 2048 : 1200;
+    // The char cap is a SAFETY ceiling, not the target — generous enough that
+    // the continuation finishes virtually every answer before it bites. When it
+    // does bite, truncate at the last SENTENCE boundary (never mid-word) so a
+    // long answer ends cleanly instead of being sliced off mid-thought.
+    const charCap = deep ? 12000 : 6000;
+    const lengthGuide = deep
+      ? "a thorough, well-developed answer — as many sentences as the question genuinely needs"
+      : "a focused answer of 2-6 sentences, developed enough to actually engage the question";
     const prompt =
       `You are the voice of a learning machine built on the RHUFT engine.\n` +
       `The human asked: "${question}"\n` +
       `The machine's learned concepts near this question:\n${conceptBlock}\n\n` +
-      `Answer in a short paragraph (2-4 sentences, up to 110 words, first person) that engages the question in the light of these FACTS. ` +
-      `Be substantive, not one clipped line. Do NOT introduce any new numbers or claims — only perspective on what the facts mean.\n` +
+      `Write ${lengthGuide}, in first person, grounded in the FACTS below. ` +
+      `Do NOT introduce any new numbers or claims — only perspective on what the facts mean.\n` +
       `FACTS (the only truth you may reference):\n${context.engineFacts || "(none computed for this query)"}\n\n` +
       `ANSWER:`;
-    const out = await this._generate(PHI_MODEL, prompt, false, TIMEOUT_LADDER_MS[0], 640);
+    const out = await this._generate(this._languageModel, prompt, false, TIMEOUT_LADDER_MS[0], numPredict);
     if (!out.ok) return out;
-    const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 900);
+    const cleaned = out.value.trim().replace(/^["']+|["']+$/g, "");
+    const text = LlmTool._truncateAtSentence(cleaned, charCap);
     if (text.length === 0) {
       return { ok: false, reason: "answer: empty response", elapsedMs: out.elapsedMs };
     }
     return { ok: true, value: text, rawText: out.value, elapsedMs: out.elapsedMs };
+  }
+
+  /**
+   * Truncate at the last sentence boundary at or before `cap`, never mid-word.
+   * If the text is already within the cap it is returned unchanged; if no
+   * sentence boundary exists before the cap (one long run-on), fall back to the
+   * last word boundary so the answer still ends cleanly. The cap is a generous
+   * safety ceiling, so in practice the continuation finishes the answer first
+   * and this returns the full text. [FIX for mid-sentence cut-off]
+   */
+  private static _truncateAtSentence(text: string, cap: number): string {
+    if (text.length <= cap) return text;
+    const window = text.slice(0, cap);
+    // Last sentence-ending punctuation followed by a space/end inside the window.
+    const sentenceEnd = Math.max(
+      window.lastIndexOf(". "),
+      window.lastIndexOf("! "),
+      window.lastIndexOf("? "),
+      window.lastIndexOf(".\n"),
+      window.lastIndexOf("!\n"),
+      window.lastIndexOf("?\n")
+    );
+    if (sentenceEnd >= Math.floor(cap * 0.4)) {
+      // Keep through the punctuation mark itself.
+      return window.slice(0, sentenceEnd + 1).trim();
+    }
+    // No usable sentence boundary — cut at the last word boundary instead.
+    const wordEnd = window.lastIndexOf(" ");
+    return (wordEnd > 0 ? window.slice(0, wordEnd) : window).trim();
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -238,6 +305,35 @@ export class LlmTool {
     numPredict: number = 256
   ): Promise<{ ok: true; value: string; elapsedMs: number } | { ok: false; reason: string; elapsedMs: number }> {
     const started = Date.now();
+    // EMPTY-RESPONSE RESILIENCE (measured): on a degenerate tiny prompt phi
+    // stops after its leading newline/space and returns ~nothing (~70% empty
+    // on a bare "hi"). Re-priming the SAME prompt with a trailing continuation
+    // cue drops that to 0 in measurement, so on an empty/stop result we retry
+    // ONCE re-primed before declaring failure. Longer/structured prompts never
+    // hit this path (they return non-empty on the first shot, so no retry).
+    const RE_PRIME = "\n\nRESPONSE:";
+    for (let shot = 0; shot < 2; shot++) {
+      const primed = shot === 1 ? prompt + RE_PRIME : prompt;
+      const gen = await this._generateOnce(model, primed, json, timeoutMs, numPredict);
+      if (!gen.ok) return gen;
+      // Only re-prime when the model stopped immediately with nothing — a real
+      // answer, however short, is returned untouched. Whitespace-only is empty.
+      if (gen.value.trim().length > 0 || shot === 1) return gen;
+      // else: fall through to the re-primed second shot.
+    }
+    // Unreachable (the loop returns on both shots), but keeps the type total.
+    return { ok: false, reason: `${model}: empty response after re-prime`, elapsedMs: Date.now() - started };
+  }
+
+  /** A single bounded Ollama generate call (one HTTP round-trip). */
+  private async _generateOnce(
+    model: string,
+    prompt: string,
+    json: boolean,
+    timeoutMs: number,
+    numPredict: number
+  ): Promise<{ ok: true; value: string; elapsedMs: number } | { ok: false; reason: string; elapsedMs: number }> {
+    const started = Date.now();
     try {
       const body: Record<string, unknown> = {
         model,
@@ -264,13 +360,24 @@ export class LlmTool {
           elapsedMs: Date.now() - started,
         };
       }
-      const payload = (await res.json()) as { response?: unknown };
+      const payload = (await res.json()) as { response?: unknown; done_reason?: unknown };
       if (typeof payload.response !== "string") {
         return {
           ok: false,
           reason: `${model}: missing response field`,
           elapsedMs: Date.now() - started,
         };
+      }
+      // M5 — TRUNCATION HONESTY (parity with the K3 instrument): a "length"
+      // done_reason means the model hit num_predict mid-thought. Do ONE bounded
+      // continuation (same num_predict, not doubled) and splice; if it still
+      // truncates, mark the cut visibly. Never serve a fragment as if finished.
+      if (payload.done_reason === "length") {
+        const more = await this._continuePartial(model, prompt, payload.response, json, timeoutMs, numPredict);
+        if (more.ok) {
+          return { ok: true, value: payload.response + more.value, elapsedMs: Date.now() - started };
+        }
+        return { ok: true, value: payload.response.trimEnd() + " …", elapsedMs: Date.now() - started };
       }
       return { ok: true, value: payload.response, elapsedMs: Date.now() - started };
     } catch (err) {
@@ -282,4 +389,44 @@ export class LlmTool {
       };
     }
   }
-}
+
+    /**
+     * ONE bounded continuation after a length-truncation (Ollama): re-send the
+     * prompt with the partial response appended and ask the model to finish it.
+     * Same num_predict budget — bounded, not doubled. ok:false if it errors or
+     * truncates again (the caller then marks the cut visibly).
+     */
+    private async _continuePartial(
+      model: string,
+      originalPrompt: string,
+      partial: string,
+      json: boolean,
+      timeoutMs: number,
+      numPredict: number
+    ): Promise<{ ok: true; value: string } | { ok: false }> {
+      try {
+        const continuePrompt = originalPrompt + "\n\nPARTIAL RESPONSE (continue exactly where it stops, output ONLY the rest):\n" + partial;
+        const body: Record<string, unknown> = {
+          model,
+          prompt: continuePrompt,
+          stream: false,
+          keep_alive: "30m",
+          options: { temperature: 1 / (PHI * PHI), num_predict: numPredict },
+        };
+        if (json) body["format"] = "json";
+        const res = await fetch(`${this._baseUrl}/api/generate`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!res.ok) return { ok: false };
+        const payload = (await res.json()) as { response?: unknown; done_reason?: unknown };
+        if (typeof payload.response !== "string") return { ok: false };
+        const tail = payload.done_reason === "length" ? payload.response.trimEnd() + " …" : payload.response;
+        return { ok: true, value: tail };
+      } catch {
+        return { ok: false };
+      }
+    }
+  }

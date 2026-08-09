@@ -248,6 +248,8 @@ export type SensorySource =
   | "audio.mic"
   | "audio.file"
   | "text.feed"
+  | "doc.feed"
+  | "ui.observe"
   | "llm.answer";
 
 const SENSORY_SOURCES: readonly string[] = [
@@ -256,6 +258,8 @@ const SENSORY_SOURCES: readonly string[] = [
   "audio.mic",
   "audio.file",
   "text.feed",
+  "doc.feed",
+  "ui.observe",
   "llm.answer",
 ];
 

@@ -24,6 +24,8 @@ import type {
   ScalingDecision,
 } from "./types.ts";
 
+import { totalmem, cpus } from "node:os";
+
 import { PHI, PHI_INV } from "./core/constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -43,11 +45,15 @@ const DEFAULT_TOTAL_RAM_BYTES: number = 8 * 1024 * 1024 * 1024;
 const DEFAULT_CPU_CORES: number = 4;
 
 /**
- * Estimated memory footprint per FractalNode (64 KB).
- * Derived from φ-scaled field allocation: 2·(N+1)·8 bytes ≈ 224 bytes per field,
- * plus overhead → ~64 KB conservative estimate. [SPEC]
+ * MEASURED memory footprint per FractalNode (≈48 KB RSS, amplitude-dominated).
+ * The old 64 KB figure was a guess; the stability oracle (tests/stability_oracle.mjs)
+ * measured depth 7 → 3401 nodes at ~2.0 GB RSS and depth 8 → 43961 nodes at ~8.6 GB
+ * on the reference machine, i.e. ~190 KB/node transient with GC churn and ~48 KB/node
+ * for the retained object graph (field + previousField + boundary + framework/memory
+ * metadata + children). We budget on the retained figure and let the measured tick-cost
+ * shrink path handle transient spikes. [SPEC — measured, not modelled]
  */
-const BYTES_PER_NODE: number = 1024 * 64;
+const BYTES_PER_NODE: number = 48 * 1024;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 2. HardwareGovernor Class
@@ -64,14 +70,34 @@ const BYTES_PER_NODE: number = 1024 * 64;
 export class HardwareGovernor {
   /** Cognitive cadence the engine shares (1000/φ⁴ ≈ 146 ms). [SPEC] */
   static readonly CADENCE_MS = 146;
-  /** Deepest tree the measured governor may build (ladder headroom). [SPEC] */
-  static readonly MAX_DEPTH = 7;
+  /**
+   * Deepest tree the measured governor may build. The canonical-scale ladder has
+   * exactly 10 scales (292→…→0), so from root 292 there are only 9 descents — depth 9
+   * is the STRUCTURAL ceiling (census ≈ 570k), not an arbitrary cap. The stability
+   * oracle measured depth 8 = 43,961 nodes at ~282 ms/tick steady-state on a 12-thread
+   * desktop, so depth 8 is the realistic auto-scale target and 9 the force-only max. [SPEC — measured]
+   */
+  static readonly MAX_DEPTH = 9;
   /** Minimum ticks between two grow steps (F₇ — deepen slowly). [SPEC] */
   static readonly GROW_EVERY = 13;
 
   /** Sync the measured path with the engine's actually-built depth. */
   setMeasuredDepth(d: number): void {
     this._lastMeasuredDepth = d;
+  }
+
+  /**
+   * Operator force-depth override (the "remove the limiter" knob). Sets the floor
+   * the measured shrink path may not cross; null restores purely measured scaling.
+   * Clamped to [1, MAX_DEPTH] — the canonical ladder's structural ceiling. [SPEC]
+   */
+  setForceDepth(d: number | null): void {
+    this._forceDepth = d === null ? null : Math.max(1, Math.min(HardwareGovernor.MAX_DEPTH, Math.floor(d)));
+  }
+
+  /** Current operator force-depth floor (null = purely measured scaling). */
+  get forceDepth(): number | null {
+    return this._forceDepth;
   }
 
   /**
@@ -110,19 +136,26 @@ export class HardwareGovernor {
     let totalRam: number = DEFAULT_TOTAL_RAM_BYTES;
     let cpuCores: number = DEFAULT_CPU_CORES;
 
-    // Attempt Node.js runtime detection (safe typeof check). [SPEC]
-    if (typeof process !== "undefined" && process.memoryUsage) {
-      try {
-        const mem = process.memoryUsage();
-        totalRam = Math.max(mem.heapTotal, DEFAULT_TOTAL_RAM_BYTES);
-      } catch {
-        // Fallback to default on any exception. [SPEC]
-      }
+    // [FIX] Read the MACHINE's total physical RAM, not the V8 heap. The old path
+    // used process.memoryUsage().heapTotal (~a few hundred MB) — a tiny fraction of
+    // real system memory — so the governor under-detected a 30 GB host and starved the
+    // tree. node:os.totalmem() is the real figure. [SPEC — measured]
+    try {
+      const sys = totalmem();
+      if (Number.isFinite(sys) && sys > 0) totalRam = sys;
+    } catch {
+      // Fallback to default on any exception. [SPEC]
     }
 
-    // Attempt browser runtime detection (safe typeof check). [SPEC]
-    if (typeof navigator !== "undefined" && navigator.hardwareConcurrency) {
-      cpuCores = navigator.hardwareConcurrency;
+    // Logical processors = the parallel wavefront's real width (the worker pool is
+    // sized from this). node:os.cpus() is authoritative on Node; navigator on browser. [SPEC — measured]
+    try {
+      const c = cpus();
+      if (Array.isArray(c) && c.length > 0) cpuCores = c.length;
+    } catch {
+      if (typeof navigator !== "undefined" && navigator.hardwareConcurrency) {
+        cpuCores = navigator.hardwareConcurrency;
+      }
     }
 
     const availableRam = Math.floor(totalRam * this.target_usage);
@@ -150,9 +183,10 @@ export class HardwareGovernor {
     );
 
     // Depth cap: solve 2^(depth+1) - 1 ≈ maxNodes → depth ≈ log2(maxNodes+1) - 1.
-    // Clamp to [1, 7] for safety. [SPEC]
+    // Clamp to [1, MAX_DEPTH] — MAX_DEPTH = 9 is the structural ceiling of the
+    // 10-scale canonical ladder, not an arbitrary safety value. [SPEC]
     const rawDepth = Math.floor(Math.log2(maxNodes + 1)) - 1;
-    const maxDepth = Math.max(1, Math.min(7, rawDepth));
+    const maxDepth = Math.max(1, Math.min(HardwareGovernor.MAX_DEPTH, rawDepth));
 
     return {
       max_ram_bytes: this._specs.total_ram_bytes,
@@ -292,6 +326,8 @@ export class HardwareGovernor {
   ): ScalingDecision | null {
     const budgetMs = HardwareGovernor.CADENCE_MS * this.target_usage;
     const clamp = (d: number) => Math.max(1, Math.min(HardwareGovernor.MAX_DEPTH, d));
+    // Operator force-depth floor: shrink may not cut below it; grow may still exceed it.
+    const floor = this._forceDepth !== null ? clamp(this._forceDepth) : 1;
 
     if (emaTickMs > budgetMs) {
       // SHRINK — and REMEMBER the overshoot: the depth we shrink from becomes
@@ -301,13 +337,13 @@ export class HardwareGovernor {
       this._measuredCeiling = clamp(this._lastMeasuredDepth - 1);
       return {
         action: "shrink",
-        target_depth: clamp(this._lastMeasuredDepth - 1),
+          target_depth: Math.max(clamp(this._lastMeasuredDepth - 1), floor),
         reason: `measured tick cost ${emaTickMs.toFixed(1)}ms exceeds cadence budget ${budgetMs.toFixed(0)}ms (ceiling now ${this._measuredCeiling})`,
         ram_bytes: 0,
         cpu_percent: emaTickMs / budgetMs,
       };
     }
-    const growTarget = Math.min(clamp(this._lastMeasuredDepth + 1), this._measuredCeiling);
+    const growTarget = Math.max(Math.min(clamp(this._lastMeasuredDepth + 1), this._measuredCeiling), floor);
     if (
       emaTickMs < 0.5 * budgetMs &&
       tickCount - this._lastGrowTick >= HardwareGovernor.GROW_EVERY &&
@@ -333,6 +369,8 @@ export class HardwareGovernor {
 
   /** Track the currently-built depth for the measured path (set by the engine). */
   private _lastMeasuredDepth = 5;
+  /** Operator force-depth floor (null = purely measured scaling). [SPEC] */
+  private _forceDepth: number | null = null;
   private _lastGrowTick = 0;
   /** Learned ceiling: shrink-overshoot memory (starts at the hard max). */
   private _measuredCeiling = HardwareGovernor.MAX_DEPTH;

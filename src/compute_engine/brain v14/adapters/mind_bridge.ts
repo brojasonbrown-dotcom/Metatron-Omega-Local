@@ -32,17 +32,34 @@ import type { SensorBus } from "./sensors/sensor_bus.ts";
 import type { MemoryStore } from "./../cognition/memory_store.ts";
 import type { CognitiveLoop } from "./../cognition/cognitive_loop.ts";
 import type { ConceptRegistry } from "./../cognition/concept_registry.ts";
+import type { InstrumentRouter, InstrumentId } from "./../cognition/instrument_router.ts";
+import type { OllamaSupervisor } from "./ollama_supervisor.ts";
+import type { DomainCurriculum, Corpus, CorpusResult } from "./domain_curriculum.ts";
 
 export interface MindBridgeDeps {
   readonly bus: SensorBus;
   readonly store: MemoryStore;
   readonly loop: CognitiveLoop;
   readonly registry: ConceptRegistry;
-  readonly llm: import("./llm_tool.ts").LlmTool;
+  readonly llm: import("./language_instrument.ts").LanguageInstrument;
   readonly glossary?: import("./../cognition/glossary.ts").ConceptGlossary;
   readonly lexicon?: import("./../cognition/lexicon.ts").Lexicon;
   /** Engine for live auto-scaling telemetry (depth / nodes / tick cost). */
   readonly engine?: import("./../fractal_node_engine.ts").FractalNodeEngine;
+  /** The switchable instrument — when present, the bridge serves instrument.* frames. */
+  readonly instrument?: InstrumentRouter;
+  /**
+   * The Ollama runtime supervisor — present when the bridge serves the Ollama
+   * off-switch (ollama.set). The bridge cold-stops / cold-starts the process to
+   * honour the router's switch; the router's flag is the source of truth.
+   */
+  readonly supervisor?: OllamaSupervisor;
+  /**
+   * P6-E — the domain curriculum adapter. When present, the bridge exposes
+   * teachCorpus/teachCurriculum so the host specialises the mind by feeding
+   * business + software corpora through the sanctioned bus door.
+   */
+  readonly curriculum?: DomainCurriculum;
 }
 
 /** The subset of journal kinds forwarded to the host (the rest is noise). */
@@ -51,6 +68,21 @@ const FORWARDED_KINDS = new Set(["boot", "thought", "voice", "tool.fail", "error
 export class MindBridge {
   /** M5 — minimum resonance between an emitted commentary and its question. */
   static readonly ANSWER_RESONANCE_FLOOR = 0.05;
+
+  /**
+   * Choose how deep an answer the human's question warrants. A short, simple
+   * lookup stays tight; a longer or explicitly analytical question gets the
+   * deep budget (the no-compromise path — the model may develop a real answer
+   * instead of a clipped paragraph). Heuristic over the question's shape only;
+   * the instruments translate it into a token budget.
+   */
+  private static _answerDepth(question: string): "standard" | "deep" {
+    const q = question.trim();
+    const analytical = /\b(explain|why|how does|how do|compare|contrast|describe|detail|elaborate|analy[sz]e|in depth|step[- ]by[- ]step|pros and cons|difference between|walk me through|teach me)\b/i;
+    if (analytical.test(q)) return "deep";
+    if (q.split(/\s+/).length >= 18) return "deep"; // a long, developed question
+    return "standard";
+  }
 
   private readonly _deps: MindBridgeDeps;
   private _onShutdown: (() => void) | null = null;
@@ -75,6 +107,29 @@ export class MindBridge {
   /** Register the graceful-sleep callback (invoked on {type:"shutdown"}). */
   onShutdown(cb: () => void): void {
     this._onShutdown = cb;
+  }
+
+  /**
+   * P6-E — teach one domain corpus. Returns the honest per-corpus verdict
+   * (frames fed + measured mastery + learned flag). Throws if no curriculum
+   * adapter is wired (the mind cannot be specialised without one). [SPEC]
+   */
+  teachCorpus(corpus: Corpus): CorpusResult {
+    const curriculum = this._deps.curriculum;
+    if (!curriculum) throw new Error("teachCorpus: no domain curriculum adapter wired");
+    return curriculum.teach(corpus);
+  }
+
+  /** P6-E — teach a whole curriculum (several corpora), one verdict each. [SPEC] */
+  teachCurriculum(corpora: readonly Corpus[]): CorpusResult[] {
+    const curriculum = this._deps.curriculum;
+    if (!curriculum) throw new Error("teachCurriculum: no domain curriculum adapter wired");
+    return curriculum.teachAll(corpora);
+  }
+
+  /** P6-E — curriculum counters (corpora run, frames accepted/rejected). [SPEC] */
+  curriculumStats(): ReturnType<DomainCurriculum["stats"]> | null {
+    return this._deps.curriculum ? this._deps.curriculum.stats() : null;
   }
 
   /** Wrap the composed store's journal stream and open the stdin command channel. */
@@ -129,7 +184,7 @@ export class MindBridge {
 
   /** Current mind state, on demand. */
   state(): void {
-    const { bus, loop, registry, lexicon, engine } = this._deps;
+    const { bus, loop, registry, lexicon, engine, instrument } = this._deps;
     this._emit({
       type: "state",
       ticks: loop.tickCount,
@@ -140,6 +195,14 @@ export class MindBridge {
       ...(lexicon ? { lexicon: { words: lexicon.wordCount, relations: lexicon.relationCount } } : {}),
       // Auto-scaling: the depth the governor settled on + the measured tick cost.
       ...(engine ? { scaling: engine.get_scaling_telemetry() } : {}),
+      // The active language instrument (which model is answering). Cached so the
+      // push cadence never blocks on a live probe; refresh on instrument.get/set.
+      ...(instrument ? { instrument: { active: instrument.active, ollamaModel: instrument.ollamaModel, kimiOn: instrument.kimiOn, answerSource: instrument.split.answerSource } } : {}),
+      // P6-D — the learning-mode dial (EFFICIENT/TRAINING/REPLAY) so the panel
+      // reflects the consolidation governor without polling.
+      learningMode: loop.learningModeStats,
+      // P6-E — curriculum counters (corpora run, frames accepted/rejected).
+      ...(this._deps.curriculum ? { curriculum: this._deps.curriculum.stats() } : {}),
     });
   }
 
@@ -164,7 +227,11 @@ export class MindBridge {
         meta: { origin: "ava.query", excerpt: text.slice(0, 120) },
         field: queryField,
       });
-      const matches = registry.nearest(queryField, 3);
+      // TEXT-SIDE recognition (sound): nearestText measures the query's WORDS in
+      // the phasor space where meaning separates (grounded word ≈ 1, unrelated
+      // ≈ 0), taking the max with the 28-field resonance so no field-only match
+      // is lost. The question is text, so recognise it as text.
+      const matches = registry.nearestText(text, 3);
       // grounded concepts: deduped labels, resonance-floor filtered
       const seen = new Set<string>();
       const concepts = matches
@@ -242,7 +309,7 @@ export class MindBridge {
         : "";
       const enrichedFacts = [facts, glossaryContext].filter((s) => s.trim().length > 0).join("\n\nLEARNED MEANINGS:\n");
 
-      const out = await llm.answer(text, { engineFacts: enrichedFacts, concepts });
+      const out = await llm.answer(text, { engineFacts: enrichedFacts, concepts }, MindBridge._answerDepth(text));
       if (out.ok) {
         // FACT-SPINE assembly (measured necessity, Gate M3): the deterministic
         // facts are ALWAYS the core of the answer; phi's sentence rides along
@@ -257,7 +324,7 @@ export class MindBridge {
         // failure, then honest spine-only silence (measured, never assumed).
         certificate = resonance(encodeText(commentary), queryField);
         if (certificate < MindBridge.ANSWER_RESONANCE_FLOOR) {
-          const retry = await llm.answer(text, { engineFacts: enrichedFacts, concepts });
+          const retry = await llm.answer(text, { engineFacts: enrichedFacts, concepts }, MindBridge._answerDepth(text));
           if (retry.ok) {
             const c2 = resonance(encodeText(retry.value), queryField);
             if (c2 > certificate) {
@@ -322,6 +389,193 @@ export class MindBridge {
       }
     } catch (err) {
       this._emit({ type: "answer", id, text: null, reason: String(err instanceof Error ? err.message : err) });
+    }
+  }
+
+  /**
+   * The switchable language instrument (M9). `instrument.get` replies with the
+   * full honest availability snapshot (which instruments are reachable, which
+   * Ollama models are installed); `instrument.set` switches the active
+   * instrument / Ollama model and replies with the result. Both replies are
+   * id-keyed so the host can await them like a query. Rejections are honest:
+   * an unreachable instrument or an uninstalled model returns ok:false with
+   * the reason, and the active instrument is left untouched.
+   */
+  private async _handleInstrument(id: string, o: Record<string, unknown>): Promise<void> {
+    const instrument = this._deps.instrument;
+    if (!instrument) {
+      this._emit({ type: "instrument", id, ok: false, reason: "no switchable instrument attached (single-instrument boot)" });
+      return;
+    }
+    try {
+      if (o["type"] === "instrument.get") {
+        const status = await instrument.availability();
+        this._emit({ type: "instrument", id, ok: true, ...status });
+        return;
+      }
+      // k3.setKey — { apiKey: string }. Runtime K3 key entry, no restart. The
+      // token is a secret: it is never re-emitted (the reply carries only the
+      // availability snapshot, whose k3 entry reports the key via `available`).
+      if (o["type"] === "k3.setKey") {
+        const apiKey = typeof o["apiKey"] === "string" ? o["apiKey"] : "";
+        const result = await instrument.setK3Key(apiKey);
+        if (!result.ok) {
+          this._emit({ type: "instrument", id, ok: false, reason: result.reason });
+          return;
+        }
+        this._emit({ type: "instrument", id, ok: true, ...result.status });
+        return;
+      }
+      // ollama.set — { enabled: boolean }. The Ollama off-switch: flip the
+      // router's flag, then COLD stop/start the process to honour it. Stop frees
+      // the model memory; start re-runs ensureRunning + warm (a real cold start
+      // — no keep-warm). The router flag is the source of truth.
+      if (o["type"] === "ollama.set") {
+        const enabled = o["enabled"] === true;
+        const result = await instrument.setOllamaEnabled(enabled);
+        if (!result.ok) {
+          this._emit({ type: "instrument", id, ok: false, reason: result.reason });
+          return;
+        }
+        await this._applyOllamaPower(enabled);
+        this._emit({ type: "instrument", id, ok: true, ...(await instrument.availability()) });
+        return;
+      }
+      // k3.set — { enabled: boolean }. THE KIMI TOGGLE (M10). ON → Kimi answers the
+      // human-facing answer() path over the brain's measured layers while Ollama
+      // keeps every thought method (name/define/relate/verify/lexical/voice);
+      // OFF → Ollama answers too. Pure routing — Ollama never stops either way.
+      // Honest: ON is rejected when no K3 key can serve.
+      if (o["type"] === "k3.set") {
+        const enabled = o["enabled"] === true;
+        const result = await instrument.setKimiOn(enabled);
+        if (!result.ok) {
+          this._emit({ type: "instrument", id, ok: false, reason: result.reason });
+          return;
+        }
+        this._emit({ type: "instrument", id, ok: true, ...(await instrument.availability()) });
+        return;
+      }
+      // instrument.set — { instrument: "ollama"|"k3", model?: string }
+      const target = o["instrument"];
+      if (target !== "ollama" && target !== "k3") {
+        this._emit({ type: "instrument", id, ok: false, reason: `instrument must be "ollama" or "k3", got ${JSON.stringify(target)}` });
+        return;
+      }
+      const model = typeof o["model"] === "string" && o["model"].length > 0 ? o["model"] : undefined;
+      const result = await instrument.setInstrument(target as InstrumentId, model);
+      if (!result.ok) {
+        this._emit({ type: "instrument", id, ok: false, reason: result.reason });
+        return;
+      }
+      this._emit({ type: "instrument", id, ok: true, ...result.status });
+    } catch (err) {
+      this._emit({ type: "instrument", id, ok: false, reason: String(err instanceof Error ? err.message : err) });
+    }
+  }
+
+  /**
+   * Honour the Ollama off-switch at the PROCESS level. OFF → cold stop: kill the
+   * supervised `ollama serve` so the model memory is actually released (no
+   * keep-warm). ON → cold start: ensureRunning() then warm the language model so
+   * the next real call is not ice-cold. Best-effort and honest — a spawn/probe
+   * failure leaves the router reporting unavailable, which is the truthful state.
+   */
+  private async _applyOllamaPower(enabled: boolean): Promise<void> {
+    const supervisor = this._deps.supervisor;
+    if (!supervisor) return; // single-instrument boot: nothing to power-cycle
+    try {
+      if (!enabled) {
+        supervisor.stop();
+        return;
+      }
+      const status = await supervisor.ensureRunning();
+      if (status.running) {
+        await supervisor.warmModels();
+      }
+    } catch {
+      // A failed cold start is reported by the next availability() probe — the
+      // router never claims a server it cannot reach.
+    }
+  }
+
+  /**
+   * The operator's force-depth override (Phase 4). Validates the request,
+   * applies it to the engine, and replies with the live scaling snapshot so
+   * the host can re-render. {depth: n} pins the shrink floor to n; {depth:
+   * null} releases the override back to the governor's measured auto-scale.
+   * Honest: an engine that isn't attached, or a depth out of range, replies
+   * ok:false with the reason and leaves the current depth untouched.
+   */
+  private async _handleScaling(id: string, o: Record<string, unknown>): Promise<void> {
+    const engine = this._deps.engine;
+    if (!engine) {
+      this._emit({ type: "scaling.set", id, ok: false, reason: "no engine attached" });
+      return;
+    }
+    try {
+      const raw = o["depth"];
+      // null/undefined releases the override (auto); a finite number pins it.
+      const depth = raw === null || raw === undefined ? null : Number(raw);
+      if (depth !== null && (!Number.isInteger(depth) || depth < 1 || depth > 9)) {
+        this._emit({ type: "scaling.set", id, ok: false, reason: `depth must be an integer in [1,9] or null, got ${JSON.stringify(raw)}` });
+        return;
+      }
+      await engine.set_force_depth(depth);
+      const scaling = engine.get_scaling_telemetry();
+      this._emit({ type: "scaling.set", id, ok: true, depth, scaling });
+      // Push a full state frame so every open panel re-renders immediately.
+      this.state();
+    } catch (err) {
+      this._emit({ type: "scaling.set", id, ok: false, reason: String(err instanceof Error ? err.message : err) });
+    }
+  }
+
+  /**
+   * P6-D — the operator's learning-mode override. {mode: "EFFICIENT"|"TRAINING"|
+   * "REPLAY"} flips the consolidation governor; the loop journals mode.change.
+   * Honest: an unknown mode replies ok:false and leaves the current mode set.
+   */
+  private _handleMode(id: string, o: Record<string, unknown>): void {
+    const loop = this._deps.loop;
+    const raw = o["mode"];
+    if (raw !== "EFFICIENT" && raw !== "TRAINING" && raw !== "REPLAY") {
+      this._emit({ type: "mode.set", id, ok: false, reason: `mode must be EFFICIENT|TRAINING|REPLAY, got ${JSON.stringify(raw)}` });
+      return;
+    }
+    loop.setLearningMode(raw);
+    this._emit({ type: "mode.set", id, ok: true, ...loop.learningModeStats });
+    // Push a full state frame so every open panel re-renders immediately.
+    this.state();
+  }
+
+  /**
+   * P6-E — teach one domain corpus through the curriculum adapter. {corpus} is
+   * validated structurally (name + probes[] + items[]); the adapter does the
+   * codec + bus + mastery measurement. Replies with the honest verdict. [SPEC]
+   */
+  private _handleTeach(id: string, o: Record<string, unknown>): void {
+    const curriculum = this._deps.curriculum;
+    if (!curriculum) {
+      this._emit({ type: "teach.corpus", id, ok: false, reason: "no domain curriculum adapter wired" });
+      return;
+    }
+    const corpus = o["corpus"];
+    if (typeof corpus !== "object" || corpus === null) {
+      this._emit({ type: "teach.corpus", id, ok: false, reason: "teach.corpus requires a corpus object" });
+      return;
+    }
+    const c = corpus as Partial<Corpus>;
+    if (typeof c.name !== "string" || !Array.isArray(c.probes) || !Array.isArray(c.items)) {
+      this._emit({ type: "teach.corpus", id, ok: false, reason: "corpus needs name:string, probes:[], items:[]" });
+      return;
+    }
+    try {
+      const result = curriculum.teach(c as Corpus);
+      this._emit({ type: "teach.corpus", id, ok: true, result });
+      this.state(); // curriculum counters changed — re-render panels
+    } catch (err) {
+      this._emit({ type: "teach.corpus", id, ok: false, reason: String(err instanceof Error ? err.message : err) });
     }
   }
 
@@ -393,6 +647,38 @@ export class MindBridge {
       case "state":
         this.state();
         return;
+      case "instrument.get":
+      case "instrument.set":
+      case "ollama.set":
+      case "k3.set":
+      case "k3.setKey": {
+        // M9/M10 — the switchable instrument + the Ollama off-switch + the Kimi
+        // toggle + the K3 runtime key. id-keyed replies, awaited by the host.
+        const iid = typeof o["id"] === "string" ? o["id"] : "inst";
+        void this._handleInstrument(iid, o);
+        return;
+      }
+      case "scaling.set": {
+        // The operator's force-depth override (Phase 4). {depth: n} pins the
+        // governor's shrink floor; {depth: null} releases it to auto. id-keyed.
+        const sid = typeof o["id"] === "string" ? o["id"] : "scale";
+        void this._handleScaling(sid, o);
+        return;
+      }
+      case "mode.set": {
+        // P6-D — the learning-mode dial. {mode} flips the consolidation
+        // governor (EFFICIENT/TRAINING/REPLAY); id-keyed, journaled mode.change.
+        const mid = typeof o["id"] === "string" ? o["id"] : "mode";
+        this._handleMode(mid, o);
+        return;
+      }
+      case "teach.corpus": {
+        // P6-E — feed one domain corpus (business doc / software UI / operator
+        // instruction) through the curriculum; id-keyed honest verdict.
+        const tid = typeof o["id"] === "string" ? o["id"] : "teach";
+        this._handleTeach(tid, o);
+        return;
+      }
       case "query": {
         // M3 — the grounded-answer path: phi phrases REAL context (engine
         // facts + learned concepts at the question's own resonance), never
@@ -402,7 +688,7 @@ export class MindBridge {
           return;
         }
         const id = typeof o["id"] === "string" ? o["id"] : "q";
-        void this._answerQuery(id, o["text"].slice(0, 500), typeof o["facts"] === "string" ? o["facts"].slice(0, 1500) : "");
+        void this._answerQuery(id, o["text"].slice(0, 1000), typeof o["facts"] === "string" ? o["facts"].slice(0, 1500) : "");
         return;
       }
       case "shutdown":

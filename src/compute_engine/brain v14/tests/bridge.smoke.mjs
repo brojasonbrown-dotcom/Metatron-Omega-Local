@@ -8,7 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const BRAIN_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_PHASES = ["start", "ollama", "memory", "engine", "sensors", "awake"];
+const EXPECTED_PHASES = ["start", "ollama", "memory", "instrument", "engine", "sensors", "awake"];
 
 const child = spawn(process.execPath, ["run_mind_bridge.ts"], {
   cwd: BRAIN_DIR,

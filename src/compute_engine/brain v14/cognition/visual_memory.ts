@@ -151,7 +151,88 @@ export interface VisualRecord {
   readonly dHash: bigint;
   readonly caption: string | null;
   readonly timestamp: number;
+  /**
+   * High-resolution percept descriptor (multi-scale block-DCT), present on all
+   * records written after the resolution upgrade. Absent on legacy records —
+   * treated as "no fine evidence" and never fabricated. [SPEC]
+   */
+  readonly descriptor?: Float64Array;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1b. High-resolution percept descriptor (multi-scale block-DCT)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// WHY THIS EXISTS [MEASURED] — pHash is an 8×8 DCT and dHash an 9×8 gradient:
+// together 128 bits. Two different people's faces collide constantly at that
+// resolution, because the discriminating structure (eye spacing, fine edge
+// geometry) is below the 8×8 floor. The hashes stay as the fast BK-tree INDEX;
+// this descriptor is the fine-grained REPRESENTATION used to actually separate
+// near-identical percepts. [SPEC]
+//
+// [MATH] — The grid is block-reduced to a DESC_SIZE×DESC_SIZE thumbnail, a 2-D
+// DCT is applied, and the full frequency block (mean-normalized, DC dropped) is
+// kept as real amplitudes — NOT thresholded to a single bit. Keeping the real
+// coefficients (instead of 1-bit signs) is what preserves the magnitude of the
+// fine detail that a hash throws away. Similarity is a cosine over the raw
+// coefficient vector, so it degrades smoothly as structure diverges. [SPEC]
+
+/** Hi-res descriptor thumbnail side: 32×32 = 1024 real coefficients. [SPEC] */
+export const DESC_SIZE = 32;
+
+/**
+ * Compute the high-resolution percept descriptor for a luminance grid: a
+ * DESC_SIZE×DESC_SIZE 2-D DCT, DC removed, coefficients L2-normalized (so the
+ * cosine read is scale-free). Deterministic; no RNG. [MATH]
+ */
+export function perceptDescriptor(grid: Float64Array, w: number, h: number): Float64Array {
+  const T = DESC_SIZE;
+  const thumb = blockReduce(grid, w, h, T, T);
+  // Mean-centre so coefficient 0 (DC) carries brightness, not structure.
+  let mean = 0;
+  for (let i = 0; i < T * T; i++) mean += thumb[i]!;
+  mean /= T * T;
+  for (let i = 0; i < T * T; i++) thumb[i]! -= mean;
+
+  const dct = dct2d(thumb, T);
+  // Drop DC (index 0): structure over brightness, matching the field codec.
+  dct[0] = 0;
+  // L2-normalize so the cosine read is a pure shape comparison. [MATH]
+  let ns = 0;
+  for (let i = 0; i < dct.length; i++) ns += dct[i]! * dct[i]!;
+  if (ns <= 0 || !Number.isFinite(ns)) {
+    // A perfectly flat grid has no structure — the honest descriptor is all-zero.
+    return new Float64Array(dct.length);
+  }
+  const inv = 1 / Math.sqrt(ns);
+  const out = new Float64Array(dct.length);
+  for (let i = 0; i < dct.length; i++) out[i] = dct[i]! * inv;
+  return out;
+}
+
+/**
+ * Cosine similarity in [-1,1] between two percept descriptors. Returns 0 if
+ * either is absent/empty (a legacy record carries no fine evidence — never
+ * fabricate a match against it). [MATH]
+ */
+export function descriptorSimilarity(a: Float64Array | undefined, b: Float64Array | undefined): number {
+  if (a === undefined || b === undefined) return 0;
+  const n = Math.min(a.length, b.length);
+  if (n === 0) return 0;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i = 0; i < n; i++) {
+    dot += a[i]! * b[i]!;
+    na += a[i]! * a[i]!;
+    nb += b[i]! * b[i]!;
+  }
+  const denom = Math.sqrt(na * nb);
+  if (denom === 0) return 0;
+  const s = dot / denom;
+  return s < -1 ? -1 : s > 1 ? 1 : s;
+}
+
 
 /**
  * BK-tree over 64-bit hashes (indexed by pHash; dHash used as the AND-gate).
@@ -258,6 +339,8 @@ interface SerializedVisual {
     readonly dHash: string;
     readonly caption: string | null;
     readonly timestamp: number;
+    /** Hi-res descriptor as base64 Float64; absent on legacy records. [SPEC] */
+    readonly descriptor?: string;
   }>;
 }
 
@@ -287,7 +370,13 @@ export class VisualMemory {
       return null;
     }
     this._lastSeenPH = pH;
-    const rec: VisualRecord = { pHash: pH, dHash: dH, caption, timestamp: Date.now() };
+    const rec: VisualRecord = {
+      pHash: pH,
+      dHash: dH,
+      caption,
+      timestamp: Date.now(),
+      descriptor: perceptDescriptor(grid, w, h),
+    };
     this._index.add(rec);
     this._evictIfNeeded();
     this._save();
@@ -299,6 +388,47 @@ export class VisualMemory {
     const pH = pHash(grid, w, h);
     const dH = dHash(grid, w, h);
     return this._index.findSimilar(pH, dH);
+  }
+
+  /**
+   * DISCRIMINATE at high resolution [P3] — separate near-identical percepts the
+   * 128-bit hashes physically cannot. The hashes remain the fast BK-tree index;
+   * this ranks candidates by the fine DCT descriptor. Two uses:
+   *
+   *   - IDENTIFY: whose/which remembered percept is this, among very similar ones?
+   *   - VERIFY: is this the SAME instance as a remembered one, not merely the kind?
+   *
+   * Returns the best-matching record with BOTH the coarse (hash) and fine
+   * (descriptor) similarities so the caller can see the resolution gain. Records
+   * without a descriptor (legacy) contribute coarse-only evidence and are never
+   * given fabricated fine scores. [SPEC]
+   *
+   * @param candidateRadius  pHash radius for candidate generation (wide — the
+   *                         descriptor does the precise ranking). [SPEC]
+   */
+  discriminate(
+    grid: Float64Array,
+    w: number,
+    h: number,
+    candidateRadius: number = 14
+  ): { rec: VisualRecord; coarse: number; fine: number } | null {
+    const pH = pHash(grid, w, h);
+    const dH = dHash(grid, w, h);
+    const queryDesc = perceptDescriptor(grid, w, h);
+    // Rank every record within the hash neighbourhood by fine descriptor. We use
+    // the BK-tree for a coarse candidate set is an optimisation; with a bounded
+    // 377-record store a full descriptor sweep is cheap and exact, so we rank all.
+    let best: { rec: VisualRecord; coarse: number; fine: number } | null = null;
+    for (const rec of this._index.records()) {
+      const coarse = hashSimilarity(pH, rec.pHash) * 0.5 + hashSimilarity(dH, rec.dHash) * 0.5;
+      // Only consider records that are even coarse candidates.
+      if (hamming(pH, rec.pHash) > candidateRadius) continue;
+      const fine = descriptorSimilarity(queryDesc, rec.descriptor);
+      if (best === null || fine > best.fine || (fine === best.fine && coarse > best.coarse)) {
+        best = { rec, coarse, fine };
+      }
+    }
+    return best;
   }
 
   private _evictIfNeeded(): void {
@@ -320,6 +450,15 @@ export class VisualMemory {
           dHash: r.dHash.toString(),
           caption: r.caption,
           timestamp: r.timestamp,
+          ...(r.descriptor !== undefined
+            ? {
+                descriptor: Buffer.from(
+                  r.descriptor.buffer,
+                  r.descriptor.byteOffset,
+                  r.descriptor.byteLength
+                ).toString("base64"),
+              }
+            : {}),
         })),
       };
       const tmp = this._file + ".tmp";
@@ -341,11 +480,19 @@ export class VisualMemory {
       let restored = 0;
       for (const r of raw.records) {
         if (typeof r.pHash === "string" && typeof r.dHash === "string" && Number.isFinite(r.timestamp)) {
+          let descriptor: Float64Array | undefined;
+          if (typeof r.descriptor === "string") {
+            const buf = Buffer.from(r.descriptor, "base64");
+            const n = Math.floor(buf.length / 8);
+            descriptor = new Float64Array(n);
+            for (let i = 0; i < n; i++) descriptor[i] = buf.readDoubleLE(i * 8);
+          }
           this._index.add({
             pHash: BigInt(r.pHash),
             dHash: BigInt(r.dHash),
             caption: typeof r.caption === "string" ? r.caption : null,
             timestamp: r.timestamp,
+            ...(descriptor !== undefined ? { descriptor } : {}),
           });
           restored++;
         }

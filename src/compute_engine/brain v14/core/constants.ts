@@ -86,6 +86,28 @@ export const PHI_NEG26: Float64 = 3.6840146919005904e-6 as Float64;
 export const BIND_WEIGHT: Float64 = PHI_NEG2;
 
 /**
+ * Hypervector complex dimension for the phasor mind geometry: 2^13.
+ * [MATH] — The discrimination floor of the 28-element field (D_complex = 14) is
+ * the measured reason a λ-threshold cannot separate "dog" from "trampoline"
+ * (tests/gate-discrimination.mjs). In a D-dimensional phasor space the
+ * similarity of two independent random hypervectors concentrates at ~ 1/√D
+ * with σ = 1/√D, so at D = 8192 the unrelated-word floor falls to ≈ 0.011 —
+ * three orders below λ = 1/φ². 2^13 keeps the dimension a power of two for the
+ * O(D log D) FFT that implements binding as circular convolution.
+ * [SPEC] — This lifts the SAME resonance kernel to high D; it does not change
+ * the 28-element sensory field, which stays untouched.
+ */
+export const HYPERVECTOR_DIM: number = 8192; // 2^13
+
+/**
+ * Theoretical noise floor (cosine similarity) for two independent random
+ * phasor hypervectors in HYPERVECTOR_DIM complex dimensions: 1/√D.
+ * [MATH] — concentration of measure; σ is the same order. Used only as the
+ * honest expected-unrelated reference in the phasor tests — never a threshold.
+ */
+export const PHASOR_NOISE_FLOOR: Float64 = (1.0 / Math.sqrt(HYPERVECTOR_DIM)) as Float64;
+
+/**
  * Hopfield merge threshold: 1 − 1/φ³.
  * [MATH] — Exact form: 3 − √5 (verified: Wolfram Certificate 2.5).
  * Near-duplicate attractors with resonance ≥ this threshold are merged.

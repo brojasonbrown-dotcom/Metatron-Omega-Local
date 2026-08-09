@@ -104,6 +104,34 @@ function complexExp(theta: Float64): ComplexAmplitude {
 }
 
 /**
+ * Master-Equation Term-1 (summation) field is a pure function of scale: every
+ * node at a depth shares one scale, so all nodes in that level produce the
+ * identical summation field. Cache per scale and reuse — BIT-IDENTICAL to
+ * recomputing per node (same literal values). Never invalidated: the value
+ * depends only on the immutable scale index. [SPEC]
+ */
+const _summationFieldCache = new Map<number, Float64Array>();
+function getSummationField(scale: number, fieldSize: number): Float64Array {
+  let f = _summationFieldCache.get(scale);
+  if (f === undefined) {
+    f = new Float64Array(fieldSize);
+    const N = fieldSize / 2 - 1;
+    for (let k = 0; k <= N; k++) {
+      const amplitudeWeight = Math.pow(PHI_INV, k) as Float64;
+      const phaseAngle = computePhaseAngle(k, scale);
+      const [re, im] = complexExp(phaseAngle);
+      const idx = 2 * k;
+      if (idx < fieldSize) {
+        f[idx] = (amplitudeWeight * re) as Float64;
+        f[idx + 1] = (amplitudeWeight * im) as Float64;
+      }
+    }
+    _summationFieldCache.set(scale, f);
+  }
+  return f;
+}
+
+/**
  * Complex multiplication: (a + bi) · (c + di) = (ac - bd) + (ad + bc)i.
  */
 function complexMultiply(a: ComplexAmplitude, b: ComplexAmplitude): ComplexAmplitude {
@@ -506,33 +534,10 @@ export class FractalNode {
     const N = opts.max_k ?? MASTER_EQUATION_N;
     const fieldSize = 2 * (N + 1);
 
-    // ── Term 1: Summation Σ(k=0 to N) φ^(-k) · e^(i·θ_k) ───────────────────
-    const summationField = new Float64Array(fieldSize);
-    const terms: MasterEquationTerm[] = [];
-
-    for (let k = 0; k <= N; k++) {
-      const amplitudeWeight = Math.pow(PHI_INV, k) as Float64;
-      const phaseAngle = computePhaseAngle(k, this.scale);
-      const [re, im] = complexExp(phaseAngle);
-      const complexValue: ComplexAmplitude = [
-        (amplitudeWeight * re) as Float64,
-        (amplitudeWeight * im) as Float64,
-      ];
-
-      terms.push({
-        k,
-        amplitude_weight: amplitudeWeight,
-        phase_angle: phaseAngle,
-        complex_value: complexValue,
-      });
-
-      // Accumulate into summation field (interleaved complex)
-      const idx = 2 * k;
-      if (idx < fieldSize) {
-        summationField[idx] = complexValue[0];
-        summationField[idx + 1] = complexValue[1];
-      }
-    }
+    // ── Term 1: Summation Σ(k=0 to N) φ^(-k) · e^(i·θ_k) — per-scale cached ──
+    // Pure function of scale; identical for every node at a depth. The old
+    // `terms` array was built here but never read in compute() — dropped.
+    const summationField = getSummationField(this.scale as number, fieldSize);
 
     // ── Term 2: Recursive memory λ · Ψ_previous ────────────────────────────
     let memoryField: GeometricField;

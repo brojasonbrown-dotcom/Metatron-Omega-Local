@@ -189,15 +189,17 @@ export class WorkerPool {
       return;
     }
 
-    // Resolve worker script path
+    // Resolve worker script path. Prefer the compiled .js when it exists
+    // (production bundle); otherwise use the .ts source — under Node ≥ 25
+    // native type-stripping the worker thread runs TypeScript directly, and
+    // no compiled worker_script.js exists in this tree.
     try {
       const require = createRequire(import.meta.url);
       this._workerScriptPath = require.resolve("./worker_script.js");
     } catch {
-      // Fallback: try relative path from current module
       try {
         const __filename = fileURLToPath(import.meta.url);
-        this._workerScriptPath = join(dirname(__filename), "worker_script.js");
+        this._workerScriptPath = join(dirname(__filename), "worker_script.ts");
       } catch {
         // Worker threads not available — will fall back to sync execution
         return;

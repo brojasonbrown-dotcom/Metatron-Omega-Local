@@ -34,28 +34,43 @@ export const DEFAULT_PERIOD_MS = 2584;
 const FORCE_EVERY = 89;
 
 /**
- * PowerShell pipeline: full-virtual-screen capture → 89×55 bicubic downsample
- * → per-pixel Rec.709 luminance → single CSV line on stdout.
+ * High-resolution capture grid (detail channel): F_13 × F_12 = 233 × 144. [SPEC]
+ * ~6.9× the pixels of the 89×55 fast grid — enough spatial support for the
+ * multi-scale descriptor to resolve fine structure the fast grid blurs away.
  */
-const CAPTURE_SCRIPT =
-  "$ErrorActionPreference='Stop'; " +
-  "Add-Type -AssemblyName System.Drawing; " +
-  "Add-Type -AssemblyName System.Windows.Forms; " +
-  "$b=[System.Windows.Forms.SystemInformation]::VirtualScreen; " +
-  "$bmp=New-Object System.Drawing.Bitmap $b.Width,$b.Height; " +
-  "$g=[System.Drawing.Graphics]::FromImage($bmp); " +
-  "$g.CopyFromScreen($b.Left,$b.Top,0,0,$bmp.Size); " +
-  `$small=New-Object System.Drawing.Bitmap ${GRID_W},${GRID_H}; ` +
-  "$g2=[System.Drawing.Graphics]::FromImage($small); " +
-  "$g2.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic; " +
-  `$g2.DrawImage($bmp,0,0,${GRID_W},${GRID_H}); ` +
-  "$sb=New-Object System.Text.StringBuilder; " +
-  `for($y=0;$y -lt ${GRID_H};$y++){for($x=0;$x -lt ${GRID_W};$x++){` +
-  "$p=$small.GetPixel($x,$y); " +
-  "$l=0.2126*$p.R+0.7152*$p.G+0.0722*$p.B; " +
-  "[void]$sb.Append([math]::Round($l,2)); [void]$sb.Append(',')}}; " +
-  "$g.Dispose(); $g2.Dispose(); $bmp.Dispose(); $small.Dispose(); " +
-  "Write-Output $sb.ToString().TrimEnd(',')";
+export const HIRES_GRID_W = 233;
+export const HIRES_GRID_H = 144;
+
+/**
+ * PowerShell pipeline: full-virtual-screen capture → bicubic downsample to the
+ * requested grid → per-pixel Rec.709 luminance → single CSV line on stdout.
+ * Parameterised on (w, h) so the same capture serves the fast and hi-res grids.
+ */
+function captureScript(gridW: number, gridH: number): string {
+  return (
+    "$ErrorActionPreference='Stop'; " +
+    "Add-Type -AssemblyName System.Drawing; " +
+    "Add-Type -AssemblyName System.Windows.Forms; " +
+    "$b=[System.Windows.Forms.SystemInformation]::VirtualScreen; " +
+    "$bmp=New-Object System.Drawing.Bitmap $b.Width,$b.Height; " +
+    "$g=[System.Drawing.Graphics]::FromImage($bmp); " +
+    "$g.CopyFromScreen($b.Left,$b.Top,0,0,$bmp.Size); " +
+    `$small=New-Object System.Drawing.Bitmap ${gridW},${gridH}; ` +
+    "$g2=[System.Drawing.Graphics]::FromImage($small); " +
+    "$g2.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic; " +
+    `$g2.DrawImage($bmp,0,0,${gridW},${gridH}); ` +
+    "$sb=New-Object System.Text.StringBuilder; " +
+    `for($y=0;$y -lt ${gridH};$y++){for($x=0;$x -lt ${gridW};$x++){` +
+    "$p=$small.GetPixel($x,$y); " +
+    "$l=0.2126*$p.R+0.7152*$p.G+0.0722*$p.B; " +
+    "[void]$sb.Append([math]::Round($l,2)); [void]$sb.Append(',')}}; " +
+    "$g.Dispose(); $g2.Dispose(); $bmp.Dispose(); $small.Dispose(); " +
+    "Write-Output $sb.ToString().TrimEnd(',')"
+  );
+}
+
+/** The fast (default) capture script — 89×55, identical to the legacy path. */
+const CAPTURE_SCRIPT = captureScript(GRID_W, GRID_H);
 
 export interface ScreenSensorStats {
   readonly captures: number;
@@ -67,6 +82,7 @@ export interface ScreenSensorStats {
 export class ScreenVisionSensor {
   private readonly _bus: SensorBus;
   private readonly _periodMs: number;
+  private readonly _hiRes: boolean;
   private _timer: NodeJS.Timeout | null = null;
   private _busy = false;
   private _prevField: Float64Array | null = null;
@@ -75,15 +91,27 @@ export class ScreenVisionSensor {
   private _failures = 0;
   private _lastError: string | null = null;
   private _onGrid: ((grid: Float64Array, w: number, h: number) => void) | null = null;
+  private _onHiRes: ((grid: Float64Array, w: number, h: number) => void) | null = null;
 
-  constructor(bus: SensorBus, periodMs: number = DEFAULT_PERIOD_MS) {
+  /**
+   * @param hiRes  When true, each capture also grabs the 233×144 detail grid and
+   *               hands it to `onHiRes` (multi-scale perception). Default false →
+   *               byte-identical to the legacy fast path. [P3, config-gated]
+   */
+  constructor(bus: SensorBus, periodMs: number = DEFAULT_PERIOD_MS, hiRes: boolean = false) {
     this._bus = bus;
     this._periodMs = periodMs;
+    this._hiRes = hiRes;
   }
 
   /** P2 — register an observer for the raw luminance grid (visual memory). */
   onGrid(cb: (grid: Float64Array, w: number, h: number) => void): void {
     this._onGrid = cb;
+  }
+
+  /** P3 — register an observer for the high-resolution detail grid. */
+  onHiRes(cb: (grid: Float64Array, w: number, h: number) => void): void {
+    this._onHiRes = cb;
   }
 
   start(): void {
@@ -125,6 +153,21 @@ export class ScreenVisionSensor {
           this._onGrid(grid, GRID_W, GRID_H);
         } catch {
           /* visual-memory failure is not a sensor failure */
+        }
+      }
+
+      // P3 — capture the high-resolution detail grid (config-gated, default off).
+      // A second PowerShell spawn at 233×144; only when enabled AND observed.
+      if (this._hiRes && this._onHiRes) {
+        try {
+          const hiCsv = await runPowerShell(
+            captureScript(HIRES_GRID_W, HIRES_GRID_H),
+            this._periodMs * 2
+          );
+          const hiGrid = parseLuminanceCsv(hiCsv, HIRES_GRID_W * HIRES_GRID_H);
+          this._onHiRes(hiGrid, HIRES_GRID_W, HIRES_GRID_H);
+        } catch {
+          /* hi-res failure never blocks the fast path */
         }
       }
 

@@ -25,7 +25,7 @@
 
 import { encodeText } from "./../adapters/language_codec.ts";
 import { createHash } from "node:crypto";
-import type { LlmTool } from "./../adapters/llm_tool.ts";
+import type { LanguageInstrument } from "./../adapters/language_instrument.ts";
 import type { SensorBus } from "./../adapters/sensors/sensor_bus.ts";
 import type { VoiceOut } from "./../adapters/voice_out.ts";
 import { ExistenceDetector, type ExistenceScore } from "./../existence_detector.ts";
@@ -37,7 +37,21 @@ import type { MemoryStore } from "./memory_store.ts";
 import { ThoughtTracker, type Thought } from "./thought.ts";
 import type { ConceptGlossary } from "./glossary.ts";
 import type { Lexicon } from "./lexicon.ts";
+import { LinguisticGate, gateEchoText } from "./linguistic_gate.ts";
+import type { RecordPerceptron } from "./record_perceptron.ts";
+import type { LexiconTriples } from "./lexicon_triples.ts";
 import { verifyPrediction } from "./prediction_ledger.ts";
+
+/**
+ * The language instrument the engine queries. Any model satisfying the
+ * structural LanguageInstrument contract — the local phi/mathstral pair
+ * (LlmTool), the Kimi K3 frontier model (KimiK3Tool), or the switchable
+ * InstrumentRouter — both satisfy the
+ * same structural contract: they PROPOSE language; the LinguisticGate MEASURES
+ * every proposal before it may touch memory. The mind never learns an
+ * instrument's word on the instrument's say-so. [PHIL]
+ */
+export type { LanguageInstrument };
 
 /** Tick period: 1000/φ⁴ ≈ 146 ms. [SPEC] */
 export const TICK_MS = 146;
@@ -59,12 +73,57 @@ export interface CognitiveLoopDeps {
   readonly bus: SensorBus;
   readonly registry: ConceptRegistry;
   readonly store: MemoryStore;
-  readonly llm: LlmTool;
+  readonly llm: LanguageInstrument;
   readonly voice: VoiceOut;
   /** M4 — dictionary-quality memory. Optional: run_mind.ts needs no change. */
   readonly glossary?: ConceptGlossary;
   /** M7 — the grounded language front. Optional: run_mind.ts needs no change. */
   readonly lexicon?: Lexicon;
+  /**
+   * M8 — the linguistic gate. When present, every instrument proposal is
+   * MEASURED against the concept's geometry before it may bind/learn; rejected
+   * words are journaled and dropped. Optional so run_mind.ts needs no change,
+   * but the loop is strictly more truthful with it attached. [SPEC]
+   */
+  readonly gate?: LinguisticGate;
+  /**
+   * M9 — the record-perceptron. When present, every admitted binding leaves a
+   * residual RECORD (with provenance) that trains a shared cross-modal
+   * associator, and after a successful bind the concept's labels are re-weighted
+   * by the percept's own vote — so a label the percept does not recognise is
+   * CORRECTED (removed), not merely refused next time. Optional so run_mind.ts
+   * needs no change. [SPEC]
+   */
+  readonly recordPerceptron?: RecordPerceptron;
+  /**
+   * M10 — the lexicon triple store. When present, the mind can assert and query
+   * RELATIONAL facts (subject role object) as FHRR bind/unbind composites — the
+   * knowledge-graph layer above grounded labels. Optional so run_mind.ts needs
+   * no change. [SPEC]
+   */
+  readonly lexiconTriples?: LexiconTriples;
+  /**
+   * Phase 5 — the Field-State Genome. When present, every tick's full field
+   * lattice ([nodeCount][28]) is recorded into the checksummed, φ-tiered ring,
+   * and recall can feed a remembered field back into the engine through its
+   * deterministic sensory door. Optional so run_mind.ts needs no change. [SPEC]
+   */
+  readonly genome?: import("./field_genome.ts").FieldGenome;
+  /**
+   * P6-B — the resonance manifold. When present, every stable thought that
+   * resolves to a concept derives its measured, typed relations (is-a /
+   * shares-feature / analogous-to) into the ontology layer. Optional so
+   * run_mind.ts needs no change. [SPEC]
+   */
+  readonly manifold?: import("./resonance_manifold.ts").ResonanceManifold;
+  /**
+   * P6-D — the learning-mode governor. When present, it gates whether the P6-A
+   * reinjection loop runs (TRAINING/REPLAY) and whether idle-time genome replay
+   * consolidates memory (REPLAY only), deferring to the HardwareGovernor's
+   * measured depth ceiling. Absent => EFFICIENT behaviour (reinjection off).
+   * Optional so run_mind.ts needs no change. [SPEC]
+   */
+  readonly modeGovernor?: import("./learning_mode.ts").LearningModeGovernor;
 }
 
 export class CognitiveLoop {
@@ -88,6 +147,25 @@ export class CognitiveLoop {
   private _phiBusy = false;
   private _mathstralBusy = false;
   private readonly _thoughtQueue: Array<{ thought: Thought; obs: ObserveResult; action: MindAction; drives: DriveState }> = [];
+
+  // -- P6-A recall->reinjection channel state (off-loop, stability-gated) --
+  /** One reinjection in flight at a time; the live tick always wins. [SPEC] */
+  private _reinjectBusy = false;
+  /** Post-injection stability watchdog: backoff while unstable. */
+  private _reinjectHoldUntil = 0;
+  /** Honest telemetry: attempted vs stability-aborted reinjections. [SPEC] */
+  private _reinjectAttempts = 0;
+  private _reinjectAborts = 0;
+  /** The last field we reinjected — guards against immediate self-echo. */
+  private _lastReinjectedField: Float64Array | null = null;
+  private _lastReinjectedTick = -1;
+
+  // -- P6-D learning-mode / replay channel state --
+  /** Tick of the last idle replay sweep (anti-thrash interval). [SPEC] */
+  private _lastReplayTick = -1000;
+  /** Honest replay telemetry: sweeps run vs co-governor deferrals. [SPEC] */
+  private _replaySweeps = 0;
+  private _replayDefers = 0;
 
   constructor(
     deps: CognitiveLoopDeps,
@@ -140,14 +218,14 @@ export class CognitiveLoop {
   private _scheduleNext(): void {
     if (!this._running) return;
     this._timer = setTimeout(() => {
-      this._tick();
+      void this._tick();
       this._scheduleNext();
     }, TICK_MS);
     this._timer.unref();
   }
 
   /** One full cognitive tick. NEVER throws — errors are journaled. [SPEC] */
-  private _tick(): void {
+  private async _tick(): Promise<void> {
     try {
       this._tickCount++;
       const { engine, bus, store } = this._deps;
@@ -155,7 +233,7 @@ export class CognitiveLoop {
       // 1. SENSE — validated frames through the sanctioned door.
       const frames = bus.drain(MAX_FRAMES_PER_TICK);
       for (const frame of frames) {
-        engine.process(frame.field);
+        await engine.process(frame.field);
         this._tracker.noteSource(frame.source);
         this._boundaryField = frame.field;
         store.journal({
@@ -165,7 +243,17 @@ export class CognitiveLoop {
         });
       }
       if (frames.length === 0) {
-        engine.tick(); // the mind never stops ticking
+        await engine.tick(); // the mind never stops ticking
+      }
+
+      // Phase 5 — GENOME: record this tick's full field lattice. The engine
+      // has just advanced (tick/process above), so the node field_states are
+      // the current committed field. Recorded BEFORE DETECT reads the root, so
+      // the snapshot is the same field the mind is about to reason over. The
+      // genome owns a copy; recording never perturbs the dynamics. [SPEC]
+      if (this._deps.genome) {
+        const lattice = engine.snapshot_field_lattice();
+        this._deps.genome.record(this._tickCount, lattice, engine.get_state().total_nodes);
       }
 
       // 2. DETECT — existence of the root field.
@@ -184,6 +272,13 @@ export class CognitiveLoop {
       // 6. PERSIST on tick cadence.
       if (this._tickCount % SNAPSHOT_EVERY_TICKS === 0) {
         this._snapshot("tick-cadence");
+      }
+
+      // P6-D — REPLAY: when the bus was idle this tick, consolidate memory by
+      // reliving one genome snapshot through the sensory door. The mode governor
+      // decides (REPLAY only), deferring to the measured depth ceiling. [SPEC]
+      if (frames.length === 0) {
+        this._replaySweep();
       }
     } catch (err) {
       // Watchdog: journal and keep living. [SPEC]
@@ -244,6 +339,25 @@ export class CognitiveLoop {
       },
     });
 
+    // P6-B — derive the concept's manifold relations (the ontology layer).
+    // Measured, typed edges only; a relation is asserted solely when its
+    // resonance clears the high-margin floor. Off the hot path of recognition.
+    if (this._deps.manifold) {
+      const derived = this._deps.manifold.indexConcept(obs.concept, registry);
+      const asserted = derived.filter((e) => e.evidence > 0);
+      if (asserted.length > 0) {
+        store.journal({
+          t: Date.now(),
+          kind: "manifold.relation",
+          data: {
+            concept: obs.concept.id,
+            relations: asserted.length,
+            kinds: [...new Set(asserted.map((e) => e.kind))],
+          },
+        });
+      }
+    }
+
     // EPISODIC: retain the distinct attractor and recall what it echoes. [MATH]
     this._episodes.store(thought.field);
     const association = this._episodes.retrieve(thought.field);
@@ -295,6 +409,14 @@ export class CognitiveLoop {
 
     // ACT + VOICE off-loop (phi is a single-in-flight instrument).
     this._enqueueThoughtWork(thought, obs, action, drives);
+
+    // P6-A — close the recall loop (off-loop, stability-gated). The mind just
+    // resolved a stable thought; if a remembered field lattice resonates with
+    // it strongly enough, re-feed that memory through the engine's sensory
+    // door so experience re-enters the dynamics. Never blocks the tick. [SPEC]
+    if (this._deps.genome && (this._deps.modeGovernor?.reinjectionEnabled ?? false)) {
+      void this._recallReinject(thought);
+    }
 
     // PERSIST on thought cadence.
     if (this._stableThoughtCount % SNAPSHOT_EVERY_THOUGHTS === 0) {
@@ -413,6 +535,8 @@ export class CognitiveLoop {
     "audio.mic",
     "audio.file",
     "text.feed",
+    "doc.feed",
+    "ui.observe",
   ]);
 
   /** True iff the thought was born from at least one real external percept. */
@@ -487,26 +611,128 @@ export class CognitiveLoop {
       return;
     }
 
-    const provenance = this._provenanceHash(thought, out.value.labels);
-    registry.addLabels(obs.concept.id, out.value.labels, "llm.nameThis");
-    // Symbol grounding: fuse each label's word-geometry into the concept so the
-    // percept and its name become one attractor. [PHIL]
-    for (const label of out.value.labels) registry.bindLabel(obs.concept.id, label);
-    thought.labels = [...out.value.labels];
+    // M8 — PRE-BIND GATE (now SOUND in the phasor hypervector space).
+    //
+    // On the 28-field a λ-threshold was UNSOUND (tests/gate-discrimination.mjs,
+    // 2026-07-29): unrelated words resonated 0.773 on the shared φ-DFT floor
+    // while bound labels read 0.215, so a threshold straddled both and naming
+    // fell back to admit-then-verify. In D-space the unrelated floor collapses
+    // to 1/√D ≈ 0.011 while a bound label surfaces at ≈ its bind weight
+    // (tests/gate-soundness-dspace.mjs, tests/partial-bind-detect.mjs), so the
+    // gate now MEASURES each proposed label BEFORE it binds — the sound half of
+    // M8 the audit asked for. The post-bind convergence invariant is kept as a
+    // second check on the fusion.
+    const gate = this._deps.gate;
+    const gateReport = gate ? gate.gateWords(obs.concept, out.value.labels) : null;
+    const admittedLabels = gateReport ? [...gateReport.admitted] : out.value.labels;
+
+    // Every proposed label failed the gate — reject the whole naming honestly.
+    // Nothing binds, nothing is learned; the rejection is journaled with the
+    // per-word measured resonances. (For an un-named concept the gate falls back
+    // to the 28-field measure, so this is the honest "no label coheres" path.)
+    if (admittedLabels.length === 0) {
+      store.journal({
+        t: Date.now(),
+        kind: "gate.reject",
+        data: {
+          tool: "nameThis",
+          thought: thought.id,
+          concept: obs.concept.id,
+          reason: "every proposed label failed the pre-bind gate",
+          verdicts: gateReport
+            ? gateReport.verdicts.map((v) => ({ word: v.word, resonance: v.resonance, admitted: v.admitted, reason: v.reason }))
+            : [],
+        },
+      });
+      return;
+    }
+
+    // Rollback snapshot (gate contract: a failed invariant restores the concept).
+    const snapshot = gate
+      ? {
+          labels: [...obs.concept.labels],
+          prototype: new Float64Array(obs.concept.prototype),
+          semantic: obs.concept.semantic !== null ? new Float64Array(obs.concept.semantic) : null,
+          reinforcement: obs.concept.reinforcement,
+          coherenceBefore: gateReport ? gateReport.coherenceBefore : null,
+        }
+      : null;
+
+    const provenance = this._provenanceHash(thought, admittedLabels);
+    registry.addLabels(obs.concept.id, admittedLabels, "llm.nameThis");
+    // Symbol grounding: fuse each admitted label's word-geometry into the
+    // concept so the percept and its name become one attractor. [PHIL]
+    for (const label of admittedLabels) registry.bindLabel(obs.concept.id, label);
+
+    // M8 CONVERGENCE INVARIANT — the binding must not de-cohere the attractor,
+    // measured against the PRE-BIND coherence. On failure: full rollback per
+    // the gate contract (admit-then-verify — the sound half of M8).
+    if (gate && snapshot) {
+      const inv = gate.checkInvariant(obs.concept, snapshot.coherenceBefore);
+      if (!inv.ok) {
+        obs.concept.labels = snapshot.labels;
+        obs.concept.prototype.set(snapshot.prototype);
+        if (snapshot.semantic === null) {
+          obs.concept.semantic = null;
+        } else if (obs.concept.semantic === null) {
+          obs.concept.semantic = new Float64Array(snapshot.semantic);
+        } else {
+          obs.concept.semantic.set(snapshot.semantic);
+        }
+        obs.concept.reinforcement = snapshot.reinforcement;
+        store.journal({
+          t: Date.now(),
+          kind: "gate.invariant",
+          data: { tool: "nameThis", thought: thought.id, concept: obs.concept.id, reason: inv.reason, after: inv.after, rolledBack: true },
+        });
+        return; // nothing is learned from an incoherent fusion
+      }
+    }
+
+    thought.labels = [...admittedLabels];
+
+    // M9 — record each admitted binding as a residual record (with provenance)
+    // so the shared cross-modal associator accumulates trusted percept→label
+    // structure, then CORRECT: re-weight this concept's labels by the percept's
+    // own vote and remove any label the percept does not recognise. The gate
+    // refused NEW poison pre-bind; this removes a label that slipped through
+    // or was bound pre-gate (the dog/cat echo class). [FIX]
+    const perceptron = this._deps.recordPerceptron;
+    if (perceptron) {
+      for (const label of admittedLabels) perceptron.record(obs.concept, label, "llm.nameThis");
+      const verdicts = perceptron.reweight(obs.concept);
+      const corrected = verdicts.filter((v) => !v.believed).map((v) => v.word);
+      if (corrected.length > 0) {
+        obs.concept.labels = obs.concept.labels.filter((l) => !corrected.includes(l));
+        thought.labels = thought.labels.filter((l) => !corrected.includes(l));
+        store.journal({
+          t: Date.now(),
+          kind: "gate.corrected",
+          data: {
+            tool: "nameThis",
+            thought: thought.id,
+            concept: obs.concept.id,
+            corrected,
+            verdicts: verdicts.map((v) => ({ word: v.word, vote: v.vote, weight: v.weight, believed: v.believed })),
+          },
+        });
+      }
+    }
+
     store.journal({
       t: Date.now(),
       kind: "tool.ok",
       data: {
         tool: "nameThis",
         thought: thought.id,
-        labels: out.value.labels,
+        labels: admittedLabels,
         confidence: out.value.confidence,
         elapsedMs: out.elapsedMs,
         provenance, // A6 — every minted name is traceable to its measured field.
         grounded: true,
       },
     });
-    this._learnText(out.value.labels.join(" "), "nameThis", thought.id);
+    this._learnText(admittedLabels.join(" "), "nameThis", thought.id, obs.concept);
   }
 
   /** Known-but-shallow concept → phi defines its first label → learned. */
@@ -547,7 +773,7 @@ export class CognitiveLoop {
       kind: "tool.ok",
       data: { tool: "define", word, definition: out.value.definition, related: out.value.related, elapsedMs: out.elapsedMs },
     });
-    this._learnText(out.value.definition, "define", thought.id);
+    this._learnText(out.value.definition, "define", thought.id, obs.concept);
   }
 
   /** Known concept with ≥ 2 labels → phi relates them → learned. */
@@ -588,7 +814,7 @@ export class CognitiveLoop {
       kind: "tool.ok",
       data: { tool: "relate", a, b, relation: out.value.relation, strength: out.value.strength, elapsedMs: out.elapsedMs },
     });
-    this._learnText(out.value.relation, "relate", thought.id);
+    this._learnText(out.value.relation, "relate", thought.id, obs.concept);
   }
 
   /**
@@ -628,9 +854,19 @@ export class CognitiveLoop {
     // word is ALSO grounded (a relation to an unknown word is not language),
     // and the edge's strength is the pair's measured co-occurrence resonance.
     let edges = 0;
+    let triples = 0;
+    const tripleStore = this._deps.lexiconTriples;
     for (const rel of out.value.relations) {
       const measured = lexicon.measurePairResonance(word, rel.to);
-      if (lexicon.assertRelation(word, rel.to, rel.kind, measured) !== null) edges++;
+      if (lexicon.assertRelation(word, rel.to, rel.kind, measured) !== null) {
+        edges++;
+        // M10: mirror the GROUNDED edge into the geometric triple store
+        // (subject=word, role=rel.kind, object=rel.to). Gating on the same
+        // non-null assertRelation keeps the two graphs consistent: a fact
+        // lands in FHRR space iff both endpoints are grounded. This is the
+        // living assertion path over the proven bind/unbind algebra. [SPEC]
+        if (tripleStore && tripleStore.assert(word, rel.kind, rel.to) !== null) triples++;
+      }
     }
 
     store.journal({
@@ -643,10 +879,11 @@ export class CognitiveLoop {
         gloss: out.value.gloss.slice(0, 160),
         relations: out.value.relations,
         groundedEdges: edges,
+        triples, // M10 — how many of those edges also landed in FHRR space.
         elapsedMs: out.elapsedMs,
       },
     });
-    this._learnText(out.value.gloss, "lexical", thought.id);
+    this._learnText(out.value.gloss, "lexical", thought.id, obs.concept);
   }
 
   /** Structural thought → mathstral verifies a real numeric claim about it. */
@@ -679,6 +916,8 @@ export class CognitiveLoop {
         kind: "tool.ok",
         data: { tool: "verifyStructure", thought: thought.id, verdict: out.value.verdict, reasoning: out.value.reasoning, elapsedMs: out.elapsedMs },
       });
+      // verifyStructure's reasoning is a structural/numeric claim, not concept
+      // language — it is not gated against a concept (none in scope). [SPEC]
       this._learnText(out.value.reasoning || claim, "verifyStructure", thought.id);
     } finally {
       this._mathstralBusy = false;
@@ -688,11 +927,31 @@ export class CognitiveLoop {
   /**
    * Feed a tool answer BACK into the mind: encode → SensorBus ("llm.answer")
    * → next tick's engine.process() — L1/L2/L4′ physically learn it. [SPEC]
+   *
+   * M8 ECHO GATE — when the gate is attached and the originating concept is
+   * known, the text is encoded and MEASURED against that concept's geometry
+   * before it may re-enter memory. An incoherent echo (the dog/cat poison
+   * vector: the mind learning its own ungrounded invention) is dropped and
+   * journaled, never learned. [FIX]
    */
-  private _learnText(text: string, tool: string, thoughtId: string): void {
-    const { bus, store } = this._deps;
+  private _learnText(text: string, tool: string, thoughtId: string, concept?: ObserveResult["concept"]): void {
+    const { bus, store, gate } = this._deps;
     try {
-      const field = encodeText(text);
+      let field: ReturnType<typeof encodeText>;
+      if (gate && concept) {
+        const verdict = gateEchoText(concept, text);
+        if (verdict.field === null) {
+          store.journal({
+            t: Date.now(),
+            kind: "gate.echo",
+            data: { tool, thought: thoughtId, reason: verdict.reason, resonance: verdict.resonance },
+          });
+          return; // the echo is incoherent — never learned
+        }
+        field = verdict.field;
+      } else {
+        field = encodeText(text);
+      }
       // Containment: never push a degenerate field into the engine. [SPEC]
       if (field.length === 0 || !field.every((x) => Number.isFinite(x))) {
         store.journal({
@@ -721,6 +980,152 @@ export class CognitiveLoop {
       });
     }
   }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // P6-A — Recall → reinjection (the closing of the memory loop)
+    // ───────────────────────────────────────────────────────────────────────────
+    //
+    // WHAT THIS IS [SPEC]
+    // The genome records every tick's field lattice (Phase 5) but until now
+    // nothing fed a remembered field back into the dynamics — the mind had a
+    // memory it could read but never relive. This stage closes that loop: when a
+    // stable thought is born, we ask the genome for the stored lattice nearest
+    // to the thought's field and, if it resonates strongly, reinject it through
+    // engine.process() (the L4_Sensory door) so the memory physically re-enters
+    // the field. That is how experience accelerates the mind — a recognized
+    // situation re-awakens the field that produced it.
+    //
+    // THE SAFETY DISCIPLINE (never compromised)
+    //   1. HIGH MARGIN — only reinject when similarity clears ~0.618.
+    //   2. DETERMINISTIC DOOR — through engine.process() (L4_Sensory), the same
+    //      sanctioned input as any real sense; the genome never writes node state.
+    //   3. STABILITY GATE — measure the root-field delta over the injection tick;
+    //      if it destabilizes, back off and refuse further injections until it
+    //      settles. Memory accelerates, never breaks.
+    //   4. OFF-LOOP — reinjection runs async and never stalls the 146 ms tick.
+    /** Similarity floor for reinjection: λ + φ⁻¹·λ ≈ 0.618. [MATH] */
+    private static readonly _REINJECT_MIN_SIM = 0.6180339887498949;
+    /** Stability gate: abort if post-injection root delta/norm clears φ⁻¹. [MATH] */
+    private static readonly _REINJECT_MAX_DELTA = 0.6180339887498949;
+    /** Do not reinject the same lattice within this many ticks (anti-echo). [SPEC] */
+    private static readonly _REINJECT_COOLDOWN_TICKS = 3;
+
+    private async _recallReinject(thought: Thought): Promise<void> {
+      const { engine, genome, store } = this._deps;
+      if (!genome) return;
+      const nowTick = this._tickCount;
+      if (nowTick < this._reinjectHoldUntil) return; // backoff window active
+      if (this._lastReinjectedField !== null && nowTick - this._lastReinjectedTick < CognitiveLoop._REINJECT_COOLDOWN_TICKS) return; // anti-echo
+      // Recall against the thought's root field; the genome matches over the shared
+      // prefix (the root slice is the field's place in the pre-order DFS). [MATH]
+      const recalled = genome.recall(thought.field);
+      if (recalled === null) return; // empty genome — honest nothing
+      if (recalled.similarity < CognitiveLoop._REINJECT_MIN_SIM) {
+        store.journal({ t: Date.now(), kind: "recall.belowmargin", data: { thought: thought.id, similarity: recalled.similarity, tick: recalled.snapshot.tick } });
+        return;
+      }
+      if (this._reinjectBusy) return; // one in flight; the live tick wins
+      this._reinjectBusy = true;
+      this._reinjectAttempts++;
+      try {
+        const preRoot = new Float64Array(engine.get_state().root_node.state.field_state);
+        await engine.process(recalled.snapshot.lattice); // the deterministic sensory door
+        const postRoot = engine.get_state().root_node.state.field_state;
+        let num = 0; let den = 0;
+        const n = Math.min(preRoot.length, postRoot.length);
+        for (let i = 0; i < n; i++) { const d = postRoot[i]! - preRoot[i]!; num += d * d; den += preRoot[i]! * preRoot[i]!; }
+        const delta = den > 0 ? Math.sqrt(num / den) : Math.sqrt(num);
+        const stable = delta <= CognitiveLoop._REINJECT_MAX_DELTA;
+        if (!stable) {
+          this._reinjectAborts++;
+          this._reinjectHoldUntil = nowTick + 4 * this._reinjectAborts; // backoff
+        } else {
+          this._lastReinjectedField = recalled.snapshot.lattice;
+          this._lastReinjectedTick = nowTick;
+        }
+        store.journal({ t: Date.now(), kind: "recall.reinjection", data: { thought: thought.id, genomeTick: recalled.snapshot.tick, similarity: recalled.similarity, fieldDelta: delta, stable, attempts: this._reinjectAttempts, aborts: this._reinjectAborts } });
+      } catch (err) {
+        store.journal({ t: Date.now(), kind: "error", data: { where: "cognitive_loop.recallReinject", error: String(err) } });
+      } finally {
+        this._reinjectBusy = false;
+      }
+    }
+
+    /** Honest reinjection telemetry for the Sigma panel / tests. [SPEC] */
+    get recallReinjectStats(): { attempts: number; aborts: number; abortRate: number } {
+      return { attempts: this._reinjectAttempts, aborts: this._reinjectAborts, abortRate: this._reinjectAttempts > 0 ? this._reinjectAborts / this._reinjectAttempts : 0 };
+    }
+
+    // ─── P6-D — learning mode + idle replay ───────────────────────────────────
+
+    /** Current learning mode (EFFICIENT when no governor is injected). [SPEC] */
+    get learningMode(): import("./learning_mode.ts").LearningMode {
+      return this._deps.modeGovernor?.mode ?? "EFFICIENT";
+    }
+
+    /**
+     * Set the learning mode. Journals an honest mode.change (never silent). With
+     * no governor injected the mind is fixed at EFFICIENT and the call is a no-op
+     * (journals nothing — there is no mode to change). [SPEC]
+     */
+    setLearningMode(next: import("./learning_mode.ts").LearningMode): void {
+      const gov = this._deps.modeGovernor;
+      if (!gov) return;
+      const prev = gov.setMode(next);
+      if (prev !== next) {
+        this._deps.store.journal({ t: Date.now(), kind: "mode.change", data: { from: prev, to: next, tick: this._tickCount } });
+      }
+    }
+
+    /** Honest replay/mode telemetry for the Sigma panel / tests. [SPEC] */
+    get learningModeStats(): { mode: string; reinjectionEnabled: boolean; replaySweeps: number; replayDefers: number } {
+      return {
+        mode: this.learningMode,
+        reinjectionEnabled: this._deps.modeGovernor?.reinjectionEnabled ?? false,
+        replaySweeps: this._replaySweeps,
+        replayDefers: this._replayDefers,
+      };
+    }
+
+    /**
+     * P6-D — REPLAY sweep: relive ONE genome snapshot through the engine's
+     * deterministic sensory door to consolidate memory while idle. The mode
+     * governor gates the decision (REPLAY only, bus idle, genome non-empty,
+     * anti-thrash, co-governor depth ceiling). A deferral is journaled honestly
+     * as replay.deferred; a real sweep as replay.step. Never throws. [SPEC]
+     */
+    private _replaySweep(): void {
+      const { engine, genome, bus, store, modeGovernor } = this._deps;
+      if (!genome || !modeGovernor) return; // EFFICIENT: no offline reliving
+      const tele = engine.get_scaling_telemetry();
+      const decision = modeGovernor.mayReplay({
+        tick: this._tickCount,
+        queuedSensors: bus.stats().queued,
+        depth: tele.depth,
+        maxDepth: tele.maxDepth,
+        emaTickMs: tele.emaTickMs,
+        genomeSize: genome.hotSize + genome.warmSize,
+        lastReplayTick: this._lastReplayTick,
+      });
+      if (!decision.allow) {
+        this._replayDefers++;
+        store.journal({ t: Date.now(), kind: "replay.deferred", data: { reason: decision.reason, tick: this._tickCount, depth: tele.depth, maxDepth: tele.maxDepth } });
+        return;
+      }
+      try {
+        // Relive the most recent snapshot: it is the freshest attractor, and
+        // re-feeding it through the sensory door consolidates its basin without
+        // new external input. engine.process is the ONLY sanctioned door. [SPEC]
+        const latest = genome.latest();
+        if (!latest) return;
+        this._lastReplayTick = this._tickCount;
+        this._replaySweeps++;
+        void engine.process(latest.lattice);
+        store.journal({ t: Date.now(), kind: "replay.step", data: { genomeTick: latest.tick, nodeCount: latest.nodeCount, checksum: latest.checksum, sweeps: this._replaySweeps, tick: this._tickCount } });
+      } catch (err) {
+        store.journal({ t: Date.now(), kind: "error", data: { where: "cognitive_loop.replaySweep", error: String(err) } });
+      }
+    }
 
   // ───────────────────────────────────────────────────────────────────────────
   // Persistence

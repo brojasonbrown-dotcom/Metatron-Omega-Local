@@ -35,6 +35,7 @@ import { ResonanceFinder } from "./resonance_finder.ts";
 import { InterdimensionalFlow } from "./interdimensional_flow.ts";
 import { HardwareGovernor } from "./hardware_governor.ts";
 import { L4_Sensory } from "./frameworks.ts";
+import { ParallelEngine } from "./parallel/parallel_engine.ts";
 
 /** EMA rate for the measured tick cost (η = φ⁻² — the engine's own law). */
 const EMA_RATE = 0.3819660112501051;
@@ -88,6 +89,15 @@ export class FractalNodeEngine {
   /** EMA of the real wall-clock tick cost (η = φ⁻²) — the governor's truth. */
   private _emaTickMs = 0;
 
+  /**
+   * Parallel wavefront engine (worker threads + SharedArrayBuffer). Created
+   * lazily on the first tick when `config.parallel` is enabled and the tree is
+   * large enough; falls back to the serial bottom-up path otherwise. Bit-
+   * identical to serial (proven by tests/parallel_dynamic_equivalence.mjs).
+   */
+  private _parallel: ParallelEngine | null = null;
+  private _parallelInit: Promise<void> | null = null;
+
   /** Current engine runtime state. [SPEC] */
   private _state: EngineState;
 
@@ -123,6 +133,11 @@ export class FractalNodeEngine {
     this.interdimensional_flow = new InterdimensionalFlow();
     // The config's target_resource_usage now genuinely governs (was a dead knob).
     this.hardware_governor = new HardwareGovernor(this.config.target_resource_usage);
+    // Operator force-depth override: hand the floor to the governor so its measured
+    // shrink path cannot cut below the operator-chosen computational depth. [SPEC]
+    if (typeof this.config.force_depth === "number" && this.config.force_depth > 0) {
+      this.hardware_governor.setForceDepth(this.config.force_depth);
+    }
 
     this._root_node = FractalNode.createAtScale(
       this.config.target_scale as ScaleIndex,
@@ -225,18 +240,29 @@ export class FractalNodeEngine {
    *
    * [SPEC] — All operations are deterministic Float64 (≈15 digits).
    *
+   * The tick is async because the parallel wavefront awaits per-level barriers
+   * (the main thread cannot Atomics.wait). The result is bit-identical to the
+   * serial path either way.
+   *
    * @returns EngineTickResult for this tick.
    */
-  tick(): EngineTickResult {
+  async tick(): Promise<EngineTickResult> {
     const _tickStart = performance.now();
     this._tick_count++;
     this.interdimensional_flow.advance_iteration();
 
-    // 1. Compute field at each node (bottom-up)
-    this._computeBottomUp(this._root_node);
+    // 1. Compute field at each node (bottom-up; parallel wavefront when ready)
+    await this._computeAll();
 
     // 2. Apply membrane stabilization at each node
     this._stabilizeAll(this._root_node);
+    // stabilize() relaxes field_state IN PLACE after the parallel tick already
+    // committed the raw field — so the SAB now holds the PRE-stabilize field while
+    // the live nodes hold the relaxed one. Re-sync the SAB so the next tick's
+    // workers read the same stabilized field serial computes from (Term 3).
+    if (this._parallel !== null && this._parallel.isParallel) {
+      this._parallel.syncSabFromNodes();
+    }
 
     // 3. Propagate information flows
     const flowPackets = this._propagateFlows();
@@ -257,11 +283,32 @@ export class FractalNodeEngine {
         ? tickMs
         : (1 - EMA_RATE) * this._emaTickMs + EMA_RATE * tickMs;
     const stats = this._root_node.get_tree_stats();
-    const scalingAction = this.hardware_governor.should_scale_measured(
+    let scalingAction = this.hardware_governor.should_scale_measured(
       this._emaTickMs,
       this._state.hardware_budget,
       this._tick_count
     );
+
+    // [FIX] Cold-start guard: the first ticks carry JIT compilation and
+    // first-touch allocation cost (a depth-7 tree's tick 1 measured ~794ms —
+    // warm-up, not compute). Without a grace period the governor read that
+    // single spike and permanently shrank depth 7 → 6 on the very first tick,
+    // capping the engine at 281 nodes before it ever timed the real ~280ms
+    // steady-state. Suppress ONLY the shrink for the first `governor_warmup_ticks`
+    // ticks so the EMA absorbs the transient; grow/maintain stay live.
+    const warmup = this.config.governor_warmup_ticks ?? 5;
+    if (
+      scalingAction &&
+      scalingAction.action === "shrink" &&
+      this._tick_count <= warmup
+    ) {
+      scalingAction = {
+        ...scalingAction,
+        action: "maintain",
+        target_depth: this._treeDepth,
+        reason: `warm-up grace (tick ${this._tick_count}/${warmup}): suppressed shrink on cold-start EMA ${this._emaTickMs.toFixed(1)}ms`,
+      };
+    }
 
     // Rebuild ONLY when the target depth actually changes — previously the
     // tree was destroyed and rebuilt on EVERY tick (pure churn: the ladder
@@ -276,6 +323,11 @@ export class FractalNodeEngine {
       this._buildTree(this._root_node, newDepth);
       this._treeDepth = newDepth;
       this.hardware_governor.setMeasuredDepth(newDepth);
+      // Re-seed the parallel layout + workers from the FRESH tree so the mirror
+      // matches the rebuilt node set (serial semantics: state is recreated).
+      if (this._parallel !== null) {
+        await this._parallel.reseed(this._root_node, newDepth);
+      }
       // The EMA must not carry the OLD tree's cost across a rebuild — reseed
       // so the next tick measures the NEW tree honestly (prevents EMA-lag
       // double-shrinks, e.g. 94.5ms "at depth 6" that was really depth-7 lag).
@@ -308,6 +360,36 @@ export class FractalNodeEngine {
       flow_packets: flowPackets,
       stabilized: this._isStabilized(),
     };
+  }
+
+  /**
+   * Compute all nodes for this tick — parallel wavefront when available and the
+   * tree is large enough, else the serial bottom-up recursion. On first call
+   * with `config.parallel` enabled, lazily initialises the worker pool from the
+   * live tree. Always bit-identical to serial (commitToNodes writes full state).
+   */
+  private async _computeAll(): Promise<void> {
+    if (this.config.parallel) {
+      if (this._parallel === null && this._parallelInit === null) {
+        this._parallel = new ParallelEngine({
+          targetScale: this.config.target_scale,
+          maxDepth: this._treeDepth,
+          forceSerial: this.config.parallel_force_serial ?? false,
+        });
+        this._parallelInit = this._parallel.initialize(this._root_node);
+      }
+      if (this._parallelInit !== null) {
+        await this._parallelInit;
+        this._parallelInit = null;
+      }
+      if (this._parallel!.isParallel) {
+        await this._parallel!.computeTick();
+        this._parallel!.commitToNodes();
+        return;
+      }
+    }
+    // Serial fallback (identical output).
+    this._computeBottomUp(this._root_node);
   }
 
   /**
@@ -475,7 +557,7 @@ export class FractalNodeEngine {
    * @param data — Input Float64Array (sensory pattern).
    * @returns EngineTickResult after processing.
    */
-  process(data: Float64Array): EngineTickResult {
+  async process(data: Float64Array): Promise<EngineTickResult> {
     // [FIX] Guard against invalid input data to prevent downstream NaN propagation.
     if (!data || data.length === 0) {
       throw new Error(
@@ -545,6 +627,7 @@ export class FractalNodeEngine {
     nodes: number;
     emaTickMs: number;
     maxDepth: number;
+    forceDepth: number | null;
   } {
     const stats = this._root_node.get_tree_stats();
     return {
@@ -552,7 +635,56 @@ export class FractalNodeEngine {
       nodes: stats.total_nodes,
       emaTickMs: this._emaTickMs,
       maxDepth: this.hardware_governor.budget.max_depth,
+      forceDepth: this.hardware_governor.forceDepth,
     };
+  }
+
+
+  /**
+   * Snapshot the full field lattice as one flattened vector: the pre-order DFS
+   * of the node tree, each node's `state.field_state` (28 components) appended
+   * in order. Pre-order DFS is a fixed, deterministic order for a given tree
+   * shape, so the same field evolution yields the same lattice every run — this
+   * is what lets the Field-State Genome checksum and recall it. [SPEC]
+   *
+   * The returned array is a fresh copy (the genome owns it; the live node
+   * buffers are never aliased). Length is total_nodes × 28.
+   */
+  snapshot_field_lattice(): Float64Array {
+    const stats = this._root_node.get_tree_stats();
+    const out = new Float64Array(stats.total_nodes * 28);
+    let offset = 0;
+    const walk = (node: FractalNode): void => {
+      const field = node.state.field_state;
+      const n = Math.min(field.length, 28);
+      for (let i = 0; i < n; i++) out[offset + i] = field[i]!;
+      offset += 28;
+      for (const child of node.children) walk(child);
+    };
+    walk(this._root_node);
+    return out;
+  }
+  /**
+   * Operator runtime override for computational depth (the "remove the limiter" knob).
+   * Sets the governor floor and immediately grows the tree to that depth so the operator
+   * sees the requested resolution without waiting for the measured grow ladder. The
+   * measured shrink path is floored at this depth but can still trim transient overshoot
+   * above it. Pass null to return to purely measured auto-scaling. [SPEC]
+   */
+  async set_force_depth(depth: number | null): Promise<void> {
+    this.hardware_governor.setForceDepth(depth);
+    if (depth === null) return;
+    const target = Math.max(1, Math.min(HardwareGovernor.MAX_DEPTH, Math.floor(depth)));
+    if (target !== this._treeDepth) {
+      this._root_node.destroy_children();
+      this._buildTree(this._root_node, target);
+      this._treeDepth = target;
+      this.hardware_governor.setMeasuredDepth(target);
+      if (this._parallel !== null) {
+        await this._parallel.reseed(this._root_node, target);
+      }
+      this._emaTickMs = 0; // measure the new tree honestly
+    }
   }
 
   /**

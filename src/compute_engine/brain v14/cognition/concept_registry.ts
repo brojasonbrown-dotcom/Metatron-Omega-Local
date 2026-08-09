@@ -20,6 +20,12 @@ import {
   reinforceField,
   resonance,
 } from "./../adapters/language_codec.ts";
+import {
+  atom,
+  bundle,
+  similarity,
+} from "./../adapters/phasor_field.ts";
+import { normalizeText } from "./../adapters/language_codec.ts";
 import type {
   SerializedConcept,
   SerializedMindState,
@@ -91,6 +97,37 @@ export class ConceptRegistry {
 
   /** Recognition threshold λ = 1/φ². [SPEC] */
   readonly recognitionThreshold: number = COHERENCE_THRESHOLD;
+
+  /**
+   * Phasor semantic-channel cache: conceptId → [cacheKey, hypervector]. [MATH]
+   *
+   * WHY THIS CHANNEL EXISTS (measured): the 28-field DFT kernel cannot
+   * discriminate meaning — related words avg 0.215 vs unrelated 0.202 (gap
+   * 0.013, noise), because at D_complex = 14 independent fields concentrate at
+   * ~1/√D ≈ 0.27 ON TOP of the λ threshold. The phasor hypervector space
+   * (D = 8192) is where concentration of measure works FOR us: unrelated
+   * content collapses to ~1/√D ≈ 0.011 while shared words surface at their
+   * bundle weight (measured: encodeSentence bundles sharing a word hit 0.75).
+   * The pre-bind GATE already measures here (LinguisticGate); this channel
+   * brings the SAME sound discrimination to RECOGNITION, additively — the
+   * 28-field channel below is untouched, and a concept's score is the MAX of
+   * the two, so nothing that used to be recognised is lost (no regression).
+   *
+   * Channel content: an ORDER-INSENSITIVE bundle of the concept's bound-label
+   * atoms (bundle of atom(label), position-free). Recognition asks "does this
+   * query share a grounded WORD with the concept?" — word ORDER is irrelevant
+   * to that question, and the order-sensitive encodeSentence (which permutes
+   * by position) would make "dog" at position 0 ⊥ to "dog" at position 1,
+   * destroying within-phrase matching (measured: "the dog barks" read 0.18
+   * against the "dog" channel). A position-free bundle reads ≈ bind weight for
+   * ANY shared word wherever it sits, ≈ 1 for an exact label set, and ≈ 1/√D
+   * for an unrelated query. (encodeSentence keeps its order-sensitivity for
+   * the GATE/grammar paths where sequence carries meaning; recognition does
+   * not want it.) Rebuilt only when the label set changes (cacheKey mismatch).
+   */
+  private readonly _phasorChan = new Map<string, [string, Float64Array]>();
+  /** Bound the cache so a long-lived mind cannot grow it without limit. [SPEC] */
+  private static readonly _PHASOR_CACHE_MAX = 10946; // F_21 — matches maxConcepts.
 
   /** Maximum concepts retained (Fibonacci F_16 = 987 · 12 ≈ 11844; use 10946 = F_21). [SPEC] */
   readonly maxConcepts: number = 10946;
@@ -209,7 +246,8 @@ export class ConceptRegistry {
 
   /**
    * Resonance of a query field against a concept: the strongest of the percept
-   * prototype and (if named) the semantic prototype. [SPEC]
+   * prototype and (if named) the semantic prototype. [SPEC] (Raw-field path —
+   * the phasor semantic channel is text-side and lives in nearestText below.)
    */
   private _conceptResonance(field: Float64Array, concept: Concept): number {
     let best = resonance(field, concept.prototype);
@@ -218,6 +256,103 @@ export class ConceptRegistry {
       if (sem > best) best = sem;
     }
     return best;
+  }
+
+  /**
+   * TEXT-SIDE recognition: rank the k nearest concepts to a query STRING.
+   *
+   * [MATH] — The raw-field nearest() (above) has no access to the query's
+   * WORDS, only its 28-field, so it inherits the 28-field's discrimination
+   * floor (related 0.215 / unrelated 0.202 — noise). Here we DO have the
+   * words, so we can measure in the phasor space where meaning separates:
+   *   score = max( 28-field resonance,  phasor shared-word similarity ).
+   * The phasor term is similarity(bundle(query words), bundle(label atoms)) —
+   * a position-free word-overlap cosine, one consistent encode on both sides.
+   * A grounded word fires wherever it sits in the query (measured ≈ bind
+   * weight, up to ≈ 1 for an exact match), an unrelated query reads ≈ 0
+   * (1/√D floor). MAX is additive: the phasor term can only RAISE a score
+   * where meaning genuinely coheres, never lower the 28-field score — so no
+   * recognised concept is lost.
+   *
+   * This is the sound recognition the user asked for: correlation on MEANING
+   * (grounded words), not on character-ngram accidents.
+   */
+  nearestText(text: string, k: number = 5): ConceptMatch[] {
+    const base = this.nearest(encodeText(text), Math.max(k, this._concepts.size));
+    const byId = new Map<string, number>(base.map((m) => [m.concept.id, m.resonance]));
+    // Score every concept on BOTH channels (base only covers the field top-k).
+    for (const concept of this._concepts.values()) {
+      const field = byId.get(concept.id) ?? 0;
+      const ph = this._phasorTextSimilarity(text, concept);
+      byId.set(concept.id, Math.max(field, ph));
+    }
+    const matches: ConceptMatch[] = [];
+    for (const [id, res] of byId) {
+      const concept = this._concepts.get(id);
+      if (concept) matches.push({ concept, resonance: res });
+    }
+    matches.sort((a, b) => b.resonance - a.resonance);
+    return matches.slice(0, Math.max(0, k));
+  }
+
+  /**
+   * Position-free word bundle of a text: bundle(atom(word) for each content
+   * word), order-insensitive. This is the RECOGNITION form — "which grounded
+   * words does this text share?" — where sequence is irrelevant. [MATH]
+   * Returns null when no word encodes (empty after normalization).
+   */
+  private static _wordBundle(text: string): Float64Array | null {
+    const norm = normalizeText(text);
+    if (norm.length === 0) return null;
+    const atoms: Float64Array[] = [];
+    for (const w of norm.split(" ")) {
+      if (w.length === 0) continue;
+      try {
+        atoms.push(atom(w));
+      } catch {
+        // skip un-encodable token
+      }
+    }
+    if (atoms.length === 0) return null;
+    try {
+      return bundle(atoms);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Phasor similarity between a query's TEXT and a concept's label channel —
+   * both position-free word bundles, so a shared word fires wherever it sits:
+   * similarity( bundle(query words), bundle(label atoms) ). [MATH]
+   */
+  private _phasorTextSimilarity(queryText: string, concept: Concept): number {
+    const channel = this._phasorChannel(concept);
+    if (channel === null) return 0;
+    const q = ConceptRegistry._wordBundle(queryText);
+    if (q === null) return 0;
+    const s = similarity(q, channel);
+    return s > 0 ? s : 0; // negative = phase-opposed → no recognition
+  }
+
+  /**
+   * The concept's phasor semantic channel, cached and rebuilt only when the
+   * label set changes: the position-free bundle of its bound-label atoms.
+   * null when un-named. [MATH]
+   */
+  private _phasorChannel(concept: Concept): Float64Array | null {
+    if (concept.labels.length === 0) return null;
+    const key = concept.labels.join(" ");
+    const hit = this._phasorChan.get(concept.id);
+    if (hit !== undefined && hit[0] === key) return hit[1];
+    const chan = ConceptRegistry._wordBundle(key);
+    if (chan === null) return null;
+    this._phasorChan.set(concept.id, [key, chan]);
+    if (this._phasorChan.size > ConceptRegistry._PHASOR_CACHE_MAX) {
+      const oldest = this._phasorChan.keys().next();
+      if (!oldest.done) this._phasorChan.delete(oldest.value);
+    }
+    return chan;
   }
 
   /**
@@ -374,6 +509,8 @@ export class ConceptRegistry {
         for (const s of loser.sourceTrace) this._traceSource(survivor, s);
         this._concepts.delete(loser.id);
         this._hnsw.remove(loser.id);
+        this._phasorChan.delete(loser.id); // the absorbed concept's channel goes with it
+        this._phasorChan.delete(survivor.id); // survivor mutated (fused) → force rebuild
         this._hnsw.add(survivor.id, survivor.prototype);
         absorbed.set(loser.id, survivor.id);
         merged++;
@@ -510,6 +647,7 @@ export class ConceptRegistry {
     if (weakest) {
       this._concepts.delete(weakest.id);
       this._hnsw.remove(weakest.id); // lazy-delete from the ANN index. [SPEC]
+      this._phasorChan.delete(weakest.id); // drop the cached channel with the concept
     }
   }
 

@@ -29,6 +29,7 @@ import { FileVisionSensor } from "./adapters/sensors/vision_files.ts";
 import { ScreenVisionSensor } from "./adapters/sensors/vision_screen.ts";
 import { VoiceOut } from "./adapters/voice_out.ts";
 import { CognitiveLoop } from "./cognition/cognitive_loop.ts";
+import { LinguisticGate } from "./cognition/linguistic_gate.ts";
 import { ConceptRegistry } from "./cognition/concept_registry.ts";
 import { MemoryStore } from "./cognition/memory_store.ts";
 import { VisualMemory } from "./cognition/visual_memory.ts";
@@ -110,8 +111,10 @@ async function main(): Promise<void> {
 
   // 5. The mind.
   const voice = new VoiceOut(store);
+  // M8 — the anti-hallucination gate, live here too (was test-only).
+  const gate = new LinguisticGate(registry);
   const loop = new CognitiveLoop(
-    { engine, bus, registry, store, llm, voice },
+    { engine, bus, registry, store, llm, voice, gate },
     loaded.stableThoughtCount
   );
 
