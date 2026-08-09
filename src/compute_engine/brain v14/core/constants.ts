@@ -12,6 +12,15 @@
 
 import type { Float64, FrameworkCharacteristic, MemoryThreshold, ScaleIndex, ScaleConfigMap } from "../types.ts";
 
+// ───────────────────────────────────────────────────────────────────────────────
+// Single-sourced physical constants (M4). The engine's core/constants.ts is the
+// canonical, provenance-tagged source of truth. v14 previously carried LESS
+// precise copies: PLANCK_LENGTH was 1.616e-35 (4 sig figs; 1.58e-4 relative error)
+// and SPEED_OF_LIGHT was 2.998e8 (2.52e-5 error). We now re-export the engine's
+// CODATA-2022 values so the whole mind layer inherits proven precision.
+// ───────────────────────────────────────────────────────────────────────────────
+import { PLANCK_LENGTH as ENGINE_PLANCK_LENGTH, C as ENGINE_C } from "../../engine/src/core/constants.js";
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. Golden Ratio & Powers
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -231,19 +240,19 @@ export const SQRT3: Float64 = 1.7320508075688772 as Float64;
  * Planck length ℓ_P ≈ 1.616 × 10⁻³⁵ m.
  * [SPEC] — Physical constant used as the base of the geometric scaling law L(n) = ℓ_P · φⁿ.
  */
-export const PLANCK_LENGTH: Float64 = 1.616e-35 as Float64;
+export const PLANCK_LENGTH: Float64 = ENGINE_PLANCK_LENGTH as Float64;
 
 /**
  * Planck frequency f_P = c / ℓ_P ≈ 1.855 × 10⁴³ Hz.
  * [SPEC] — Derived from the speed of light and Planck length; base of f(n) = f_P · φ⁻ⁿ.
  */
-export const PLANCK_FREQUENCY: Float64 = 1.855e43 as Float64;
+export const PLANCK_FREQUENCY: Float64 = (ENGINE_C / ENGINE_PLANCK_LENGTH) as Float64;
 
 /**
  * Speed of light c ≈ 2.998 × 10⁸ m/s.
  * [SPEC] — Used for consistency checks; not a primitive generator in the RHUFT ontology.
  */
-export const SPEED_OF_LIGHT: Float64 = 2.998e8 as Float64;
+export const SPEED_OF_LIGHT: Float64 = ENGINE_C as Float64;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 4. RHUFT Threshold & Coupling Parameters
