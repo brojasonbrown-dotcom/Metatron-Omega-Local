@@ -40,6 +40,16 @@ extraResources:
       - "!**/WOlfram nt.txt"
       - "!**/FIXES.md"
       - "!**/*.log"
+  # The v14 mind cross-imports the verified ENGINE tree (M4/M5 fusion:
+  # brain v14/core/constants.ts + the spectral senses reach ../../engine/src/**).
+  # Those are RELATIVE source imports, so the engine source MUST ship beside the
+  # brain at resources/engine/src or the sidecar dies at module-load (EPIPE on the
+  # host). Source-only, type-stripped by the same system Node — never asar'd.
+  - from: "../engine/src"
+    to: "engine/src"
+    filter:
+      - "**/*.ts"
+      - "!**/*.test.ts"
 
 win:
   executableName: AVA

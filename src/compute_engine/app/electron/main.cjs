@@ -22,6 +22,17 @@ const sensory = require("./sensory.cjs");
 
 let engineLoop = new EngineLoop();
 
+// Last-resort guard: a single bad frame / broken pipe must NEVER take down the
+// whole main process (the "JavaScript error occurred in the main process"
+// dialog). Log it and keep the app alive — the per-stream handlers already
+// swallow the expected EPIPE; this catches anything that slips past.
+process.on("uncaughtException", (err) => {
+  console.error("[main] uncaughtException (kept alive):", err && err.message ? err.message : err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[main] unhandledRejection (kept alive):", reason);
+});
+
 // Live ring-resolution switch: stop, rebuild at the new node count, resume
 // (state is seeded fresh — an honest restart, not a fake continuity).
 function setLoopNodes(n) {

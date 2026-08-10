@@ -542,3 +542,56 @@ it globally); `env -u ELECTRON_RUN_AS_NODE` runs the real GUI, not plain Node.
 
 **Net:** ADR-001 sense toggles shipped end-to-end and verified LIVE. Full gate green
 (typecheck 0 / vitest 797+2 / smoke 78/78 / GUI CI PASS). No regressions.
+
+---
+
+## FIX — "mind never wakes" + EPIPE main-process crash (2026-08-10, installed app)
+
+**Symptom (operator report):** installed AVA ("AppData\Local\Programs\AVA") shows
+"A JavaScript error occurred in the main process — Uncaught Exception: Error: write
+EPIPE … at MindService.stop … main.cjs". The mind never wakes.
+
+**Root cause (two layers, both confirmed by reproduction):**
+1. **Why the child dies:** the pack (`electron-builder.yml` extraResources) shipped
+   `resources/brain v14/` but NOT `resources/engine/`. The M4/M5 fusion left the v14
+   mind cross-importing the verified engine tree — `brain v14/core/constants.ts` →
+   `../../engine/src/core/constants.ts`, plus the spectral senses → `../../engine/src/
+   analysis/{spectralND,complexityProbe,eigenmodes}.ts`. In the installed app those
+   resolve to a non-existent `resources/engine/src/**`, so the sidecar throws
+   `ERR_MODULE_NOT_FOUND` at module-load and exits before "awake". Reproduced exactly:
+   booted the installed brain dir → identical constants.ts resolution error.
+2. **Why the whole app crashes:** with the child dead, its stdin pipe is broken. A
+   later `proc.stdin.write()` (stop / sense.set / any verb) does NOT throw
+   synchronously — the socket emits an async `error` (EPIPE). No `error` listener was
+   attached to `proc.stdin`, so Node raised it as an UNCAUGHT EXCEPTION in the main
+   process → the fatal dialog. The `try/catch` around `write()` never had a chance.
+
+**Fixes (both):**
+- `electron-builder.yml`: added `engine/src` as an extraResource (`to: engine/src`,
+  `**/*.ts` minus tests). The transitive closure the mind actually needs is 6 files
+  (core/constants, core/provenance, analysis/{spectralND,complexityProbe,eigenmodes},
+  dynamics/memoryKernel) but shipping the whole src tree is correct-by-construction
+  and survives future cross-imports. Verified: packed resources now contain all 6.
+- `mindService.cjs` `start()`: attached no-op `error` listeners to `proc.stdin /
+  stdout / stderr` so a broken pipe is swallowed as an event; the existing `exit`
+  handler owns the honest lifecycle (restart ladder / stop). A dead child can no
+  longer crash the main process.
+- `main.cjs`: added `process.on("uncaughtException" / "unhandledRejection")`
+  keep-alive guards (log, not die) as a last-resort net for anything that slips past.
+
+**Verification (ground truth, observed):**
+- Reproduced the original failure on the installed brain dir (module-not-found).
+- Re-packed: `release/win-unpacked/resources/engine/src/{core,analysis,dynamics}/…`
+  all present.
+- Booted the sidecar from the PACKED location: full boot ladder → `phase:"awake"`,
+  engine 41 nodes, stable thoughts forming, state frames streaming, senses present
+  (retention/tape disabled-by-default as SPEC'd). No module error.
+- Gates: `typecheck` 0 errors (engine+mind); `vitest` 797 passed / 2 skipped
+  (Ollama live-LLM, environmental); `smoke` 78/78.
+
+**Operator action needed:** the fix is in the BUILD, not the already-installed copy.
+Re-install / re-launch from the new package (or copy `resources/engine/` into the
+installed `resources/`) for the running app to pick it up.
+
+**Net:** mind boots live from the packed layout; the EPIPE crash path is closed at
+both the stream layer and the process layer. No regressions.

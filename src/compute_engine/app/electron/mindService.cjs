@@ -269,6 +269,15 @@ class MindService {
     });
     this._proc = proc;
 
+    // CRITICAL: a dead/dying child leaves a broken stdin pipe. stream.write()
+    // on it does NOT throw synchronously — it emits an async 'error' (EPIPE).
+    // With no listener that becomes an UNCAUGHT EXCEPTION and kills the whole
+    // main process (the "JavaScript error in the main process" dialog). Swallow
+    // it here: the exit handler owns the honest lifecycle (restart/stop).
+    proc.stdin.on("error", () => { /* broken pipe — child already gone */ });
+    proc.stdout.on("error", () => { /* idem */ });
+    proc.stderr.on("error", () => { /* idem */ });
+
     proc.stdout.on("data", (d) => {
       this._buf += d.toString();
       let idx;
