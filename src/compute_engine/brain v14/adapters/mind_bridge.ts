@@ -61,6 +61,8 @@ export interface MindBridgeDeps {
    * business + software corpora through the sanctioned bus door.
    */
   readonly curriculum?: DomainCurriculum;
+  /** F4 — the web-reading sense; when present the bridge serves web.feed. */
+  readonly webFeed?: import("./sensors/web_feed.ts").WebFeedSensor;
 }
 
 /** The subset of journal kinds forwarded to the host (the rest is noise). */
@@ -202,6 +204,9 @@ export class MindBridge {
       // P6-D — the learning-mode dial (EFFICIENT/TRAINING/REPLAY) so the panel
       // reflects the consolidation governor without polling.
       learningMode: loop.learningModeStats,
+      // ADR-001 - the Sigma-panel sense toggles (retention / telemetry) so the
+      // panel reflects their real enabled state without a separate read.
+      senses: loop.trainingLoopStats,
       // P6-E — curriculum counters (corpora run, frames accepted/rejected).
       ...(this._deps.curriculum ? { curriculum: this._deps.curriculum.stats() } : {}),
     });
@@ -551,6 +556,38 @@ export class MindBridge {
   }
 
   /**
+   * ADR-001 — the Sigma-panel sense toggles. {sense: retention|telemetry,
+   * enabled: bool} flips the live sense via the loop; {sense} with no enabled
+   * reads it. Honest: replies ok:false when the sense is not wired into the
+   * loop, and reports the sense own enabled state, never an assumed one.
+   */
+  private _handleSense(id: string, o: Record<string, unknown>): void {
+    const loop = this._deps.loop;
+    const sense = o["sense"];
+    if (sense !== "retention" && sense !== "telemetry") {
+      this._emit({ type: "sense.set", id, ok: false, reason: `sense must be retention|telemetry, got ${JSON.stringify(sense)}` });
+      return;
+    }
+    const stats = loop.trainingLoopStats;
+    const current = sense === "retention" ? stats.retention?.enabled : stats.tape?.enabled;
+    if (typeof o["enabled"] !== "boolean") {
+      if (current === undefined || current === null) {
+        this._emit({ type: "sense.set", id, ok: false, sense, reason: `${sense} sense not wired into this mind` });
+      } else {
+        this._emit({ type: "sense.set", id, ok: true, sense, enabled: current });
+      }
+      return;
+    }
+    const next = loop.setSense(sense, o["enabled"]);
+    if (next === null) {
+      this._emit({ type: "sense.set", id, ok: false, sense, reason: `${sense} sense not wired into this mind` });
+      return;
+    }
+    this._emit({ type: "sense.set", id, ok: true, sense, enabled: next });
+    this.state();
+  }
+
+  /**
    * P6-E — teach one domain corpus through the curriculum adapter. {corpus} is
    * validated structurally (name + probes[] + items[]); the adapter does the
    * codec + bus + mastery measurement. Replies with the honest verdict. [SPEC]
@@ -580,6 +617,19 @@ export class MindBridge {
     }
   }
 
+  private async _handleWebFeed(id: string, o: Record<string, unknown>): Promise<void> {
+    const wf = this._deps.webFeed;
+    if (!wf) { this._emit({ type: "web.feed", id, ok: false, reason: "no web sense wired" }); return; }
+    if (typeof o["url"] !== "string") { this._emit({ type: "web.feed", id, ok: false, reason: "web.feed.url must be a string" }); return; }
+    try {
+      const r = await wf.feed(o["url"]);
+      if (r.ok) this._emit({ type: "web.feed", id, ok: true, url: r.url, chars: r.chars, chunks: r.chunks });
+      else this._emit({ type: "web.feed", id, ok: false, reason: r.error });
+    } catch (err) {
+      this._emit({ type: "web.feed", id, ok: false, reason: String(err instanceof Error ? err.message : err) });
+    }
+  }
+
   private _handle(msg: unknown): void {
     if (typeof msg !== "object" || msg === null) {
       this._emit({ type: "error", where: "bridge.shape", message: "frame is not an object" });
@@ -600,7 +650,9 @@ export class MindBridge {
           this._deps.registry.observeText(o["text"], "ava.chat");
           // M5 — INPUT STABILIZATION: long messages arrive as sentence-aware
           // 144-char chunks (the text_feed discipline), not one overloaded field.
-          const parts = chunkText(o["text"].slice(0, 2000), 144).slice(0, 21);
+          // Feed the WHOLE message (<=8000 chars) — never silently decapitate it.
+          // Bus capacity (89 chunks) absorbs ~55 chunks of a full message.
+          const parts = chunkText(o["text"].slice(0, 8000), 144).slice(0, 89);
           let acceptedAll = true;
           for (let i = 0; i < parts.length; i++) {
             const field = encodeText(parts[i]!);
@@ -673,11 +725,23 @@ export class MindBridge {
         this._handleMode(mid, o);
         return;
       }
+        case "sense.set": {
+          // ADR-001 — the Sigma-panel sense toggles (retention / telemetry). id-keyed.
+          const seid = typeof o["id"] === "string" ? o["id"] : "sense";
+          this._handleSense(seid, o);
+          return;
+        }
       case "teach.corpus": {
         // P6-E — feed one domain corpus (business doc / software UI / operator
         // instruction) through the curriculum; id-keyed honest verdict.
         const tid = typeof o["id"] === "string" ? o["id"] : "teach";
         this._handleTeach(tid, o);
+        return;
+      }
+      case "web.feed": {
+        // F4 — read + learn from a live URL. id-keyed honest verdict.
+        const wid = typeof o["id"] === "string" ? o["id"] : "web";
+        void this._handleWebFeed(wid, o);
         return;
       }
       case "query": {
@@ -689,7 +753,7 @@ export class MindBridge {
           return;
         }
         const id = typeof o["id"] === "string" ? o["id"] : "q";
-        void this._answerQuery(id, o["text"].slice(0, 1000), typeof o["facts"] === "string" ? o["facts"].slice(0, 1500) : "");
+        void this._answerQuery(id, o["text"].slice(0, 4000), typeof o["facts"] === "string" ? o["facts"].slice(0, 6000) : "");
         return;
       }
       case "shutdown":

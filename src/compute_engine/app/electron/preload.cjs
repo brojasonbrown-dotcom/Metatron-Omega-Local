@@ -10,6 +10,13 @@ contextBridge.exposeInMainWorld("ava", {
   /** Send a chat message; resolves to { ok, answer? , error? }. */
   send: (message) => ipcRenderer.invoke("ava:send", message),
 
+  /**
+   * Drop a document on the window: the renderer passes ONLY the file path; the
+   * main process reads + extracts it (type-sniffed, size-capped) and routes the
+   * text like a chat message. Resolves to { ok, name?, kind?, answer?, error? }.
+   */
+  ingestDocument: (filePath) => ipcRenderer.invoke("ava:document", filePath),
+
   /** Engine loop control — all resolve to the live loop state. */
   engine: {
     start: () => ipcRenderer.invoke("ava:engine:start"),
@@ -51,6 +58,10 @@ contextBridge.exposeInMainWorld("ava", {
     setMode: (mode) => ipcRenderer.invoke("ava:mind:mode", mode),
     /** P6-E — teach one domain corpus; returns the honest per-corpus verdict. */
     teachCorpus: (corpus) => ipcRenderer.invoke("ava:mind:teach", corpus),
+    /** F4 — hand the mind a URL to read + learn from, live. Honest verdict. */
+    webFeed: (url) => ipcRenderer.invoke("ava:mind:webFeed", url),
+    /** ADR-001 - flip/read a Sigma-panel sense (retention | telemetry) live. */
+    setSense: (sense, enabled) => ipcRenderer.invoke("ava:mind:sense:set", sense, enabled),
     /** Subscribe to mind events (journal relays, boot, state, exits). */
     onEvent: (cb) => {
       const listener = (_e, frame) => cb(frame);

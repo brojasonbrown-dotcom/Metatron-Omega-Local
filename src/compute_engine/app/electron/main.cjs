@@ -17,6 +17,7 @@ const { respond } = require("./responder.cjs");
 const { EngineLoop } = require("./engineLoop.cjs");
 const { MindService } = require("./mindService.cjs");
 const { persistK3Key } = require("./k3KeyStore.cjs");
+const { ingestDocument } = require("./documentIngest.cjs");
 const sensory = require("./sensory.cjs");
 
 let engineLoop = new EngineLoop();
@@ -106,20 +107,67 @@ ipcMain.handle("ava:send", async (_event, message) => {
     return { ok: false, error: "empty message" };
   }
   try {
-    const text = message.slice(0, 4000);
+    const text = message.slice(0, 8000);
     const answer = respond(text);
     const isFallback = answer.startsWith("I don't have a computed answer");
     if (isFallback && mind.running) {
       const facts = engineDigest();
-      const q = await mind.query(text.slice(0, 500), facts);
+      let q = await mind.query(text, facts); // FULL message, never decapitated [FIX: truncation]
+      // SEAMLESS LOCAL ANSWERING: a transient failure (a rebound Ollama port,
+      // a model still warming, a one-shot timeout) must not end the turn in
+      // silence. Retry the grounded query ONCE before degrading — the split
+      // instrument re-measures liveness fresh on this attempt. [FIX]
+      if (!q.ok) {
+        q = await mind.query(text, facts);
+      }
       if (q.ok) {
         return { ok: true, answer: q.answer, grounded: q.grounded, via: "mind+engine" };
       }
-      // query failed or mind busy — fall through to the async sensory path
-      mind.chat(text.slice(0, 500));
-      return { ok: true, answer: `${answer}\n\n(mind query: ${q.error} — your words reached the sensory stream instead)`, routedToMind: true };
+      // Both attempts failed — the words still reach the mind's learning
+      // stream, and the human gets the REAL reason, never silence.
+      mind.chat(text);
+      return { ok: true, answer: `${answer}\n\n(local instrument: ${q.error} — your words still reached the mind's learning stream)`, routedToMind: true };
     }
     return { ok: true, answer };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  }
+});
+
+// Document ingest IPC: the renderer drops a file and sends only its PATH; the
+// file is read HERE in the trusted main process (the sandboxed renderer never
+// touches raw bytes), type-sniffed, size-capped, text-extracted. The extracted
+// text is then routed exactly like a chat message — engine first, else the
+// mind's grounded path — so a document gets the same honest compute as typing.
+ipcMain.handle("ava:document", async (_event, filePath) => {
+  const ing = ingestDocument(filePath, { brainDir: mind.brainDir });
+  if (!ing.ok) return ing;
+  // OCR ROUTE: images and scanned PDFs were handed to the mind's OCR sense —
+  // the honest acknowledgement is already the answer; nothing more to compute.
+  if (ing.ocr) {
+    return { ok: true, name: ing.name, kind: ing.kind, answer: ing.answer, via: "ocr" };
+  }
+  // Wrap the document so the routing treats it as a query about real content.
+  // The engine answers computed intents inside it; otherwise the grounded mind
+  // path reasons over it with the live engine digest as context.
+  const prompt = `Document "${ing.name}" (${ing.kind}, ${ing.bytes} bytes${ing.truncated ? ", truncated" : ""}):\n\n${ing.text}`;
+  try {
+    const answer = respond(prompt.slice(0, 8000));
+    const isFallback = answer.startsWith("I don't have a computed answer");
+    if (isFallback && mind.running) {
+      const facts = engineDigest();
+      const q = await mind.query(
+        `Summarise and ground this document: ${ing.name}`,
+        `${facts}\n\nDocument excerpt:\n${ing.text.slice(0, 6000)}`,
+      );
+      if (q.ok) {
+        return { ok: true, name: ing.name, kind: ing.kind, answer: q.answer, via: "mind+engine" };
+      }
+    }
+    return {
+      ok: true, name: ing.name, kind: ing.kind,
+      answer: `ingested "${ing.name}" (${ing.chars} chars${ing.truncated ? ", truncated to " + ing.text.length : ""}).\n\n${answer}`,
+    };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
   }
@@ -155,6 +203,10 @@ ipcMain.handle("ava:mind:ollama:set", (_e, enabled) => mind.ollamaSet(enabled));
     ipcMain.handle("ava:mind:mode", (_e, mode) => mind.setMode(mode));
     // P6-E — teach one domain corpus; returns the honest per-corpus verdict.
     ipcMain.handle("ava:mind:teach", (_e, corpus) => mind.teachCorpus(corpus));
+    // F4 — hand the mind a URL to read + learn from, live. Honest verdict.
+    ipcMain.handle("ava:mind:webFeed", (_e, url) => mind.webFeed(url));
+      // ADR-001 - flip/read a Sigma-panel sense (retention | telemetry) live.
+      ipcMain.handle("ava:mind:sense:set", (_e, sense, enabled) => mind.setSense(sense, enabled));
 // Runtime K3 key entry — the token travels host→mind once, never echoed back.
 // On success it is also persisted (process.env + setx + the launcher bats) so
 // the instrument survives restarts — personal-use build, plaintext by request.
@@ -246,14 +298,45 @@ app.whenReady().then(() => {
           // whether or not a brain is present here.
           if (!(ms && typeof ms.state === "string" && typeof ms.brainPresent === "boolean")) return "mind-status";
           if (!document.getElementById("fab-mind")) return "mind-fab";
-          return "PASS";
+          // ADR-001 — live round-trip of the Sigma-panel sense verb through
+          // renderer -> preload -> IPC -> mindService -> the RUNNING mind.
+          // Boot the mind first (brain is present in dev), then flip retention.
+          // Honest either way: the verdict is the bridge's real shape
+          // ({ok:true,sense,enabled:bool} when wired; ok:false+error otherwise).
+          let sense; let st;
+          try {
+            await window.ava.mind.start();
+            // poll until awake (real brain boot can take a few seconds)
+            for (let i = 0; i < 40; i++) {
+              st = await window.ava.mind.status();
+              if (st.state === "awake") break;
+              await new Promise((r) => setTimeout(r, 250));
+            }
+            if (!st || st.state !== "awake") return "mind-boot:" + JSON.stringify(st);
+            // flip retention ON, verify the live state changed; flip OFF, verify back.
+            const on = await window.ava.mind.setSense("retention", true);
+            if (!(on && on.ok && on.enabled === true)) return "sense-on:" + JSON.stringify(on);
+            const readOn = await window.ava.mind.setSense("retention");
+            if (!(readOn && readOn.ok && readOn.enabled === true)) return "sense-read-on:" + JSON.stringify(readOn);
+            sense = await window.ava.mind.setSense("retention", false);
+            if (!(sense && sense.ok && sense.enabled === false)) return "sense-off:" + JSON.stringify(sense);
+          } catch (e) {
+            return "sense-threw:" + (e && e.message ? e.message : String(e));
+          }
+          const senseShape = sense && typeof sense.ok === "boolean"
+            && (sense.ok ? (sense.sense === "retention" && typeof sense.enabled === "boolean")
+                          : typeof sense.error === "string");
+          if (!senseShape) return "mind-sense-set:" + JSON.stringify(sense);
+          await window.ava.mind.stop();
+          return "PASS|sense-toggle=on->read->off OK|mindState=" + st.state;
         })()`);
-        console.log(`[ci] renderer+IPC+engine+sensors roundtrip: ${probe === "PASS" ? "PASS" : `FAIL (${probe})`}`);
+        const ok = typeof probe === "string" && probe.startsWith("PASS");
+        console.log(`[ci] renderer+IPC+engine+sensors roundtrip: ${ok ? probe : `FAIL (${probe})`}`);
         require("node:fs").writeFileSync(
           CI_REPORT,
-          `${probe === "PASS" ? "PASS" : `FAIL (${probe})`} ${new Date().toISOString()}\n`,
+          `${ok ? probe : `FAIL (${probe})`} ${new Date().toISOString()}\n`,
         );
-        app.exit(probe === "PASS" ? 0 : 1);
+        app.exit(ok ? 0 : 1);
       } catch (err) {
         console.error(`[ci] smoke failed: ${err}`);
         require("node:fs").writeFileSync(CI_REPORT, `FAIL (${err}) ${new Date().toISOString()}\n`);

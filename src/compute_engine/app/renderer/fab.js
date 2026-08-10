@@ -70,6 +70,23 @@
       ...(typeof inv.burdenPerNode === "number"
         ? [row("burden/node", inv.burdenPerNode.toFixed(4)), bar(Math.min(1, inv.burdenPerNode))]
         : [row("burden raw", inv.burden.toFixed(4)), bar(Math.min(1, inv.burden / 1000))]),
+      // DRIFT/BURDEN HEALTH SCAN — the "is it actually at rest?" verdict. This
+      // is the section that flags the pairing the operator cares about: drift
+      // large + burden huge + coherence pinned at 1.0000 = a secular blow-up
+      // that phase-lock (coherence) is structurally blind to. Computed in main.
+      ...(s.health
+        ? (() => {
+            const h = s.health;
+            const alertOn = h.level === "blowup" || h.level === "drifting";
+            return [
+              `<div class="stab-sec">DRIFT / BURDEN SCAN</div>`,
+              `<div class="stab-health"><span class="lvl ${h.level}">${h.code}</span><span class="why">coherence ${inv.coherence.toFixed(4)}</span></div>`,
+              row("energy gain", h.ratio !== null && h.ratio < 1e300 ? `×${h.ratio.toExponential(2)}` : "≫1e300×"),
+              `<div class="stab-alert ${alertOn ? "" : "calm"}">${h.headline}</div>`,
+              `<div class="stab-note">${h.detail}</div>`,
+            ];
+          })()
+        : []),
       `<div class="stab-sec">SENSOR DRIVES</div>`,
       row("audio drive", sci(s.drives.audio)), bar(s.drives.audio),
       row("vision drive", sci(s.drives.vision)), bar(s.drives.vision),
@@ -200,6 +217,24 @@
               row("reinjection", lm.reinjectionEnabled ? "on" : "off"),
               row("replay sweeps / defers", `${lm.replaySweeps ?? 0} / ${lm.replayDefers ?? 0}`),
               `<div class="stab-note">EFFICIENT defers replay · TRAINING re-injects · REPLAY sweeps</div>`,
+            ];
+          })()
+        : []),
+      // ADR-001 - the Sigma-panel sense toggles. retention (coherence-gated
+      // memory) + telemetry (the 28-field tape) are flippable live. Reflects
+      // mindInfo().senses, pushed in every state frame - never modelled here.
+      ...(mindInfo().senses
+        ? (() => {
+            const sn = mindInfo().senses;
+            const tgl = (key, label, st) => {
+              const on = !!(st && st.enabled);
+              return `<div class="stab-row"><span>${label}</span><b><a href="#" class="res-opt sense-opt ${on ? "mode-cur" : ""}" data-sense="${key}" data-on="${on ? "1" : "0"}">${on ? "on" : "off"}</a></b></div>`;
+            };
+            return [
+              `<div class="stab-sec">TRAINING SENSES</div>`,
+              tgl("retention", "retention (coherence >= 0.66)", sn.retention),
+              tgl("telemetry", "telemetry tape (28-field)", sn.tape),
+              `<div class="stab-note">retention admits measured-coherent thoughts · telemetry tapes the field</div>`,
             ];
           })()
         : []),
@@ -646,6 +681,31 @@
       }
     } catch (err) {
       flashError(btnMind, `mode control failed: ${err}`);
+    }
+  });
+
+  // ADR-001 - flip a training sense (retention | telemetry) live. The bridge
+  // returns the sense real new state; we mirror it into mindInfo().senses so
+  // the panel re-renders honestly (optimistic only in feel, never in state).
+  panelBody.addEventListener("click", async (e) => {
+    const opt = e.target.closest(".sense-opt");
+    if (!opt) return;
+    e.preventDefault();
+    const sense = opt.dataset.sense;
+    const next = opt.dataset.on !== "1"; // flip
+    try {
+      const r = await window.ava.mind.setSense(sense, next);
+      if (r && r.ok) {
+        const cur = mindInfo().senses || {};
+        const key = r.sense === "retention" ? "retention" : "tape";
+        const prior = cur[key] || {};
+        mindStatus = { ...(mindStatus || {}), info: { ...mindInfo(), senses: { ...cur, [key]: { ...prior, enabled: r.enabled } } } };
+        if (lastEngineState && !panel.classList.contains("hidden")) renderState(lastEngineState);
+      } else {
+        flashError(btnMind, `sense failed: ${r && r.error ? r.error : "unknown"}`);
+      }
+    } catch (err) {
+      flashError(btnMind, `sense control failed: ${err}`);
     }
   });
 

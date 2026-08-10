@@ -16,11 +16,44 @@
 
 const path = require("node:path");
 const fs = require("node:fs");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 
 const ENTRY = "run_mind_bridge.ts";
 const KILL_GRACE_MS = 15_000;
 const MAX_RESTARTS = 3;
+
+/**
+ * Resolve the SYSTEM Node executable (>=25, native TS type-stripping). A
+ * GUI-launched Electron app on Windows frequently does NOT inherit the shell
+ * PATH, so a bare spawn("node", ...) can fail even when Node is installed --
+ * which reads as "the mind never switches on". Resolve robustly, in order:
+ *   1. AVA_NODE env override (explicit)
+ *   2. node resolvable on PATH (dev shells, terminals)
+ *   3. well-known install locations (%ProgramFiles%
+odejs
+ode.exe, ...)
+ * The resolved path is CACHED so we probe once per process, not per start.
+ */
+let _resolvedNode = null;
+function resolveNode() {
+  if (_resolvedNode) return _resolvedNode;
+  if (process.env.AVA_NODE && fs.existsSync(process.env.AVA_NODE)) {
+    _resolvedNode = process.env.AVA_NODE;
+    return _resolvedNode;
+  }
+  try {
+    const r = spawnSync("node", ["--version"], { windowsHide: true, timeout: 5000 });
+    if (!r.error && r.status === 0) { _resolvedNode = "node"; return _resolvedNode; }
+  } catch { /* not on PATH */ }
+  const candidates = [
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, "nodejs", "node.exe"),
+    process.env["ProgramFiles(x86)"] && path.join(process.env["ProgramFiles(x86)"], "nodejs", "node.exe"),
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "nodejs", "node.exe"),
+    "C:\\Program Files\\nodejs\\node.exe",
+  ].filter(Boolean);
+  for (const c of candidates) { if (fs.existsSync(c)) { _resolvedNode = c; return _resolvedNode; } }
+  return "node"; // unresolved — caller reports the honest spawn error
+}
 
 /**
  * Brain resolution chain (first hit wins):
@@ -80,6 +113,10 @@ class MindService {
     this._pendingScaling = new Map(); // id → resolve(frame)
     this._pendingMode = new Map(); // id → resolve(frame)
     this._pendingTeach = new Map(); // id → resolve(frame)
+    this._pendingWeb = new Map(); // id → resolve(frame)
+    this._webSeq = 0;
+    this._pendingSense = new Map(); // id -> resolve(frame)
+    this._senseSeq = 0;
     this._querySeq = 0;
     this._instrumentSeq = 0;
     this._scalingSeq = 0;
@@ -94,11 +131,17 @@ class MindService {
       brainTried: this._brainTried,
       brainPresent: fs.existsSync(path.join(this._brainDir, this._entry)),
       node: process.version, // host node (the child's own is resolved at spawn)
+        nodeBin: resolveNode(), // the sidecar runtime — resolved robustly
     };
   }
 
   onEvent(listener) {
     this._listener = listener;
+  }
+
+  /** The resolved brain dir — so main can route OCR drops into its inbox. */
+  get brainDir() {
+    return this._brainDir;
   }
 
   _emit(frame) {
@@ -143,6 +186,15 @@ class MindService {
       }
     }
     // teach.corpus replies resolve their pending request first (id-keyed)
+    if (frame.type === "web.feed" && frame.id) {
+      const resolve = this._pendingWeb.get(frame.id);
+      if (resolve) { this._pendingWeb.delete(frame.id); resolve(frame); return; }
+    }
+    // ADR-001 - sense.set replies resolve their pending request first (id-keyed)
+    if (frame.type === "sense.set" && frame.id) {
+      const resolve = this._pendingSense.get(frame.id);
+      if (resolve) { this._pendingSense.delete(frame.id); resolve(frame); return; }
+    }
     if (frame.type === "teach.corpus" && frame.id) {
       const resolve = this._pendingTeach.get(frame.id);
       if (resolve) {
@@ -209,7 +261,7 @@ class MindService {
     this._stopping = false;
     this._state = "starting";
     this._buf = "";
-    const proc = spawn("node", [this._entry], {
+    const proc = spawn(resolveNode(), [this._entry], {
       cwd: this._brainDir,
       env: { ...process.env, MIND_TTS: "0" },
       stdio: ["pipe", "pipe", "pipe"],
@@ -241,7 +293,7 @@ class MindService {
       }
     });
     proc.on("error", (err) => {
-      this._lastError = String(err.message ?? err);
+        this._lastError = `spawn ${resolveNode()} failed: ${String(err.message ?? err)}`; // name the binary so the cause is honest
       this._emit({ type: "error", where: "mindService.spawn", message: this._lastError });
     });
     proc.on("exit", (code) => {
@@ -287,7 +339,7 @@ class MindService {
       return { ok: false, error: `mind is ${this._state}` };
     }
     try {
-      this._proc.stdin.write(JSON.stringify({ type: "chat", text: String(text).slice(0, 500) }) + "\n");
+      this._proc.stdin.write(JSON.stringify({ type: "chat", text: String(text).slice(0, 8000) }) + "\n");
       return { ok: true };
     } catch (err) {
       return { ok: false, error: String(err && err.message ? err.message : err) };
@@ -325,7 +377,7 @@ class MindService {
         } else resolve({ ok: false, error: String(frame.reason ?? "query failed") });
       });
       try {
-        this._proc.stdin.write(JSON.stringify({ type: "query", id, text: String(text).slice(0, 1000), facts }) + "\n");
+        this._proc.stdin.write(JSON.stringify({ type: "query", id, text: String(text).slice(0, 4000), facts }) + "\n");
       } catch (err) {
         clearTimeout(timer);
         this._pendingQueries.delete(id);
@@ -467,6 +519,69 @@ class MindService {
   }
 
   /** Shared id-keyed mode request/response (mirrors _scalingRequest). */
+  /**
+  /**
+   * F4 — hand the mind a URL to read + learn from (web.feed). Resolves
+   * {ok, url, chars, chunks} or {ok:false, error}. Honest: a fetch failure is
+   * the real reason, never a fabricated page.
+   */
+  webFeed(url, timeoutMs = 60_000) {
+    if (!this._proc || this._state !== "awake") {
+      return Promise.resolve({ ok: false, error: `mind is ${this._state}` });
+    }
+    const id = `web${++this._webSeq}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this._pendingWeb.delete(id);
+        resolve({ ok: false, error: `web feed timed out after ${timeoutMs}ms` });
+      }, timeoutMs);
+      this._pendingWeb.set(id, (frame) => {
+        clearTimeout(timer);
+        if (frame.ok) resolve({ ok: true, url: frame.url, chars: frame.chars, chunks: frame.chunks });
+        else resolve({ ok: false, error: String(frame.reason ?? "web feed failed") });
+      });
+      try {
+        this._proc.stdin.write(JSON.stringify({ id, type: "web.feed", url: String(url).slice(0, 2000) }) + "\n");
+      } catch (err) {
+        clearTimeout(timer);
+        this._pendingWeb.delete(id);
+        resolve({ ok: false, error: String(err && err.message ? err.message : err) });
+      }
+    });
+  }
+
+  /**
+   * ADR-001 - flip or read a Sigma-panel sense (retention | telemetry) on the
+   * live mind. Resolves {ok, sense, enabled} or {ok:false, error}. Honest: a
+   * not-wired sense is the bridge's real reason, never an assumed state.
+   */
+  setSense(sense, enabled, timeoutMs = 15_000) {
+    if (!this._proc || this._state !== "awake") {
+      return Promise.resolve({ ok: false, error: `mind is ${this._state}` });
+    }
+    const id = `sense${++this._senseSeq}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this._pendingSense.delete(id);
+        resolve({ ok: false, error: `sense request timed out after ${timeoutMs}ms` });
+      }, timeoutMs);
+      this._pendingSense.set(id, (frame) => {
+        clearTimeout(timer);
+        if (frame.ok) resolve({ ok: true, sense: frame.sense, enabled: frame.enabled });
+        else resolve({ ok: false, error: String(frame.reason ?? "sense request failed") });
+      });
+      const payload = { id, type: "sense.set", sense: String(sense) };
+      if (typeof enabled === "boolean") payload.enabled = enabled;
+      try {
+        this._proc.stdin.write(JSON.stringify(payload) + "\n");
+      } catch (err) {
+        clearTimeout(timer);
+        this._pendingSense.delete(id);
+        resolve({ ok: false, error: String(err && err.message ? err.message : err) });
+      }
+    });
+  }
+
   _modeRequest(payload, timeoutMs) {
     if (!this._proc || this._state !== "awake") {
       return Promise.resolve({ ok: false, error: `mind is ${this._state}` });

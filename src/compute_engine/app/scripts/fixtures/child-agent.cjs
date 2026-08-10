@@ -47,6 +47,17 @@ process.stdin.on("data", (d) => {
     if (msg.type === "chat") emit({ type: "chat.ack", accepted: true });
     if (msg.type === "state") emit({ type: "state", ticks: 13, stableThoughts: 5, concepts: 8 });
     if (msg.type === "sensor.audio" || msg.type === "sensor.vision") { /* accepted silently */ }
+      if (msg.type === "web.feed") { emit({ type: "web.feed", id: msg.id, ok: true, url: msg.url, chars: 127, chunks: 3 }); }
+      // ADR-001 — the Sigma-panel sense verb. Read when `enabled` is omitted,
+      // flip when it is a boolean. Echoes the real sense name + new state,
+      // exactly the bridge's honest contract (never an assumed state).
+      if (msg.type === "sense.set") {
+        if (msg.sense === "retention" || msg.sense === "telemetry") {
+          emit({ type: "sense.set", id: msg.id, ok: true, sense: msg.sense, enabled: typeof msg.enabled === "boolean" ? msg.enabled : true });
+        } else {
+          emit({ type: "sense.set", id: msg.id, ok: false, reason: `unknown sense: ${String(msg.sense)}` });
+        }
+      }
     if (msg.type === "shutdown") {
       emit({ type: "boot", phase: "sleep" });
       stopping = true;

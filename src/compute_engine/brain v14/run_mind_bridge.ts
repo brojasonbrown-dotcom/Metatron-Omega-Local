@@ -26,6 +26,8 @@ import * as path from "node:path";
 import { MATHSTRAL_MODEL, OllamaSupervisor, PHI_MODEL } from "./adapters/ollama_supervisor.ts";
 import { AudioSensor } from "./adapters/sensors/audio_mic.ts";
 import { SensorBus } from "./adapters/sensors/sensor_bus.ts";
+import { OcrFeedSensor } from "./adapters/sensors/ocr_feed.ts";
+import { WebFeedSensor } from "./adapters/sensors/web_feed.ts";
 import { TextFeedSensor } from "./adapters/sensors/text_feed.ts";
 import { FileVisionSensor } from "./adapters/sensors/vision_files.ts";
 import { ScreenVisionSensor } from "./adapters/sensors/vision_screen.ts";
@@ -41,6 +43,8 @@ import { MemoryStore } from "./cognition/memory_store.ts";
 import { FieldGenome } from "./cognition/field_genome.ts";
 import { ResonanceManifold } from "./cognition/resonance_manifold.ts";
 import { LearningModeGovernor } from "./cognition/learning_mode.ts";
+import { RetainedMemory } from "./cognition/retained_memory.ts";
+import { TelemetryTape } from "./cognition/telemetry_tape.ts";
 import { DomainCurriculum, type Corpus, type CorpusResult } from "./adapters/domain_curriculum.ts";
 import { FractalNodeEngine } from "./fractal_node_engine.ts";
 
@@ -177,11 +181,20 @@ async function main(): Promise<void> {
   const fileEye = new FileVisionSensor(bus, INBOX_DIR);
   const ear = new AudioSensor(bus, INBOX_DIR);
   const reader = new TextFeedSensor(bus, INBOX_DIR);
+  // F3 — the READING sense: images/scans in <inbox>/ocr/ are OCR'd to text and
+  // fed through the SAME language path as typed words, so the mind learns to
+  // read (and correlate what it reads) via the existing Ollama loops.
+  const ocrEye = new OcrFeedSensor(bus, INBOX_DIR);
+  // F4 — the WEB sense: <inbox>/web/ holds URL pointers; the bridge also serves
+  // a direct web.feed verb. Pages are read + learned through the same language path.
+  const webEye = new WebFeedSensor(bus, INBOX_DIR);
   screenEye.start();
   fileEye.start();
   await ear.start();
   reader.start();
-  phase("sensors", { mic: ear.stats().micActive });
+  ocrEye.start();
+  webEye.start();
+  phase("sensors", { mic: ear.stats().micActive, ocr: true });
 
   // P6-E — the domain curriculum: specialise the mind by instructed corpora.
   // Business docs, software UIs and operator instructions are canonicalised
@@ -196,11 +209,20 @@ async function main(): Promise<void> {
   // every gate branch in the loop was inert without this injection).
   const gate = new LinguisticGate(registry);
   const loop = new CognitiveLoop(
-    { engine, bus, registry, store, llm, voice, glossary, lexicon, gate, genome, manifold, modeGovernor },
+    { engine, bus, registry, store, llm, voice, glossary, lexicon, gate, genome, manifold, modeGovernor,
+      // ADR-001 - the Sigma-panel training senses, wired into the production mind.
+      // Both default DISABLED (their documented SPEC: inert until the operator
+      // flips them via sense.set, so today's loop is byte-for-byte unchanged).
+      // Retention reads the engine's real measured HardwareGovernor for headroom
+      // (never writes it); admissions/deferrals are journaled through the store;
+      // the tape shares the one validated SensorBus.
+      retainedMemory: new RetainedMemory(engine.hardware_governor, store, false),
+      telemetryTape: new TelemetryTape(bus, false),
+    },
     loaded.stableThoughtCount,
     loaded.episodes ?? []
   );
-  const bridge = new MindBridge({ bus, store, loop, registry, llm, glossary, lexicon, engine, instrument, supervisor, curriculum });
+  const bridge = new MindBridge({ bus, store, loop, registry, llm, glossary, lexicon, engine, instrument, supervisor, curriculum, webFeed: webEye });
 
   store.journal({
     t: Date.now(),

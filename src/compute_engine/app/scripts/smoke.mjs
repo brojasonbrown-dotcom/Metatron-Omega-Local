@@ -116,6 +116,20 @@ async function checkLoop() {
   loop.reset();
   const s3 = loop.state();
   checks.push(["reset zeroes drives", s3.drives.audio === 0 && s3.ticks === 0]);
+  // ── drift/burden health scan (the "is it actually at rest?" verdict) ──
+  {
+    const { scanDrift } = require("../electron/scanDrift.cjs");
+    const hs = s3.health;
+    checks.push(
+      ["health scan present on state()", hs && typeof hs.code === "string"],
+      ["healthy loop reads NOMINAL", hs.level === "nominal"],
+      ["invariants carry nodes + burdenPeak", s3.invariants.nodes === loop._nodes && typeof s3.invariants.burdenPeak === "number"],
+      // the operator's flagged pairing: coherence pinned at 1.0 must NOT read as rest
+      ["blow-up pairing flagged ENERGY BLOW-UP", scanDrift({ drift: 23.6, closure: 1.0, coherence: 1.0, burden: 6.657e12, nodes: 610, burdenPeak: 6.657e12 }).level === "blowup"],
+      ["open circuit flagged", scanDrift({ drift: 23.6, closure: 1.0, coherence: 1.0, burden: 6.657e12, nodes: 610, burdenPeak: 6.657e12 }).openCircuit === true],
+      ["resting loop not falsely flagged", scanDrift({ drift: 4e-4, closure: 0.02, coherence: 0.999, burden: 40, nodes: 64, burdenPeak: 40 }).level === "nominal"],
+    );
+  }
     // ── adaptive-mesh telemetry (Phases 1-4) — real, measured, live ──
     const rf = s3.refinement;
     checks.push(
@@ -166,7 +180,10 @@ async function checkLoop() {
     }
     const loop2 = new EngineLoop();
     loop2.start();
-    await wait(300);
+    // The mesh advances on a decimated cadence (every 8th tick — the measured
+    // perf fix). 1200 ms ≈ 36 ticks ≈ 4 mesh updates: enough to refine past
+    // base on the curved seed, where the 300 ms window only caught one.
+    await wait(1200);
     loop2.stop();
     const sLive = loop2.state().refinement;
     checks.push(["live mesh refines above base on curved seed", sLive.leaves > 16 && sLive.depth > 2]);
@@ -199,6 +216,17 @@ async function checkMindService() {
   checks.push(["chat accepted while awake", chat.ok === true]);
   await wait(300);
   checks.push(["chat.ack received", events.some((f) => f.type === "chat.ack" && f.accepted)]);
+    // F4 — the web sense verb: id-keyed honest verdict over the real stdio protocol.
+    const web = await svc.webFeed("https://example.com/");
+    checks.push(["web.feed verb resolves id-keyed verdict", web.ok === true && web.chunks === 3 && typeof web.url === "string"]);
+    // ADR-001 — the Sigma-panel sense verb: retention/telemetry flip+read over
+    // the same id-keyed protocol. Proves the mindService.cjs transport end-to-end.
+    const senseOff = await svc.setSense("retention", false);
+    checks.push(["sense.set flip resolves id-keyed verdict", senseOff.ok === true && senseOff.sense === "retention" && senseOff.enabled === false]);
+    const senseRead = await svc.setSense("telemetry");
+    checks.push(["sense.set read (enabled omitted) resolves", senseRead.ok === true && senseRead.sense === "telemetry" && typeof senseRead.enabled === "boolean"]);
+    const senseBad = await svc.setSense("nope-sense", true);
+    checks.push(["sense.set unknown sense is honestly refused", senseBad.ok === false && typeof senseBad.error === "string"]);
   svc.sensorFrame("audio", new Array(28).fill(0.01), { energy: 0.5 });
   const stop = svc.stop();
   checks.push(["stop requested", typeof stop === "object"]);
@@ -222,6 +250,32 @@ async function checkMindService() {
   }
 }
 await checkMindService();
+
+// ── document ingest — type-sniffed, size-capped, honest refusals ──
+{
+  const { ingestDocument } = require("../electron/documentIngest.cjs");
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+  const tmp = (n, c, enc) => { const p = path.join(os.tmpdir(), n); fs.writeFileSync(p, c, enc); return p; };
+  const text = ingestDocument(tmp("ava-doc.txt", "closure residue never zero by theorem"));
+  const pdf = ingestDocument(tmp("ava-doc.pdf", "%PDF-1.4\nBT /F1 12 Tf 72 720 Td (Hello Engine) Tj ET\n%%EOF", "latin1"));
+  const bin = ingestDocument(tmp("ava-doc.png", Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])));
+  const checks = [
+    ["text document reads", text.ok && text.kind === "text" && text.text.includes("closure residue")],
+    ["PDF text layer extracted", pdf.ok && pdf.kind === "pdf" && pdf.text.includes("Hello Engine")],
+    // A PNG is sniffed as an IMAGE routed to OCR: succeeds when the inbox
+    // is live, honestly refused (real reason) when the mind is not running.
+    // What must never happen is a fabricated read or a crash.
+    ["image routed to OCR or honestly refused", (bin.ok && bin.kind === "image") || (!bin.ok && typeof bin.error === "string" && bin.error.length > 0)],
+    ["missing file errors cleanly", !ingestDocument(path.join(os.tmpdir(), "ava-nope.txt")).ok],
+  ];
+  for (const [name, ok] of checks) {
+    if (!ok) failures++;
+    console.log(`${ok ? "PASS" : "FAIL"}  documentIngest: ${name}`);
+  }
+  for (const f of ["ava-doc.txt", "ava-doc.pdf", "ava-doc.png"]) { try { fs.unlinkSync(path.join(os.tmpdir(), f)); } catch {} }
+}
 
 if (failures > 0) {
   console.error(`\n${failures} smoke check(s) FAILED`);
