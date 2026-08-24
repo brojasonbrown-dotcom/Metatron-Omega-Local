@@ -68,8 +68,16 @@ const SNAPSHOT_EVERY_THOUGHTS = 13;
 /** Snapshot every N ticks regardless: F_16 = 987 (≈ 2.4 min). [SPEC] */
 const SNAPSHOT_EVERY_TICKS = 987;
 
-/** Pending thoughts awaiting the phi instrument: max F_4 = 3, oldest dropped. [SPEC] */
-const MAX_THOUGHT_QUEUE = 3;
+/**
+ * Pending thoughts awaiting the phi instrument: max F_7 = 13, oldest dropped. [SPEC]
+ *
+ * Was F_4 = 3: at a 146 ms tick with a multi-second LLM instrument, depth 3 saturated
+ * and silently dropped stable thoughts (measured: 175 "thought queue full" events over
+ * ~419 h of journal). F_7 = 13 matches the SensorBus F_11 = 89 / snapshot F_7 = 13 rungs
+ * — deep enough that real stable thoughts survive a slow instrument, bounded enough that
+ * a stuck phi still sheds load (oldest-first: present > stale).
+ */
+const MAX_THOUGHT_QUEUE = 13;
 
 export interface CognitiveLoopDeps {
   readonly engine: FractalNodeEngine;
@@ -136,6 +144,51 @@ export interface CognitiveLoopDeps {
    * run_mind.ts needs no change. [SPEC]
    */
   readonly genomeDNA?: import("./genome_spectral_signature.ts").GenomeSpectralSignature;
+  /**
+   * ADR-001 — the Telemetry Tape: the engine's own certified spectrum +
+   * continuity invariants re-encoded onto the 28-field and pushed onto the bus
+   * as the internal "engine.fourier" sense. When present AND enabled, the loop
+   * emits one bounded tape frame per tick. Optional so run_mind.ts needs no
+   * change; absent/disabled ⇒ no tape, today's behaviour. [SPEC]
+   */
+  readonly telemetryTape?: import("./telemetry_tape.ts").TelemetryTape;
+  /**
+   * L1 — the cross-scale flow observer. When present AND enabled, each tick the
+   * tree's per-scale closure residual is routed through the engine's File-11
+   * FluxLedger across the ladder + ±13 octave channels. Read-only; absent/disabled
+   * ⇒ no cross-scale lane, today's behaviour. [SPEC]
+   */
+  readonly crossScaleFlow?: import("./cross_scale_flow.ts").CrossScaleFlow;
+  /**
+   * L3 — the eigenmode-grid observer. When present AND enabled, each tick the
+   * tree's lattice is decomposed into per-node ring-Laplacian eigenmodes + the
+   * lattice n-D superposition grid (φ-graded modal occupancy). Read-only;
+   * absent/disabled ⇒ no grid, today's behaviour. [SPEC]
+   */
+  readonly eigenmodeGrid?: import("./eigenmode_grid.ts").EigenmodeGridObserver;
+  /**
+   * L5 — the multiscale bridge. When present AND enabled, the closed 18-torus
+   * engine steps in lockstep with the mind and its four-invariant readout is
+   * pushed as an `engine.multiscale` sense. Read-only off the engine's own step;
+   * absent/disabled ⇒ no multiscale sense, today's behaviour. [SPEC]
+   */
+  readonly multiscaleBridge?: import("./multiscale_bridge.ts").MultiscaleBridge;
+  /**
+   * Cross-modal co-occurrence correlator (learning-layer gap). When present AND
+   * enabled, each tick measures the BETWEEN-modality resonance of co-arriving
+   * frames (φ-decayed, with sample sizes) — the cross-correlation substrate of
+   * grounded meaning. Read-only; absent/disabled ⇒ today's behaviour. [SPEC]
+   */
+  readonly crossModalCorrelator?: import("./cross_modal_correlator.ts").CrossModalCorrelator;
+  /**
+   * ADR-001 — the Retained Memory gate. When present AND enabled, each stable
+   * thought's measured coherence is judged against the retention threshold
+   * (default 0.66) plus novelty and the HardwareGovernor's headroom; the honest
+   * verdict is journaled. The thought's learning is NEVER blocked — retention
+   * is an additive read, not a gate on the engine's sensory door. Optional so
+   * run_mind.ts needs no change. [SPEC]
+   */
+  readonly retainedMemory?: import("./retained_memory.ts").RetainedMemory;
 }
 
 export class CognitiveLoop {
@@ -207,6 +260,20 @@ export class CognitiveLoop {
     return this._episodes;
   }
 
+  /** Read access to the deep observer lanes (L1/L3/L5) for the answer spine. [SPEC] */
+  get crossScaleFlow(): import("./cross_scale_flow.ts").CrossScaleFlow | undefined {
+    return this._deps.crossScaleFlow;
+  }
+  get eigenmodeGrid(): import("./eigenmode_grid.ts").EigenmodeGridObserver | undefined {
+    return this._deps.eigenmodeGrid;
+  }
+  get multiscaleBridge(): import("./multiscale_bridge.ts").MultiscaleBridge | undefined {
+    return this._deps.multiscaleBridge;
+  }
+  get crossModalCorrelator(): import("./cross_modal_correlator.ts").CrossModalCorrelator | undefined {
+    return this._deps.crossModalCorrelator;
+  }
+
   get tickCount(): number {
     return this._tickCount;
   }
@@ -263,6 +330,14 @@ export class CognitiveLoop {
 
       // 1. SENSE — validated frames through the sanctioned door.
       const frames = bus.drain(MAX_FRAMES_PER_TICK);
+      // CROSS-MODAL CORRELATOR — measure BETWEEN-modality co-occurrence resonance
+      // over this tick's frames (a sight + a sound arriving together). Read-only;
+      // never perturbs the sensory door below. Inert until enabled. [SPEC]
+      if (this._deps.crossModalCorrelator?.enabled && frames.length > 1) {
+        this._deps.crossModalCorrelator.observe(frames);
+      }
+      // M3 — advance the correlator's confidence-decay clock once per loop tick. [SPEC]
+      this._deps.crossModalCorrelator?.tickClock(this._tickCount);
       for (const frame of frames) {
         await engine.process(frame.field);
         this._tracker.noteSource(frame.source);
@@ -332,6 +407,51 @@ export class CognitiveLoop {
       const score = ExistenceDetector.evaluate(root, this._prevRootField, boundary);
       const drives = this._arbiter.tick(root, this._prevRootField, score);
       const thought = this._tracker.observe(root, score, this._tickCount);
+
+      // ADR-001 — TELEMETRY TAPE: re-encode the engine's own readouts (spectrum
+      // + the four continuity invariants) as the internal "engine.fourier" sense.
+      // Read-only off the committed root field; the tape self-throttles and defers
+      // to live perception. Computed AFTER the current root is known but BEFORE
+      // _prevRootField is overwritten, so coherence is the honest self-overlap. [SPEC]
+      if (this._deps.telemetryTape?.enabled) {
+        const inv = this._continuityInvariants(root, this._prevRootField);
+        // P1 — hand the whole-tree lattice so the frame ALSO carries the certified
+        // multidimensional spectral enrichment (spectrumND over [nodes][28]); the
+        // root field is the honest 1-node fallback when no genome is attached.
+        const lattice = this._deps.genome ? engine.snapshot_field_lattice() : root;
+        this._deps.telemetryTape.emit(this._tickCount, { field: root, invariants: inv }, lattice);
+      }
+
+      // L1 — CROSS-SCALE FLOW: route each scale's measured closure residual through
+      // the engine's File-11 FluxLedger across the ladder + ±13 octave channels.
+      // Read-only off the committed tree; never perturbs dynamics. The κ·cc factor
+      // is read from the ROOT membrane's own contract so the residual matches the
+      // node's surface term exactly. Inert until enabled (default off). [SPEC]
+      if (this._deps.crossScaleFlow?.enabled) {
+        const rootNode = engine.get_state().root_node;
+        const CLOSURE_COUPLING = 0.1967263286200249; // core/constants CLOSURE_COUPLING
+        const kappaCc = CLOSURE_COUPLING * rootNode.membrane.curvature_coupling;
+        this._deps.crossScaleFlow.observe(rootNode, kappaCc);
+      }
+
+      // L3 — EIGENMODE GRID: decompose the tree lattice into per-node standing-wave
+      // superpositions + the lattice n-D modal-occupancy grid. Read-only off the
+      // committed lattice (same snapshot the genome/tape read); never perturbs
+      // dynamics. Inert until enabled (default off). [SPEC]
+      if (this._deps.eigenmodeGrid?.enabled) {
+        const lattice = this._deps.genome ? engine.snapshot_field_lattice() : root;
+        this._deps.eigenmodeGrid.observe(lattice);
+      }
+
+      // L5 — MULTISCALE BRIDGE: step the closed 18-torus engine in lockstep with
+      // the mind and push its four-invariant readout as an engine.multiscale sense,
+      // so the mind perceives its own deep engine's multiscale closure. Read-only
+      // off the engine's step result; never perturbs the tree. Inert until enabled
+      // (default off). [SPEC]
+      if (this._deps.multiscaleBridge?.enabled) {
+        this._deps.multiscaleBridge.step();
+      }
+
       this._prevRootField = new Float64Array(root);
 
       // 3-5. RECOGNIZE + ACT + VOICE on a newborn stable thought.
@@ -498,6 +618,26 @@ export class CognitiveLoop {
     // door so experience re-enters the dynamics. Never blocks the tick. [SPEC]
     if (this._deps.genome && (this._deps.modeGovernor?.reinjectionEnabled ?? false)) {
       void this._recallReinject(thought);
+    }
+
+    // ADR-001 — RETAINED MEMORY: judge this thought's measured coherence against
+    // the retention gate (≥ 0.66 + novel + governor headroom). The verdict is
+    // journaled honestly; the thought's own learning above is NEVER blocked —
+    // retention is an additive read of the coherence the DETECT step measured. [SPEC]
+    if (this._deps.retainedMemory?.enabled) {
+      const gate = this._deps.noveltyGate;
+      const novel = gate && gate.enabled && thought.sources.length > 0
+        ? thought.sources.some((src) => this._lastNovelty.get(src)?.novel !== false)
+        : true; // gate off / internal thought — treat as novel (learn-everything)
+      this._deps.retainedMemory.admit(
+        {
+          source: `thought:${thought.sources.join("+") || "internal"}`,
+          coherence: score.coherenceScore,
+          novel,
+          meta: { thought: thought.id, concept: obs.concept.id },
+        },
+        this._deps.engine.get_state().total_nodes,
+      );
     }
 
     // PERSIST on thought cadence.
@@ -1167,6 +1307,79 @@ export class CognitiveLoop {
         replaySweeps: this._replaySweeps,
         replayDefers: this._replayDefers,
       };
+    }
+
+    /** ADR-001 — live tape + retention telemetry for the Sigma panel / tests. [SPEC] */
+    get trainingLoopStats(): {
+      tape: import("./telemetry_tape.ts").TapeStats | null;
+      retention: import("./retained_memory.ts").RetentionStats | null;
+    } {
+      return {
+        tape: this._deps.telemetryTape?.stats() ?? null,
+        retention: this._deps.retainedMemory?.stats() ?? null,
+      };
+    }
+
+    /**
+     * ADR-001 — flip a training-loop sense live (the Sigma panel toggles). Honest:
+     * returns the NEW enabled state, or null when that sense was never wired into
+     * the loop (the caller reports not-present, never fakes the flip). The sense
+     * own setEnabled journals the transition; we mirror it to the store so the
+     * toggle survives as an auditable event. [SPEC]
+     */
+    setSense(kind: "retention" | "telemetry", enabled: boolean): boolean | null {
+      const target =
+        kind === "retention" ? this._deps.retainedMemory :
+        kind === "telemetry" ? this._deps.telemetryTape : undefined;
+      if (!target) return null;
+      target.setEnabled(enabled);
+      this._deps.store.journal({
+        t: Date.now(),
+        kind: "sense.toggle",
+        data: { sense: kind, enabled, tick: this._tickCount },
+      });
+      return target.enabled;
+    }
+
+    /**
+     * ADR-001 — the four continuity invariants of the committed root field,
+     * computed fresh each tick the tape is enabled. Mirrors the engine loop's own
+     * definitions so the tape and the Σ panel report the SAME measured numbers:
+     * coherence = cos²(u_t, u_{t-1}) self-overlap; closure = |Σu|/Σ|u| net-flux
+     * fraction; drift = |log(E/E_prev)| energy slide; burden = Σu². [SPEC]
+     */
+    private _continuityInvariants(
+      u: Float64Array,
+      up: Float64Array | null,
+    ): import("./telemetry_tape.ts").ContinuityInvariants {
+      let sum = 0, sumAbs = 0, energy = 0;
+      for (let i = 0; i < u.length; i++) {
+        const v = u[i]!;
+        sum += v;
+        sumAbs += Math.abs(v);
+        energy += v * v;
+      }
+      const closure = sumAbs === 0 ? 0 : Math.abs(sum) / sumAbs;
+      const burden = energy;
+
+      // Coherence + drift need a previous state; the first tick reports the honest
+      // "no past" read (coherence 1, drift 0), matching temporal_engine's convention.
+      let coherence = 1;
+      let drift = 0;
+      if (up !== null) {
+        let dot = 0, na = 0, nb = 0, ePrev = 0;
+        const n = Math.min(u.length, up.length);
+        for (let i = 0; i < n; i++) {
+          dot += u[i]! * up[i]!;
+          na += u[i]! * u[i]!;
+          nb += up[i]! * up[i]!;
+          ePrev += up[i]! * up[i]!;
+        }
+        const denom = Math.sqrt(na) * Math.sqrt(nb);
+        coherence = denom === 0 ? 0 : Math.min(1, (dot / denom) ** 2);
+        drift = ePrev > 0 && energy > 0 ? Math.abs(Math.log(energy / ePrev)) : 0;
+      }
+      return { coherence, closure, drift, burden };
     }
 
     /**

@@ -595,3 +595,64 @@ installed `resources/`) for the running app to pick it up.
 
 **Net:** mind boots live from the packed layout; the EPIPE crash path is closed at
 both the stream layer and the process layer. No regressions.
+
+
+---
+
+# P-SERIES RESULTS — 2026-08-12 sweep
+
+**Method:** pre-build scan reconciled every plan "add" step against the live tree; only
+genuinely-absent packages were built (no duplicates). Each package gated by its own measured
+battery + the full regression suite.
+
+| Package | Status | Tests | Notes |
+|---|---|---|---|
+| AMR Phase 5 boundary closure | **GREEN** | engine 451/451 (+19) | `refinement/boundary.ts` C1 flux-matching at hanging-node fronts, phi^-2-graded coupling; wired into AdaptiveMesh (observation-only); 19-test battery proves value/flux continuity, flux conservation, no-invented-field, constant preservation |
+| P6 STT (VAD-gated whisper) | **GREEN** | brain 9 + 1 env-skip | `adapters/sensors/stt_whisper.ts`; VAD skips ~100% silence / >=80% non-speech; honest 'STT not provisioned'; live whisper round-trip env-gated (WER needs labelled sample) |
+| Track G gematria core | **GREEN** | brain 19 | `core/gematria.ts` G1-G3: multi-base exact remainder + precision ladder; dr_b=n mod(b-1) over 10^5x9; Z[phi] ring (A8 zero-drift, phi^76); Zeckendorf addressing; numerology refused by construction |
+| **P10 regression** | **GREEN** | engine 451/451, brain 482/482, app smoke all-pass | tsc 0/0 both packages (legacy 45 unchanged) |
+
+**Already-present (not rebuilt — verified in pre-scan):** P1 de-biased naming
+(`debiased_naming.test.ts`, `structured_spine.ts`), P2 vision dual-hash+BK-tree
+(`visual_memory.ts`), P3 memory battery (`memory-algorithms.test.ts`), P4 HNSW+SQ8
+(`hnsw_index.ts`, `pq_codec.ts`), P5 training toggle (`learning_mode.ts`), P7 measured
+telemetry (`telemetry_tape.ts`).
+
+
+---
+
+# P-SERIES RESULTS (cont.) — 2026-08-12 unfinished-tracks sweep
+
+**Method:** pre-build scan confirmed G4, P8, P9 were the ONLY genuinely-absent tracks
+(everything else in MASTER_PLAN_V3 / GEMATRIA_ENGINE_PLAN already existed and is green).
+Built in plan order, one gate at a time, each measured.
+
+| Package | Status | Tests | Notes |
+|---|---|---|---|
+| Track G4 fractals & self-similarity | **GREEN** | brain +20 (502/502) | `core/fractal_diagnostics.ts`: box-counting dim + 95% CI validated on Cantor (log2/log3) + Sierpinski (log8/log3) recovered exactly; DSI log-periodicity recovers log(sqrt(phi)); census spectrum re-derives Cert 4.D1 anchors 41/281/3401/43961 + F21 cap at depth 8. Honesty: CI mandatory, no meaning. **Track G COMPLETE.** |
+| P8 clean responses | **GREEN** | brain +9 (511/511) | `adapters/clean_response.ts` + mind_bridge opt-in `cleanResponses` flag; human sentence leads, spine defers to `details`, numbers only when they ARE the answer, honest refusal. M5 gates untouched. |
+| P9 hosted-model (A6 provenance) | **GREEN** | brain +13 (524/524) | `core/provenance.ts` sha1(model_id ‖ prompt_hash ‖ ts); router `answerWithProvenance`/`verifyStructureWithProvenance` stamp the LIVE model id; content-free, tamper-evident. Live-routing half env-gated (integration.ollama). |
+| **P10 final sweep** | **GREEN** | engine 975/975, brain 524/524, app smoke all-pass | tsc 0/0 both packages (legacy 45 unchanged) |
+
+**Rigor notes (caught by the batteries, fixed before green):** G4 dimension-sign flip;
+G4 census-branching test expectation was off-by-one vs the real spawn law (module right,
+test wrong). Census recurrence cross-checked against the certified anchors before any TS
+was written — my first naive product formula was wrong (30 vs 41), corrected by reading
+`fractal_node.create_children`, never guessed.
+
+
+---
+
+# TRACK G4 LIVE — 2026-08-12
+
+**Scope:** the LIVE connection G4.1 names (box-count the golden-spiral mode field) — an
+integration layer over the already-validated estimators, not a re-implementation. Engine
+untouched.
+
+| Deliverable | Status | Tests | Measured |
+|---|---|---|---|
+| `core/fractal_field.ts` G4-live integration | **GREEN** | brain 16 (fractal_field) | golden-spiral field D = 0.627, CI [−0.60, 1.86], r² = 0.71 — wide CI honestly reported (only 4 dyadic scales on 64×14 grid; no overclaim) |
+| fieldFractalDimension honesty | **GREEN** | flat/uniform/wrong-len/single-node → null | never a fabricated dimension |
+| phiBandSelfSimilarity | **GREEN** | recovers √φ log-spacing (DSI true) | arithmetic ladder honestly NOT DSI |
+| fractalFieldReport composite | **GREEN** | dimension+DSI+live censusLawHolds (4.D1) | flat lattice still re-verifies census |
+| **Regression** | **GREEN** | brain 540/540 (+36 G4 fractal files; +58 total incl. prior P-series), engine 451/451 + tsc clean, app smoke all-pass | typecheck 0/0 (legacy 45 unchanged) |

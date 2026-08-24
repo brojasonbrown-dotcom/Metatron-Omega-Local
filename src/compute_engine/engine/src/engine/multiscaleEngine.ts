@@ -66,7 +66,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { STABLE_SCALES, type StableScaleIndex } from "../core/constants.js";
+import { STABLE_SCALES, type StableScaleIndex } from "../core/constants.ts";
 import { getScale } from "../core/scaleTable.ts";
 import { classify, tainted, type Classified, type Provenance } from "../core/provenance.ts";
 import { torusForScale, type TorusParams, type TorusField } from "../geometry/torus.ts";

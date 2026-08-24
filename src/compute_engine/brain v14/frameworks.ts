@@ -1360,6 +1360,9 @@ export class L2_Hebbian implements MemoryEngine {
   /** Pattern history for temporal weighting (STDP-like). [SPEC] */
   private _patternHistory: Float64Array[] = [];
 
+  /** [OPT-A] reusable flat N² normalization buffer (kills per-recall alloc churn). */
+  private _normW: Float64Array | null = null;
+
   /** Maximum history size (Fibonacci: F_4 = 3). [SPEC] */
   readonly max_history: number = 3;
 
@@ -1417,18 +1420,24 @@ export class L2_Hebbian implements MemoryEngine {
 
     // Step 1: Synaptic normalization (row-wise)
     // Normalize weights so each row sums to 1 (prevent runaway growth)
-    const normalizedWeights: Float64Array[] = [];
+    // [OPT-A] flat preallocated N² buffer (reused across calls, resized only when
+    // N changes) instead of per-row push() of fresh Float64Arrays — identical math,
+    // identical values, no O(N²) allocation churn. Cache-line friendlier too.
+    if (this._normW === null || this._normW.length !== N * N) {
+      this._normW = new Float64Array(N * N);
+    }
+    const normalizedWeights = this._normW;
     for (let i = 0; i < N; i++) {
       let rowSum = 0.0;
+      const cRow = at(this._correlationMatrix, i);
       for (let j = 0; j < N; j++) {
-        rowSum += Math.abs(at(at(this._correlationMatrix, i), j));
+        rowSum += Math.abs(at(cRow, j));
       }
       const normFactor = rowSum > 1e-300 ? 1.0 / rowSum : 1.0;
-      const normalizedRow = new Float64Array(N);
+      const rowBase = i * N;
       for (let j = 0; j < N; j++) {
-        normalizedRow[j] = at(at(this._correlationMatrix, i), j) * normFactor;
+        normalizedWeights[rowBase + j] = at(cRow, j) * normFactor;
       }
-      normalizedWeights.push(normalizedRow);
     }
 
     // Step 2: Hebbian recall: output = correlation_matrix · pattern
@@ -1436,7 +1445,7 @@ export class L2_Hebbian implements MemoryEngine {
     for (let i = 0; i < N; i++) {
       let sum = 0.0;
       for (let j = 0; j < N; j++) {
-        sum += at(at(normalizedWeights, i), j) * at(pattern, j);
+        sum += at(normalizedWeights, i * N + j) * at(pattern, j);
       }
       result[i] = sum;
     }

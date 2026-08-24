@@ -64,10 +64,10 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, PHI_NEG2 } from "../core/constants.js";
-import type { Classified } from "../core/provenance.js";
-import { classify } from "../core/provenance.js";
-import type { Field } from "./memoryKernel.js";
+import { PHI, PHI_NEG2 } from "../core/constants.ts";
+import type { Classified } from "../core/provenance.ts";
+import { classify } from "../core/provenance.ts";
+import type { Field } from "./memoryKernel.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants

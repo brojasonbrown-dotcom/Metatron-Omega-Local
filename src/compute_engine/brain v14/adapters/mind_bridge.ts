@@ -31,6 +31,8 @@ import { chunkText } from "./sensors/text_feed.ts";
 import type { SensorBus } from "./sensors/sensor_bus.ts";
 import type { MemoryStore } from "./../cognition/memory_store.ts";
 import type { CognitiveLoop } from "./../cognition/cognitive_loop.ts";
+import { buildStructuredSpine } from "./../cognition/structured_spine.ts";
+import { cleanResponse } from "./clean_response.ts";
 import type { ConceptRegistry } from "./../cognition/concept_registry.ts";
 import type { InstrumentRouter, InstrumentId } from "./../cognition/instrument_router.ts";
 import type { OllamaSupervisor } from "./ollama_supervisor.ts";
@@ -63,6 +65,14 @@ export interface MindBridgeDeps {
   readonly curriculum?: DomainCurriculum;
   /** F4 — the web-reading sense; when present the bridge serves web.feed. */
   readonly webFeed?: import("./sensors/web_feed.ts").WebFeedSensor;
+  /**
+   * P8 — clean responses. When true (default off, additive), answer frames lead
+   * with ONE short human sentence and carry the measured facts-spine in a
+   * separate `details` field (one tap away), instead of dumping the spine above
+   * the sentence. The M5 resonance/mathstral gates are untouched — this changes
+   * only presentation, never what was measured.
+   */
+  readonly cleanResponses?: boolean;
 }
 
 /** The subset of journal kinds forwarded to the host (the rest is noise). */
@@ -313,7 +323,17 @@ export class MindBridge {
             .filter((x): x is string => x !== null)
             .join("\n")
         : "";
-      const enrichedFacts = [facts, glossaryContext].filter((s) => s.trim().length > 0).join("\n\nLEARNED MEANINGS:\n");
+      const structuredSpine = buildStructuredSpine({
+        registry,
+        lexicon,
+        glossary,
+        observers: {
+          crossScaleFlow: this._deps.loop.crossScaleFlow,
+          eigenmodeGrid: this._deps.loop.eigenmodeGrid,
+          multiscaleBridge: this._deps.loop.multiscaleBridge,
+        },
+      });
+      const enrichedFacts = [facts, structuredSpine, glossaryContext].filter((s) => s.trim().length > 0).join("\n\nLEARNED MEANINGS:\n");
 
       const out = await llm.answer(text, { engineFacts: enrichedFacts, concepts }, MindBridge._answerDepth(text));
       if (out.ok) {
@@ -371,11 +391,43 @@ export class MindBridge {
         }
 
         const spine = facts.trim().length > 0 ? facts.trim() : "";
+        const grounded = [...new Set(concepts.map((c) => c.labels[0] ?? "unnamed"))];
+
+        // P8 — clean responses (opt-in): the human sentence leads; the measured
+        // spine waits in `details`. Presentation only — the M5 gates already ran.
+        if (this._deps.cleanResponses) {
+          const clean = cleanResponse({
+            facts: spine,
+            commentary: resonanceOk ? commentary : null,
+            fallbackNote: resonanceOk
+              ? undefined
+              : "my phrasing didn't stabilize — here is only what I can verify",
+            grounded,
+            certificate,
+            verification,
+          });
+          this._emit({
+            type: "answer",
+            id,
+            text: clean.text,
+            details: clean.details,
+            commentary: resonanceOk ? commentary : null,
+            grounded: clean.grounded,
+            source: "llm",
+            certificate,
+            verification,
+            prediction,
+            predictionBaseline,
+            mastery,
+            elapsedMs: out.elapsedMs,
+          });
+          return;
+        }
+
         const body = resonanceOk
           ? commentary
           : `(my phrasing didn't stabilize — here is only what I can verify)`;
         const answerText = spine.length > 0 ? `${spine}\n\nψ: ${body}` : `ψ: ${body}`;
-        const grounded = [...new Set(concepts.map((c) => c.labels[0] ?? "unnamed"))];
         this._emit({
           type: "answer",
           id,
@@ -438,6 +490,22 @@ export class MindBridge {
       // — no keep-warm). The router flag is the source of truth.
       if (o["type"] === "ollama.set") {
         const enabled = o["enabled"] === true;
+        // ADR-009 — ALWAYS-ON GUARD. The Ollama pair IS the mind's cognition backbone
+        // (the speech module's runtime): disabling it makes the brain go mute. The
+        // operator's law is "the Ollama/mind layers cannot be deactivated", so an
+        // enabled:false request is REFUSED by default and the backbone keeps running.
+        // Escape hatch (a deliberate, env-level operator choice, not an IPC toggle):
+        // MIND_OLLAMA_ALLOW_DISABLE=1 restores the legacy cold-stop behaviour. [SPEC]
+        if (!enabled && process.env["MIND_OLLAMA_ALLOW_DISABLE"] !== "1") {
+          this._emit({
+            type: "instrument",
+            id,
+            ok: false,
+            reason: "ollama backbone is always-on (ADR-009): the cognition/speech layer cannot be deactivated via IPC. Set MIND_OLLAMA_ALLOW_DISABLE=1 in the environment to override.",
+            ollamaEnabled: true,
+          });
+          return;
+        }
         const result = await instrument.setOllamaEnabled(enabled);
         if (!result.ok) {
           this._emit({ type: "instrument", id, ok: false, reason: result.reason });

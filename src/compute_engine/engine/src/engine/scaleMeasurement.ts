@@ -71,7 +71,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, type StableScaleIndex } from "../core/constants.js";
+import { PHI, type StableScaleIndex } from "../core/constants.ts";
 import { getScale } from "../core/scaleTable.ts";
 import { classify, tainted, type Classified } from "../core/provenance.ts";
 import { torusForScale, type TorusParams, type TorusField } from "../geometry/torus.ts";
@@ -185,6 +185,8 @@ export interface MeasurableScale {
  * observable. It holds NO field state of its own — it reads the caller's.
  */
 export class ScaleMeasurer {
+  /** The scales to measure (the engine's assembled rungs). */
+  readonly rungs: readonly StableScaleIndex[];
   private readonly sparsestN: StableScaleIndex;
   /** Field step at which each scale was last measured (for phase lag). */
   private readonly lastMeasuredStep = new Map<StableScaleIndex, number>();
@@ -195,8 +197,9 @@ export class ScaleMeasurer {
    * @param rungs the scales to measure (the engine's assembled rungs).
    *   The sparsest (largest-n) rung anchors the density-oversampling baseline.
    */
-  constructor(readonly rungs: readonly StableScaleIndex[]) {
+  constructor(rungs: readonly StableScaleIndex[]) {
     if (rungs.length === 0) throw new RangeError("ScaleMeasurer: need ≥ 1 rung.");
+    this.rungs = rungs;
     this.sparsestN = rungs[rungs.length - 1]!;
   }
 

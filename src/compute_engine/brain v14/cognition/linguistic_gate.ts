@@ -49,7 +49,7 @@ import {
   normalizeField,
   resonance,
 } from "./../adapters/language_codec.ts";
-import { atom, bundle, similarity } from "./../adapters/phasor_field.ts";
+import { atom, similarity } from "./../adapters/phasor_field.ts";
 import type { Concept, ConceptRegistry } from "./concept_registry.ts";
 
 /** Admission threshold: λ = φ⁻² — the one shared coherence floor. [MATH] */
@@ -102,44 +102,48 @@ export function selfCoherence(concept: Concept): number | null {
 export class LinguisticGate {
   private readonly _registry: ConceptRegistry;
   /**
-   * D-space semantic-channel cache: conceptId → [labelsKey, bundled atom field].
+   * D-space anchor cache: conceptId → [labelsKey, bound-label atoms].
    * Rebuilt only when the concept's label set changes (the labelsKey mismatch).
-   * The channel is the bundle of the atoms of the concept's bound labels — the
-   * D-space statement of "what this concept is named". [MATH]
+   * The anchors are the individual D-space atoms of the concept's bound labels —
+   * each one a clean unit-norm statement of "one name this concept carries". [MATH]
    */
-  private readonly _dChan = new Map<string, [string, Float64Array]>();
+  private readonly _dAnchors = new Map<string, [string, readonly Float64Array[]]>();
 
   constructor(registry: ConceptRegistry) {
     this._registry = registry;
   }
 
   /**
-   * The concept's D-space semantic channel: bundle(atom(label) for each bound
-   * label), renormalized. Returns null when the concept has no encodable labels
-   * (un-named) — the caller then falls back to the 28-field measure, honestly.
+   * The concept's bound-label anchors: one D-space atom per encodable bound
+   * label. Returns null when the concept has no encodable labels (un-named) —
+   * the caller then falls back to the 28-field measure, honestly.
    *
-   * Why a bundle of label-atoms and not the lifted percept: a percept-atom and
-   * a word-atom are INDEPENDENT by design (the D-space floor), so a word can
-   * never resonate against the percept that grounded it — it must be BOUND into
-   * the channel. The bundle of bound labels is exactly that binding, and it is
-   * what makes a pre-bind λ-gate sound (measured: tests/partial-bind-detect.mjs).
+   * Why anchors and not the bundled superposition: a normalized bundle dilutes
+   * each constituent by 1/√n, so a bound label's own resonance decays below λ as
+   * the concept accrues names (measured 2026-08-13: n=4 → 0.50, n=6 → 0.41 <
+   * λ — the gate was rejecting the concept's own learned words). A word must
+   * cohere with ONE of the concept's names, not the blended centroid, so the
+   * measurement is the max similarity over the individual label-atoms. A word
+   * then reads 1.0 against its own atom regardless of label count, while an
+   * unrelated word sits at the 1/√D floor against EVERY anchor — so a pre-bind
+   * λ-gate stays sound (false-accept unchanged) AND stops rejecting bound
+   * labels (false-reject fixed). [MATH]
    */
-  private _dChannel(concept: Concept): Float64Array | null {
+  private _dAnchorsOf(concept: Concept): readonly Float64Array[] | null {
     const key = concept.labels.join("");
-    const hit = this._dChan.get(concept.id);
+    const hit = this._dAnchors.get(concept.id);
     if (hit !== undefined && hit[0] === key) return hit[1];
     const atoms: Float64Array[] = [];
     for (const label of concept.labels) {
       try {
         atoms.push(atom(label));
       } catch {
-        // Skip un-encodable labels; the channel is built from what encodes.
+        // Skip un-encodable labels; the anchors are built from what encodes.
       }
     }
     if (atoms.length === 0) return null;
-    const field = bundle(atoms);
-    this._dChan.set(concept.id, [key, field]);
-    return field;
+    this._dAnchors.set(concept.id, [key, atoms]);
+    return atoms;
   }
 
   /**
@@ -148,29 +152,36 @@ export class LinguisticGate {
    * Admission rule: the word must encode cleanly (finite, non-degenerate), and
    * its field must resonate with the concept's reference geometry at ≥ λ.
    *
-   * M8 — measured in the PHASOR hypervector space when the concept has a D-space
-   * semantic channel (bound labels): `similarity(atom(word), bundle(label-atoms))`.
-   * On the 28-field this measurement was UNSOUND (unrelated words hit 0.773 on
-   * the shared φ-DFT structure while bound labels read 0.215 — a λ-threshold
-   * straddled both). In D-space the unrelated floor collapses to 1/√D ≈ 0.011
-   * while a bound label surfaces at ≈ its bind weight (measured:
-   * tests/gate-soundness-dspace.mjs, tests/partial-bind-detect.mjs). A pre-bind
-   * λ-gate is therefore SOUND here. When the concept is un-named (no channel),
-   * falls back to the 28-field measure — honestly noisy, but there is no bound
-   * label to be false-positive against yet. [MATH]
+   * M8 — measured in the PHASOR hypervector space when the concept has bound
+   * labels: `max over label-atoms of similarity(atom(word), atom(label))` — the
+   * word's nearest bound anchor. On the 28-field this measurement was UNSOUND
+   * (unrelated words hit 0.773 on the shared φ-DFT structure while bound labels
+   * read 0.215 — a λ-threshold straddled both). In D-space the unrelated floor
+   * collapses to 1/√D ≈ 0.011 against every anchor, while a bound label reads
+   * ≈1.0 against its own atom no matter how many labels the concept carries —
+   * a normalized bundle would dilute that to 1/√n and reject the concept's own
+   * names past ~4 labels (measured). A pre-bind λ-gate is SOUND here at any
+   * label count. When the concept is un-named (no anchors), falls back to the
+   * 28-field measure — honestly noisy, but there is no bound label to be
+   * false-positive against yet. [MATH]
    */
   measureWord(concept: Concept, word: string): GateVerdict {
     const w = word.trim().toLowerCase();
     if (w.length === 0) {
       return { word: w, resonance: 0, admitted: false, reason: "empty after normalization" };
     }
-    const dChan = this._dChannel(concept);
-    if (dChan !== null) {
-      let r: number;
+    const anchors = this._dAnchorsOf(concept);
+    if (anchors !== null) {
+      let wordAtom: Float64Array;
       try {
-        r = similarity(atom(w), dChan);
+        wordAtom = atom(w);
       } catch {
         return { word: w, resonance: 0, admitted: false, reason: "cannot be encoded" };
+      }
+      let r = 0;
+      for (const anchor of anchors) {
+        const s = similarity(wordAtom, anchor);
+        if (s > r) r = s;
       }
       if (r < GATE_LAMBDA) {
         return {

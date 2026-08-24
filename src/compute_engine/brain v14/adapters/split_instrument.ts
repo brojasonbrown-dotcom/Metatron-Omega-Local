@@ -56,10 +56,12 @@ export interface SplitInstrumentDeps {
   /** The high-fidelity frontier model. Always composed; gated by its key. */
   readonly k3: KimiK3Tool;
   /**
-   * Whether Ollama is reachable RIGHT NOW. Probed live by the caller (the
-   * router / supervisor) so failover never fires into a dead server. [SPEC]
+   * Whether Ollama is reachable RIGHT NOW. May be sync (a cached read) or async
+   * (a LIVE re-probe). The router supplies the live probe so failover fires only
+   * into a server measured reachable AT THE MOMENT OF THE CALL — never a stale
+   * TTL cache read. Awaited uniformly at the point of routing. [SPEC]
    */
-  readonly ollamaAvailable: () => boolean;
+  readonly ollamaAvailable: () => boolean | Promise<boolean>;
   /** Optional journal sink — every failover is audited. */
   readonly store?: MemoryStore | undefined;
 }
@@ -95,9 +97,25 @@ export class SplitInstrument implements LanguageInstrument {
     return this._deps.k3.available;
   }
 
-  /** True iff the local backbone is reachable right now (probed by the caller). */
+  /**
+   * True iff the local backbone is reachable right now. The probe may be sync
+   * or async; expose the sync read for status surfaces (answerSource) and keep
+   * the async fresh probe for the routing decisions that must not trust a cache.
+   */
   get ollamaAvailable(): boolean {
-    return this._deps.ollamaAvailable();
+    const v = this._deps.ollamaAvailable();
+    // A thenable probe cannot be read synchronously; status surfaces treat an
+    // async probe as "unknown → optimistic" and let the awaited routing decide.
+    return typeof v === "boolean" ? v : true;
+  }
+
+  /** LIVE liveness for routing: awaits an async probe, reads a sync one directly. */
+  private async _ollamaLive(): Promise<boolean> {
+    try {
+      return await this._deps.ollamaAvailable();
+    } catch {
+      return false; // a throwing probe is a dead instrument, reported honestly
+    }
   }
 
   /**
@@ -145,12 +163,15 @@ export class SplitInstrument implements LanguageInstrument {
     depth: "standard" | "deep" = "standard",
   ): Promise<ToolOutcome<string>> {
     // The toggle resolves the PRIMARY; the other instrument is the failover.
+    // Availability is measured LIVE inside _routeWith (never a stale cache).
     const preferK3 = this._kimiOn && this._deps.k3.available;
     const primary = preferK3 ? () => this._deps.k3.answer(question, context, depth) : () => this._deps.ollama.answer(question, context, depth);
     const secondary = preferK3 ? () => this._deps.ollama.answer(question, context, depth) : () => this._deps.k3.answer(question, context, depth);
-    const secondaryAvailable = preferK3 ? this._deps.ollamaAvailable() : this._deps.k3.available;
+    // The secondary's availability probe: Ollama's is the live (possibly async)
+    // re-probe; K3's is the static key check. Both resolve to a boolean here.
+    const secondaryProbe: () => boolean | Promise<boolean> = preferK3 ? () => this._ollamaLive() : () => this._deps.k3.available;
     const secondaryName: ServingInstrument = preferK3 ? "ollama" : "k3";
-    return this._routeWith("answer", primary, secondary, secondaryAvailable, secondaryName);
+    return this._routeWith("answer", primary, secondary, secondaryProbe, secondaryName);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -180,18 +201,28 @@ export class SplitInstrument implements LanguageInstrument {
   }
 
   /**
-   * Route a call with an EXPLICIT primary/secondary and an availability probe
+   * Route a call with an EXPLICIT primary/secondary and a LIVE availability probe
    * for the secondary (used by answer(), where the toggle picks the primary).
+   * The probe is awaited AT FAILOVER TIME so a rebound/restarted server is
+   * measured fresh — never routed into (or away from) a stale cache read.
    */
   private async _routeWith<T>(
     tool: string,
     primaryCall: () => Promise<ToolOutcome<T>>,
     secondaryCall: () => Promise<ToolOutcome<T>>,
-    secondaryAvailable: boolean,
+    secondaryProbe: () => boolean | Promise<boolean>,
     secondaryName: ServingInstrument,
   ): Promise<ToolOutcome<T>> {
     const primary = await primaryCall();
     if (primary.ok) return primary;
+    // Measure the failover target live — a TTL-cached probe could refuse a
+    // server that just came up, or route into one that just died.
+    let secondaryAvailable = false;
+    try {
+      secondaryAvailable = await secondaryProbe();
+    } catch {
+      secondaryAvailable = false;
+    }
     if (secondaryAvailable) {
       const from: ServingInstrument = secondaryName === "ollama" ? "k3" : "ollama";
       this._journal("instrument.failover", { tool, from, to: secondaryName, reason: primary.reason });

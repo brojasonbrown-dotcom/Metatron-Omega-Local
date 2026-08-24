@@ -31,6 +31,9 @@ import { WebFeedSensor } from "./adapters/sensors/web_feed.ts";
 import { TextFeedSensor } from "./adapters/sensors/text_feed.ts";
 import { FileVisionSensor } from "./adapters/sensors/vision_files.ts";
 import { ScreenVisionSensor } from "./adapters/sensors/vision_screen.ts";
+import { resolveSensoryDepth, type SensoryDepthTelemetry } from "./adapters/sensors/sensory_depth.ts";
+import { hiResFieldFromLuminanceGrid } from "./adapters/sensors/signal_codec.ts";
+import { HardwareGovernor } from "./hardware_governor.ts";
 import { VoiceOut } from "./adapters/voice_out.ts";
 import { MindBridge } from "./adapters/mind_bridge.ts";
 import { CognitiveLoop } from "./cognition/cognitive_loop.ts";
@@ -40,11 +43,17 @@ import { LinguisticGate } from "./cognition/linguistic_gate.ts";
 import { InstrumentRouter } from "./cognition/instrument_router.ts";
 import { Lexicon } from "./cognition/lexicon.ts";
 import { MemoryStore } from "./cognition/memory_store.ts";
+import { VisualMemory } from "./cognition/visual_memory.ts";
 import { FieldGenome } from "./cognition/field_genome.ts";
 import { ResonanceManifold } from "./cognition/resonance_manifold.ts";
 import { LearningModeGovernor } from "./cognition/learning_mode.ts";
 import { RetainedMemory } from "./cognition/retained_memory.ts";
 import { TelemetryTape } from "./cognition/telemetry_tape.ts";
+import { CrossScaleFlow } from "./cognition/cross_scale_flow.ts";
+import { EigenmodeGridObserver } from "./cognition/eigenmode_grid.ts";
+import { MultiscaleBridge } from "./cognition/multiscale_bridge.ts";
+import { CrossModalCorrelator } from "./cognition/cross_modal_correlator.ts";
+import { NoveltyGate } from "./cognition/novelty_gate.ts";
 import { DomainCurriculum, type Corpus, type CorpusResult } from "./adapters/domain_curriculum.ts";
 import { FractalNodeEngine } from "./fractal_node_engine.ts";
 
@@ -54,6 +63,16 @@ const INBOX_DIR = path.join(BRAIN_DIR, "mind_inbox");
 
 if (process.env["MIND_TTS"] === undefined) process.env["MIND_TTS"] = "0";
 const WARM_ALL = process.env["MIND_WARM"] === "all";
+
+/**
+ * THE WHOLE SYSTEM RUNS IN SYNC. Every learning / correlation / observer sense
+ * defaults ON — the operator's law: "everything is supposed to be enabled."
+ * The env override is INVERTED to opt-OUT: MIND_<SENSE>=0 disables one lane;
+ * MIND_ALL=0 disables the whole learning layer at once (e.g. for a minimal
+ * diagnostic boot). No sense is ever silently inert again. [SPEC]
+ */
+const ALL_OFF = process.env["MIND_ALL"] === "0";
+const senseOn = (name: string): boolean => !ALL_OFF && process.env[`MIND_${name}`] !== "0";
 
 /** NDJSON boot-phase frame (stdout stays protocol-pure). */
 function phase(name: string, data: Record<string, unknown> = {}): void {
@@ -84,7 +103,13 @@ async function main(): Promise<void> {
   } else {
     console.warn(`[boot] WARNING: no ollama reachable — tools fail honestly until it appears.`);
   }
-  phase("ollama", { running: status.running, baseUrl: status.baseUrl, models: status.models, warm: WARM_ALL ? "all" : PHI_MODEL });
+  // ADR-009 — SPEECH-MODULE SELF-HEAL: verify the phi/mathstral weights (the mind's
+  // speech module) are present in the brain store; repair via pull when missing and a
+  // network path exists. Reported honestly in the boot frame — a mute brain never hides
+  // WHY. Runs whether or not the server came up (reports what's missing). [SPEC]
+  const speech = await supervisor.ensureModelsPresent();
+  if (!speech.phi || !speech.mathstral) console.warn(`[boot] WARNING: ${speech.note}`);
+  phase("ollama", { running: status.running, baseUrl: status.baseUrl, models: status.models, warm: WARM_ALL ? "all" : PHI_MODEL, speechModule: { phi: speech.phi, mathstral: speech.mathstral, note: speech.note } });
 
   // 2. Persistence — validated load, corrupt state quarantined.
   const store = new MemoryStore(STATE_DIR);
@@ -167,18 +192,70 @@ async function main(): Promise<void> {
   // levels, hundreds of nodes; the deep-processing configuration).
   const targetScale = Number(process.env["MIND_TARGET_SCALE"] ?? 192);
   if (!Number.isInteger(targetScale)) throw new RangeError(`MIND_TARGET_SCALE must be an integer scale index, got ${process.env["MIND_TARGET_SCALE"]}`);
+  // P-RES — operator computational-depth floor (the measured highest-resolution
+  // knob). MIND_FORCE_DEPTH: integer 1..9. MEASURED on this host (scale-292 mind):
+  //   depth-5 = 41 nodes / ~22 ms, depth-6 = 281 / ~101 ms, depth-7 = 3401 / ~1119 ms.
+  // The ~90 ms cadence budget means depth-7 at scale 292 is a DEEP-THINK mode (over
+  // cadence), while scale-235 depth-7 (281 nodes / ~79 ms) is the deepest IN-CADENCE
+  // config. Unset → purely measured auto-scaling (today's behaviour, zero regression).
+  const forceDepthEnv = process.env["MIND_FORCE_DEPTH"];
+  const forceDepth = forceDepthEnv === undefined ? undefined : Number(forceDepthEnv);
+  if (forceDepth !== undefined && (!Number.isInteger(forceDepth) || forceDepth < 1 || forceDepth > 9)) {
+    throw new RangeError("MIND_FORCE_DEPTH must be an integer in [1,9], got " + forceDepthEnv);
+  }
   const engine = new FractalNodeEngine({
     target_scale: targetScale,
     hardware_adaptive: true,
+    ...(forceDepth !== undefined ? { force_depth: forceDepth } : {}),
     target_resource_usage: 0.618, // φ⁻¹ — now genuinely honored by the governor
   });
   engine.initialize();
-  phase("engine", { targetScale, nodes: engine.get_state().total_nodes });
+  // P-RES — grow to the operator depth NOW (config force_depth only sets the
+  // governor floor; set_force_depth actually builds the deep tree + reseeds the
+  // parallel mirror). Awaited before sensors start so the first tick is deep.
+  if (forceDepth !== undefined) await engine.set_force_depth(forceDepth);
+  phase("engine", { targetScale, nodes: engine.get_state().total_nodes, forceDepth: forceDepth ?? null });
 
   // 4. Sensors — every sense feeds the one validated bus.
   const bus = new SensorBus();
-  const screenEye = new ScreenVisionSensor(bus);
+  // P-RES — MIND_VISION_HIRES=1 captures the 233x144 detail grid alongside the
+  // fast 89x55 grid (multi-scale perception); default off = byte-identical fast path.
+  const screenEye = new ScreenVisionSensor(bus, undefined, process.env["MIND_VISION_HIRES"] === "1");
   const fileEye = new FileVisionSensor(bus, INBOX_DIR);
+
+  // P2 — true vision: both eyes feed visual episodic memory (see/remember).
+  // This was constructed in run_mind.ts ONLY; the bridge path (the live app)
+  // dropped every frame after projection. Wired here so the mind remembers
+  // what it sees on the path the operator actually boots.
+  const visualMemory = new VisualMemory(STATE_DIR);
+  const vload = visualMemory.load();
+  if (vload.quarantined) {
+    console.warn(`[boot] visual_memory corrupt — quarantined to ${vload.quarantined}`);
+  }
+  screenEye.onGrid((g, w, h) => visualMemory.observe(g, w, h, "screen"));
+  fileEye.onGrid((g, w, h, file) => visualMemory.observe(g, w, h, file));
+  // ADR-007 — SENSORY-DEPTH SCALING (A1 wiring + A2 futureproof dial). The hi-res
+  // detail grid is consumed HERE: the fine multi-scale percept field is resolved at
+  // full measured resolution, and visual_memory persists the 32×32 DCT descriptor
+  // that separates near-identical scenes the 128-bit hashes cannot. The depth source
+  // maps the engine's live governor telemetry → the octave dial; because the governor's
+  // maxDepth is RAM-derived (bigger hardware ⇒ higher maxDepth), the SAME dial resolves
+  // proportionally deeper on future hardware with no retuning. Opt-in: only active when
+  // MIND_VISION_HIRES=1 (the legacy fast path is byte-identical otherwise). [SPEC]
+  const sensoryTele = (): SensoryDepthTelemetry => {
+    const t = engine.get_scaling_telemetry();
+    const budgetMs = HardwareGovernor.CADENCE_MS * Number(engine.hardware_governor.target_usage);
+    return { depth: t.depth, maxDepth: t.maxDepth, emaTickMs: t.emaTickMs, budgetMs };
+  };
+  screenEye.setSensoryDepthSource(sensoryTele);
+  screenEye.onHiRes((g, w, h) => {
+    const decision = resolveSensoryDepth(sensoryTele());
+    // The octave-graded multi-scale field (real measured structure) is persisted on
+    // the record, so discriminate() ranks near-identical scenes by BOTH the 32×32 DCT
+    // descriptor AND the resolved hi-res field — the reward for the depth dial. [SPEC]
+    const hiRes = hiResFieldFromLuminanceGrid(g, w, h, { octaves: decision.octaves });
+    visualMemory.observe(g, w, h, "screen-hires", hiRes);
+  });
   const ear = new AudioSensor(bus, INBOX_DIR);
   const reader = new TextFeedSensor(bus, INBOX_DIR);
   // F3 — the READING sense: images/scans in <inbox>/ocr/ are OCR'd to text and
@@ -194,7 +271,7 @@ async function main(): Promise<void> {
   reader.start();
   ocrEye.start();
   webEye.start();
-  phase("sensors", { mic: ear.stats().micActive, ocr: true });
+  phase("sensors", { mic: ear.stats().micActive, ocr: true, visualMemory: visualMemory.size, visualRestored: vload.restored });
 
   // P6-E — the domain curriculum: specialise the mind by instructed corpora.
   // Business docs, software UIs and operator instructions are canonicalised
@@ -208,16 +285,30 @@ async function main(): Promise<void> {
   // M8 — the anti-hallucination gate, LIVE in production (was test-only:
   // every gate branch in the loop was inert without this injection).
   const gate = new LinguisticGate(registry);
+  // The novelty gate — the salience z-score that decides what is *surprising*.
+  // It was NEVER constructed in production (always undefined), leaving the
+  // retention gate's novelty leg dead and the anti-echo gate inert. Wired
+  // live so retention + novelty + anti-echo share one measured verdict.
+  const noveltyGate = new NoveltyGate(senseOn("NOVELTY"));
   const loop = new CognitiveLoop(
-    { engine, bus, registry, store, llm, voice, glossary, lexicon, gate, genome, manifold, modeGovernor,
+    { engine, bus, registry, store, llm, voice, glossary, lexicon, gate, genome, manifold, modeGovernor, noveltyGate,
       // ADR-001 - the Sigma-panel training senses, wired into the production mind.
-      // Both default DISABLED (their documented SPEC: inert until the operator
-      // flips them via sense.set, so today's loop is byte-for-byte unchanged).
-      // Retention reads the engine's real measured HardwareGovernor for headroom
-      // (never writes it); admissions/deferrals are journaled through the store;
-      // the tape shares the one validated SensorBus.
-      retainedMemory: new RetainedMemory(engine.hardware_governor, store, false),
-      telemetryTape: new TelemetryTape(bus, false),
+      // ALL DEFAULT ON — the operator's law: the whole system runs in sync.
+      // senseOn() resolves each lane; MIND_<SENSE>=0 opts one out, MIND_ALL=0
+      // disables the layer. Retention reads the engine's measured
+      // HardwareGovernor for headroom (never writes it); admissions/deferrals
+      // are journaled through the store; the tape shares the one SensorBus.
+      retainedMemory: new RetainedMemory(engine.hardware_governor, store, senseOn("RETENTION")),
+      telemetryTape: new TelemetryTape(bus, senseOn("TAPE")),
+      // L1/L3/L5 — the deep observer lanes, live. crossScaleFlow reconciles
+      // through the engine's own scale_mapper (L0).
+      crossScaleFlow: new CrossScaleFlow(engine.scale_mapper, senseOn("CROSS_SCALE")),
+      eigenmodeGrid: new EigenmodeGridObserver(senseOn("EIGEN_GRID")),
+      multiscaleBridge: new MultiscaleBridge(bus, senseOn("MULTISCALE")),
+      crossModalCorrelator: new CrossModalCorrelator(
+        senseOn("CROSS_MODAL"),
+        senseOn("CROSS_MODAL_LAG"),
+      ),
     },
     loaded.stableThoughtCount,
     loaded.episodes ?? []

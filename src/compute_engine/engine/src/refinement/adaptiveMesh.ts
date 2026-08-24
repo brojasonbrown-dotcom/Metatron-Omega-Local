@@ -39,6 +39,7 @@ import { discreteLaplacian, curvatureLambda, type FieldPatch } from "./curvature
 import { decideRefinement } from "./criterion.ts";
 import { prolongateBlock, relativeConservationResidual } from "./prolongation.ts";
 import { restrictBlock, relativeRestrictionResidual } from "./restriction.ts";
+import { closeFront, frontClosureResidual, relativeFrontNetFlux } from "./boundary.ts";
 import { REFINE_THRESHOLD, COARSEN_THRESHOLD } from "./constants.ts";
 
 const TWO_PI = 2 * Math.PI;
@@ -75,6 +76,24 @@ export interface MeshSnapshot {
    */
   readonly restrictionResidual: number;
   /** The exact thresholds the criterion is running (φ⁻², φ⁻⁴). */
+  /**
+   * Phase 5 - the WORST C1 closure residual over the refinement fronts created
+   * this step, measured AFTER the local toroidal closure (boundary.ts). A
+   * refinement front is the non-conforming (hanging-node) face where a newly
+   * refined 2x2 block meets a coarser neighbour; left untreated it reflects
+   * the standing wave spuriously. closeFront enforces C1 flux-matching
+   * (value + first-derivative continuity) at the PHI_NEG2-graded boundary
+   * coupling, and this residual is the honest post-closure measure: ~0 on a
+   * front the wave crosses without reflection. 0 when no leaf refined this step.
+   */
+  readonly boundaryResidual: number;
+  /**
+   * Phase 5 - the WORST relative net flux through this step's refinement
+   * fronts after closure, |coarse export - fine import| / (scale*face width).
+   * ~1e-16 when the front conserves flux (the discrete divergence theorem on
+   * the non-conforming face). 0 when no leaf refined this step.
+   */
+  readonly boundaryFluxResidual: number;
   readonly refineThreshold: number;
   readonly coarsenThreshold: number;
   /**
@@ -177,6 +196,8 @@ export class AdaptiveMesh {
     let coarsened = 0;
     let conservationResidual = 0;
     let restrictionResidual = 0;
+  let boundaryResidual = 0;
+  let boundaryFluxResidual = 0;
     if (maxLambda > 0) {
       // Decide every leaf against a SNAPSHOT of the tree (the tree is rebuilt
       // by replacement, so all decisions are against one consistent state).
@@ -205,6 +226,28 @@ export class AdaptiveMesh {
         this._tree = this._tree.refine(d.path);
         this._spliceValues(d.path, childValues);
         refined++;
+
+        // Phase 5 - LOCAL TOROIDAL CLOSURE at the refinement fronts this refine
+        //     just created (plan section 2.4). Each of the block's four faces that
+        //     abuts a COARSER neighbour cell is a non-conforming (hanging-node)
+        //     front - a coherence-breaking discontinuity that would reflect the
+        //     standing wave. We read the coarse face value from the live field,
+        //     pair it with the two prolongated fine face values, run closeFront
+        //     (C1 flux-matching at the PHI_NEG2-graded boundary coupling), and
+        //     record the post-closure residual. The mesh OBSERVES the field (it
+        //     never feeds back), so the corrected fine values are measured, not
+        //     injected - the residual is the honest certificate the front is closed.
+        for (const front of this._frontsForLeaf(node, childValues, fieldAt)) {
+          const closed = closeFront(front);
+          boundaryResidual = Math.max(
+            boundaryResidual,
+            frontClosureResidual({ ...front, fine: closed }),
+          );
+          boundaryFluxResidual = Math.max(
+            boundaryFluxResidual,
+            relativeFrontNetFlux({ ...front, fine: closed }),
+          );
+        }
       }
 
       // 2b. COARSEN as a BLOCK decision: a parent collapses only when ALL FOUR
@@ -279,6 +322,8 @@ export class AdaptiveMesh {
       coarsened,
       conservationResidual,
       restrictionResidual,
+      boundaryResidual,
+      boundaryFluxResidual,
       refineThreshold: REFINE_THRESHOLD,
       coarsenThreshold: COARSEN_THRESHOLD,
       leafNodes,
@@ -436,5 +481,66 @@ export class AdaptiveMesh {
       fieldAt({ u: u0 + half + quarter, v: v0 + quarter }), // 2: du=1 dv=0
       fieldAt({ u: u0 + half + quarter, v: v0 + half + quarter }), // 3: du=1 dv=1
     ];
+  }
+
+  /**
+   * The refinement fronts of a just-refined leaf: one non-conforming
+   * (hanging-node) front per face whose across-face neighbour is at a COARSER
+   * level. A face is internal to the new 2x2 block (its across-face cell is a
+   * sibling at the SAME finer level) when the leaf sits on that side of its
+   * parent; such faces are conforming and are skipped. Only the parent's
+   * OUTER faces - where the new fine block meets the coarser tree - are fronts.
+   *
+   * The coarse face value is read from the live field at the coarse cell centre
+   * one coarse-cell-width across the face; the two fine face values are the two
+   * prolongated children adjacent to that face. boundary.ts closes the front.
+   */
+  private _frontsForLeaf(
+    leaf: OctreeNode,
+    childValues: readonly number[],
+    fieldAt: (p: { u: number; v: number }) => number,
+  ): { coarse: number; fine: readonly [number, number]; coarseSize: number }[] {
+    const h = leaf.cell.size;          // the refined (fine) cell side
+    const hc = 2 * h;                  // the parent (coarse) cell side
+    const { u0, v0 } = leaf.cell;
+    const wrap = (x: number) => ((x % TWO_PI) + TWO_PI) % TWO_PI;
+    // slot = (du<<1)|dv within the parent: du = is this the +u half? dv = +v half?
+    const du = leaf.slot >> 1;
+    const dv = leaf.slot & 1;
+    // Coarse face-centre, one coarse half-width across the +u outer face.
+    const coarseAtU = (v: number) => fieldAt({ u: wrap(u0 + h + hc / 2), v });
+    const coarseAtUm = (v: number) => fieldAt({ u: wrap(u0 - hc / 2), v });
+    const coarseAtV = (u: number) => fieldAt({ u, v: v0 + h + hc / 2 });
+    const coarseAtVm = (u: number) => fieldAt({ u, v: v0 - hc / 2 });
+    const fronts: { coarse: number; fine: readonly [number, number]; coarseSize: number }[] = [];
+    // +u face is an outer (coarser) front only when this leaf is the +u half (du=1).
+    if (du === 1) {
+      fronts.push({
+        coarse: coarseAtU(v0 + h / 2),
+        fine: [childValues[2] ?? 0, childValues[3] ?? 0], // du=1 row: slots 2,3
+        coarseSize: hc,
+      });
+    } else {
+      fronts.push({
+        coarse: coarseAtUm(v0 + h / 2),
+        fine: [childValues[0] ?? 0, childValues[1] ?? 0], // du=0 row: slots 0,1
+        coarseSize: hc,
+      });
+    }
+    // +v face is an outer (coarser) front only when this leaf is the +v half (dv=1).
+    if (dv === 1) {
+      fronts.push({
+        coarse: coarseAtV(u0 + h / 2),
+        fine: [childValues[1] ?? 0, childValues[3] ?? 0], // dv=1 column: slots 1,3
+        coarseSize: hc,
+      });
+    } else {
+      fronts.push({
+        coarse: coarseAtVm(u0 + h / 2),
+        fine: [childValues[0] ?? 0, childValues[2] ?? 0], // dv=0 column: slots 0,2
+        coarseSize: hc,
+      });
+    }
+    return fronts;
   }
 }

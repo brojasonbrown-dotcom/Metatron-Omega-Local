@@ -18,10 +18,10 @@
  *   engine      — multiscale engine, morphism pipeline, scale measurement, gate
  */
 
-export * as core from "./core/index.js";
-export * as geometry from "./geometry/index.js";
-export * as dynamics from "./dynamics/index.js";
-export * as information from "./information/index.js";
-export * as analysis from "./analysis/index.js";
-export * as refinement from "./refinement/index.js";
-export * as engine from "./engine/index.js";
+export * as core from "./core/index.ts";
+export * as geometry from "./geometry/index.ts";
+export * as dynamics from "./dynamics/index.ts";
+export * as information from "./information/index.ts";
+export * as analysis from "./analysis/index.ts";
+export * as refinement from "./refinement/index.ts";
+export * as engine from "./engine/index.ts";

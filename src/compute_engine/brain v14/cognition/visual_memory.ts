@@ -158,6 +158,12 @@ export interface VisualRecord {
    * treated as "no fine evidence" and never fabricated. [SPEC]
    */
   readonly descriptor?: Float64Array;
+  /**
+   * ADR-008 — optional octave-graded multi-scale percept field at the resolved
+   * sensory depth. Compared ONLY same-depth (per-ring normalization makes cross-depth
+   * reads unsound). Absent on legacy/fast-path records — never fabricated. [SPEC]
+   */
+  readonly hiRes?: Float64Array;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,6 +222,31 @@ export function perceptDescriptor(grid: Float64Array, w: number, h: number): Flo
  * either is absent/empty (a legacy record carries no fine evidence — never
  * fabricate a match against it). [MATH]
  */
+/**
+ * ADR-008 — cosine over two octave-graded hi-res percept fields. HONEST DOMAIN:
+ * SAME-DEPTH ONLY. The rings are per-ring energy-normalized, so a coarser (fewer-
+ * octave) field is NOT a prefix of a finer one — a prefix read across depths is
+ * unsound (measured: same scene at 8 vs 3 octaves reads ~0.14, not ~1). So a length
+ * mismatch returns 0 = "no comparable evidence", never a fabricated cross-depth
+ * score. Absent/empty → 0. [MATH]
+ */
+export function hiResSimilarity(a: Float64Array | undefined, b: Float64Array | undefined): number {
+  if (a === undefined || b === undefined) return 0;
+  if (a.length !== b.length) return 0; // different depths are not commensurable — honest no-evidence
+  const n = a.length;
+  if (n === 0) return 0;
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < n; i++) {
+    dot += a[i]! * b[i]!;
+    na += a[i]! * a[i]!;
+    nb += b[i]! * b[i]!;
+  }
+  const denom = Math.sqrt(na * nb);
+  if (denom === 0) return 0;
+  const s = dot / denom;
+  return s < -1 ? -1 : s > 1 ? 1 : s;
+}
+
 export function descriptorSimilarity(a: Float64Array | undefined, b: Float64Array | undefined): number {
   if (a === undefined || b === undefined) return 0;
   const n = Math.min(a.length, b.length);
@@ -342,6 +373,8 @@ interface SerializedVisual {
     readonly timestamp: number;
     /** Hi-res descriptor as base64 Float64; absent on legacy records. [SPEC] */
     readonly descriptor?: string;
+    /** ADR-008 — octave-graded multi-scale field as base64 Float64; absent on legacy. [SPEC] */
+    readonly hiRes?: string;
   }>;
 }
 
@@ -363,7 +396,7 @@ export class VisualMemory {
    * identical to the last is not stored again. Returns the stored record, or
    * null if it was a repeat. Never fabricated — only real measured hashes.
    */
-  observe(grid: Float64Array, w: number, h: number, caption: string | null = null): VisualRecord | null {
+  observe(grid: Float64Array, w: number, h: number, caption: string | null = null, hiRes?: Float64Array): VisualRecord | null {
     const pH = pHash(grid, w, h);
     const dH = dHash(grid, w, h);
     // Novelty gate: skip if essentially the same as the last observed frame.
@@ -377,6 +410,9 @@ export class VisualMemory {
       caption,
       timestamp: Date.now(),
       descriptor: perceptDescriptor(grid, w, h),
+      // ADR-008 — the octave-graded multi-scale field, when the caller resolved one.
+      // Optional: legacy/fast-path observes carry descriptor-only (never fabricated).
+      ...(hiRes !== undefined ? { hiRes } : {}),
     };
     this._index.add(rec);
     this._evictIfNeeded();
@@ -411,7 +447,8 @@ export class VisualMemory {
     grid: Float64Array,
     w: number,
     h: number,
-    candidateRadius: number = 14
+    candidateRadius: number = 14,
+    queryHiRes?: Float64Array
   ): { rec: VisualRecord; coarse: number; fine: number } | null {
     const pH = pHash(grid, w, h);
     const dH = dHash(grid, w, h);
@@ -424,7 +461,16 @@ export class VisualMemory {
       const coarse = hashSimilarity(pH, rec.pHash) * 0.5 + hashSimilarity(dH, rec.dHash) * 0.5;
       // Only consider records that are even coarse candidates.
       if (hamming(pH, rec.pHash) > candidateRadius) continue;
-      const fine = descriptorSimilarity(queryDesc, rec.descriptor);
+      const fineDct = descriptorSimilarity(queryDesc, rec.descriptor);
+      // ADR-008 — when BOTH query and record carry a hi-res field AT THE SAME DEPTH
+      // (equal length — the dial's steady state), blend the multi-scale evidence in
+      // (equal weight with the DCT descriptor). A depth mismatch or absent hiRes
+      // falls back to descriptor-only (hiResSimilarity honestly returns 0 there).
+      // [SPEC]
+      const fine =
+        queryHiRes !== undefined && rec.hiRes !== undefined && rec.hiRes.length === queryHiRes.length
+          ? (fineDct + hiResSimilarity(queryHiRes, rec.hiRes)) * 0.5
+          : fineDct;
       if (best === null || fine > best.fine || (fine === best.fine && coarse > best.coarse)) {
         best = { rec, coarse, fine };
       }
@@ -460,6 +506,15 @@ export class VisualMemory {
                 ).toString("base64"),
               }
             : {}),
+          ...(r.hiRes !== undefined
+            ? {
+                hiRes: Buffer.from(
+                  r.hiRes.buffer,
+                  r.hiRes.byteOffset,
+                  r.hiRes.byteLength
+                ).toString("base64"),
+              }
+            : {}),
         })),
       };
       const tmp = this._file + ".tmp";
@@ -488,12 +543,20 @@ export class VisualMemory {
             descriptor = new Float64Array(n);
             for (let i = 0; i < n; i++) descriptor[i] = buf.readDoubleLE(i * 8);
           }
+          let hiRes: Float64Array | undefined;
+          if (typeof r.hiRes === "string") {
+            const buf = Buffer.from(r.hiRes, "base64");
+            const n = Math.floor(buf.length / 8);
+            hiRes = new Float64Array(n);
+            for (let i = 0; i < n; i++) hiRes[i] = buf.readDoubleLE(i * 8);
+          }
           this._index.add({
             pHash: BigInt(r.pHash),
             dHash: BigInt(r.dHash),
             caption: typeof r.caption === "string" ? r.caption : null,
             timestamp: r.timestamp,
             ...(descriptor !== undefined ? { descriptor } : {}),
+            ...(hiRes !== undefined ? { hiRes } : {}),
           });
           restored++;
         }

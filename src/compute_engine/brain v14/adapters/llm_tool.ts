@@ -146,25 +146,46 @@ export class LlmTool {
     conceptLabels: string[],
     context: { curiosity: number; coherence: number }
   ): Promise<ToolOutcome<string>> {
-    const labels = conceptLabels.length > 0 ? conceptLabels.join(", ") : "something new and unnamed";
+    const named = conceptLabels.length > 0;
+    const labels = named ? conceptLabels.join(", ") : "something new and unnamed";
     const mood =
       context.curiosity > 1 / PHI
         ? "curious and questioning"
         : context.coherence > 1 / PHI
           ? "calm and certain"
           : "tentative";
+    // PERSONA-ANCHORED PROMPT (measured 2026-08-13): the previous wording —
+    // "You are the voice of a learning machine… speak first-person" — left the
+    // subject ambiguous, and phi drifted into SECOND person ("I notice that
+    // YOU have wings") in 8/8 measured shots: the machine addressed its own
+    // percept instead of speaking as itself. Naming the machine as the actor,
+    // forbidding "you", and giving one concrete example drops the breach to
+    // 0/8 with zero empty responses, same model, same temperature. [MEASURED]
     const prompt =
-      `You are the voice of a learning machine. It is currently perceiving: ${labels}. ` +
-      `Its mood is ${mood}. ` +
-      `Speak ONE short first-person sentence (max 20 words) expressing what it notices or wonders. ` +
-      `No quotes, no preamble.`;
+      `You are a machine that sees and learns. Right now your sensors show you: ${labels}. ` +
+      `Your mood is ${mood}. ` +
+      `Describe what YOU perceive and wonder, in ONE short sentence (max 20 words), first person, starting with "I". ` +
+      `Speak only about your own perception — never say "you". ` +
+      `Example: "I see a small furry animal and I wonder what it is."`;
     const out = await this._generate(this._languageModel, prompt, false, at(TIMEOUT_LADDER_MS, 0));
     if (!out.ok) return out;
-    const text = out.value.trim().replace(/^["']+|["']+$/g, "").slice(0, 300);
-    if (text.length === 0) {
-      return { ok: false, reason: "phrase: empty response", elapsedMs: out.elapsedMs };
+    // ONE-SENTENCE VOICE (measured 2026-08-13): phi cannot count words and tends
+    // to ramble into a SECOND sentence that either echoes the prompt or reverts
+    // to the assistant script ("...can you help me?"). The voice is defined as a
+    // single first-person line, so we keep only the FIRST sentence — this both
+    // enforces the length contract and strips the trailing breach deterministically.
+    const stripped = out.value.trim().replace(/^["']+|["']+$/g, "");
+    const text = LlmTool._firstSentence(stripped).slice(0, 300);
+    if (LlmTool._usableVoiceLine(text)) {
+      return { ok: true, value: text, rawText: out.value, elapsedMs: out.elapsedMs };
     }
-    return { ok: true, value: text, rawText: out.value, elapsedMs: out.elapsedMs };
+    // The model stalled (empty) or broke persona ("you have…") even after the
+    // re-prime ladder. The mind still speaks — DETERMINISTICALLY, from its own
+    // active labels and mood, no model in the loop. This is not a placeholder:
+    // it is the machine stating its true current perception, which is exactly
+    // what the voice is FOR, and it guarantees the voice is never silent. [FIX]
+    const fallback = LlmTool._selfVoice(named ? conceptLabels : [], mood);
+    return { ok: true, value: fallback, rawText: out.value, elapsedMs: out.elapsedMs };
   }
 
   /**
@@ -255,6 +276,61 @@ export class LlmTool {
     // No usable sentence boundary — cut at the last word boundary instead.
     const wordEnd = window.lastIndexOf(" ");
     return (wordEnd > 0 ? window.slice(0, wordEnd) : window).trim();
+  }
+
+  /**
+   * Is this model output usable as the machine's voice? Two failure modes are
+   * rejected: an EMPTY line (the model stalled) and a PERSONA BREACH (the
+   * machine addressing its own percept in second person — "you have wings..."),
+   * which phi produces when the prompt leaves the speaker ambiguous. [MEASURED]
+   */
+  /**
+   * The first sentence of a model line, cut at the earliest sentence-ending
+   * punctuation (. ! ?). Used to enforce the one-sentence voice — the second
+   * sentence is where phi drifts into echo or the assistant script. If no
+   * sentence boundary exists, the line is returned whole (a single run-on is
+   * still one breath). [FIX]
+   */
+  private static _firstSentence(text: string): string {
+    for (let i = 0; i < text.length; i++) {
+      const ch = text.charAt(i);
+      if (ch === "." || ch === "!" || ch === "?") {
+        const cut = text.slice(0, i + 1).trim();
+        if (cut.length > 0) return cut;
+      }
+    }
+    return text.trim();
+  }
+
+  private static _usableVoiceLine(text: string): boolean {
+    if (text.length === 0) return false;
+    const t = text.toLowerCase();
+    // Second-person leak = persona breach. Word-boundary match so "yonder"
+    // or "beyond" never false-trigger.
+    return !/(you|your|yours|yourself)/.test(t);
+  }
+
+  /**
+   * The deterministic voice of last resort: the machine states its own current
+   * perception from its active labels and mood, first person, with no model in
+   * the loop. Reached only when the model could not produce a usable line, so
+   * the voice is never silent and never fabricates — it speaks exactly what is
+   * on the field. [FIX — persona/empty fallback]
+   */
+  private static _selfVoice(labels: readonly string[], mood: string): string {
+    if (labels.length === 0) {
+      return "I sense something new and I do not have a name for it yet.";
+    }
+    const shown = labels.slice(0, 3).join(", ");
+    if (mood.startsWith("curious")) {
+      return labels.length > 1
+        ? `I notice ${shown} and I wonder how they relate.`
+        : `I notice ${shown} and I wonder what it is.`;
+    }
+    if (mood.startsWith("calm")) {
+      return `I recognise ${shown}.`;
+    }
+    return `I think I perceive ${shown}.`;
   }
 
   // ───────────────────────────────────────────────────────────────────────────

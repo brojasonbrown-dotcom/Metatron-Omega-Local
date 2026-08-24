@@ -43,6 +43,10 @@
     const keyState = prevKey
       ? { value: prevKey.value, focused: document.activeElement === prevKey, sel: [prevKey.selectionStart, prevKey.selectionEnd] }
       : null;
+    const prevWeb = panelBody.querySelector("#web-url");
+    const webState = prevWeb
+      ? { value: prevWeb.value, focused: document.activeElement === prevWeb, sel: [prevWeb.selectionStart, prevWeb.selectionEnd] }
+      : null;
     const inv = s.invariants;
     const c = s.certificates;
     const rf = s.refinement; // live adaptive-mesh snapshot (Phases 1-4)
@@ -241,6 +245,17 @@
       ...(mindInfo().lexicon
         ? [row("lexicon", `${mindInfo().lexicon.words} words · ${mindInfo().lexicon.relations} relations`)]
         : []),
+      // F4 — the web-reading sense: hand the mind a URL to fetch, read and
+      // learn from, live. Always rendered (like the K3 field) so it works the
+      // first time. Honest verdict in the log — a fetch failure is the real
+      // reason, never a fabricated page.
+      `<div class="stab-sec">LEARN FROM WEB (F4)</div>`,
+      `<div class="stab-row"><span>read URL</span><b>` +
+        `<span class="inst-keywrap"><input id="web-url" type="url" ` +
+          `placeholder="https://…  (fetch + learn this page)" autocomplete="off" spellcheck="false" />` +
+          `<a href="#" id="web-feed" class="inst-set">read</a></span>` +
+        `</b></div>`,
+      `<div class="stab-note">the mind fetches the page, reads it through the language path and learns it; the verdict (chars / chunks learned or the real error) lands in the log</div>`,
       row("ollama", mindInfo().ollama ?? (mindStatus && mindStatus.running ? "warming…" : "—")),
       row("restarts", String(mindStatus ? mindStatus.restarts : 0)),
       // M9 — the switchable language instrument: which model is answering, and
@@ -257,6 +272,16 @@
       if (keyState.focused) {
         nextKey.focus();
         try { nextKey.setSelectionRange(keyState.sel[0], keyState.sel[1]); } catch { /* not a text input */ }
+      }
+    }
+  }
+  if (webState) {
+    const nextWeb = panelBody.querySelector("#web-url");
+    if (nextWeb) {
+      nextWeb.value = webState.value;
+      if (webState.focused) {
+        nextWeb.focus();
+        try { nextWeb.setSelectionRange(webState.sel[0], webState.sel[1]); } catch { /* not a text input */ }
       }
     }
   }

@@ -30,6 +30,10 @@ function decodeScript(imagePath: string): string {
   const escaped = imagePath.replace(/'/g, "''");
   return (
     "$ErrorActionPreference='Stop'; " +
+    // Force invariant culture: on comma-decimal locales (e.g. en-ZA) [math]::Round
+    // stringifies 4.01 as "4,01", colliding with the ',' CSV delimiter and
+    // corrupting every value. Pin the culture so the decimal point is always '.'.
+    "[System.Threading.Thread]::CurrentThread.CurrentCulture=[System.Globalization.CultureInfo]::InvariantCulture; " +
     "Add-Type -AssemblyName System.Drawing; " +
     `$bmp=[System.Drawing.Bitmap]::FromFile('${escaped}'); ` +
     `$small=New-Object System.Drawing.Bitmap ${GRID_W},${GRID_H}; ` +

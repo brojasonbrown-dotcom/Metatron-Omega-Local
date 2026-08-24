@@ -60,6 +60,51 @@ function charValue(codePoint: number): number {
   return (codePoint % 22) + 1;
 }
 
+// ── [G-φ] The φ-28 alphabet (Track G, certified in docs/GEMATRIA_ALPHABET.md) ──
+//
+// The certified "true alphabet": the golden ladder v_k = φ^{k/2} at n = 28 (the
+// engine's field contract). Best discrimination (mean cross-talk C = 0.1218 vs
+// 0.1325 Latin), zero false-unity, the only scale-free ladder (ratio CV = 0),
+// exact in Z[φ] (zero-drift tier). Gated OFF by default — the live codec is
+// byte-identical until the operator opts in, and the active table is recorded as
+// the codec version so persisted fields are never silently re-read under the
+// wrong geometry. [SPEC]
+
+/** The codec's value-table version. 1 = Latin gematria (legacy), 2 = φ-28. [SPEC] */
+export const CODEC_VERSION = 1 as 1 | 2;
+
+/** φ-28: v_k = φ^{k/2}, k = 0..27 — the golden ladder on the field contract. [MATH] */
+const PHI28: readonly number[] = (() => {
+  const t: number[] = [];
+  for (let k = 0; k < 28; k++) t.push(Math.pow(PHI, k / 2));
+  return t;
+})();
+
+/** The normalization ceiling per table (max character value). [SPEC] */
+const V_MAX_LATIN = 800.0;
+const V_MAX_PHI28 = at(PHI28, 27); // φ^{27/2}
+
+/**
+ * φ-28 character value: map a code point onto the 28-symbol golden ladder.
+ * Letters/digits/punctuation map onto their natural slot; the full range folds
+ * deterministically onto the 28-cycle. [SPEC]
+ */
+function charValuePhi28(codePoint: number): number {
+  // a..z → slots 0..25; 0..9 → slots 26,27 then wrap; space → 0.
+  if (codePoint >= 0x61 && codePoint <= 0x7a) return at(PHI28, codePoint - 0x61);
+  if (codePoint >= 0x30 && codePoint <= 0x39) return at(PHI28, (codePoint - 0x30 + 18) % 28);
+  if (codePoint === 0x20) return 0;
+  return at(PHI28, codePoint % 28);
+}
+
+/** The active character-value function (selected by CODEC_VERSION). [SPEC] */
+function charValueActive(codePoint: number): number {
+  return CODEC_VERSION === 2 ? charValuePhi28(codePoint) : charValue(codePoint);
+}
+
+/** The active normalization ceiling (matches the active table). [SPEC] */
+const V_MAX_ACTIVE = CODEC_VERSION === 2 ? V_MAX_PHI28 : V_MAX_LATIN;
+
 /** Normalize text deterministically: NFKD, lowercase, collapse whitespace. */
 export function normalizeText(text: string): string {
   return text
@@ -98,7 +143,7 @@ function _encodeTextUncached(text: string): Float64Array {
   const L = norm.length;
   const values = new Float64Array(L);
   for (let i = 0; i < L; i++) {
-    values[i] = charValue(norm.codePointAt(i) ?? 0);
+    values[i] = charValueActive(norm.codePointAt(i) ?? 0);
   }
 
   // Scale values to [0, 1] by the max gematria value (800) for Float64 stability,
@@ -107,7 +152,7 @@ function _encodeTextUncached(text: string): Float64Array {
   // texts resonate near 1 — mean removal is what gives words distinct geometry.
   // Degenerate case (all characters identical → zero variance): keep the raw
   // values, so the field is a pure DC mode — still deterministic and nonzero.
-  const V_MAX = 800.0;
+  const V_MAX = V_MAX_ACTIVE;
   let mean = 0.0;
   for (let i = 0; i < L; i++) mean += at(values, i) / V_MAX;
   mean /= L;

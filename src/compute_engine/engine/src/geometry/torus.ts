@@ -42,9 +42,9 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, PHI_INV, PI, TWO_PI, type StableScaleIndex } from "../core/constants.js";
-import { getScale } from "../core/scaleTable.js";
-import { Scaled, classify, type Classified } from "../core/provenance.js";
+import { PHI, PHI_INV, PI, TWO_PI, type StableScaleIndex } from "../core/constants.ts";
+import { getScale } from "../core/scaleTable.ts";
+import { Scaled, classify, type Classified } from "../core/provenance.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types

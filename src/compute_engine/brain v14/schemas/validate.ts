@@ -250,8 +250,19 @@ export type SensorySource =
   | "text.feed"
   | "doc.feed"
   | "ui.observe"
-  | "llm.answer";
+  | "llm.answer"
+  | "engine.fourier"
+  | "engine.multiscale";
 
+// ADDITIVE (ADR-001): "engine.fourier" is the TelemetryTape's internal sense —
+// the engine's own certified spectrum + continuity invariants re-encoded onto
+// the SAME 28-field contract. It can never appear in a pre-existing persisted
+// state file, so extending the enum cannot break the load path (only new frames
+// carry it). Every other source is untouched.
+// ADDITIVE (L5): "engine.multiscale" is the MultiscaleBridge's internal sense —
+// the closed 18-torus engine's four-invariant readout (coherence/closure/drift/
+// burden per stable rung) re-encoded onto the same 28-field contract. Same
+// load-path safety: only new frames carry it.
 const SENSORY_SOURCES: readonly string[] = [
   "vision.screen",
   "vision.file",
@@ -261,6 +272,8 @@ const SENSORY_SOURCES: readonly string[] = [
   "doc.feed",
   "ui.observe",
   "llm.answer",
+  "engine.fourier",
+  "engine.multiscale",
 ];
 
 /**
@@ -307,6 +320,77 @@ export interface SpectralEnrichment {
   readonly parsevalResidual: number;
   /** Pitch anchor (Hz) for audio; NaN / absent for vision. */
   readonly dominantHz?: number;
+  /**
+   * ADR-003 — the retained spectral CODES: the top-k complex Fourier
+   * coefficients F̂(k) by power, kept INSTEAD of discarding them after the
+   * whitened identity is derived. This is "store it in the math": the field's
+   * structure carried as coefficients, so identity / similarity / memory can
+   * operate in coefficient space without a re-transform. k is adjustable
+   * (bounded by the field's own rank99 — the measured count of modes carrying
+   * 99% of the energy). Optional: frames without it are the legacy path and
+   * validate exactly as before. [SPEC]
+   */
+  readonly codes?: SpectralCodes;
+}
+
+/**
+ * ADR-003 — the top-k complex coefficients of a certified transform, by power.
+ * `re[m]`/`im[m]` are the real/imaginary parts of the m-th strongest mode;
+ * `topK` is the retained count (≤ the field's rank99 at scan time). The
+ * Parseval certificate for the FULL transform still lives on the enclosing
+ * SpectralEnrichment — these codes are a certified subset, not a re-computation.
+ */
+export interface SpectralCodes {
+  /** Retained coefficient count. */
+  readonly topK: number;
+  /**
+   * Axis lengths of the transformed grid (e.g. [nodes, 28]). With `indices`
+   * (flat row-major) this lets each retained mode be placed back on the grid:
+   * bin coordinate unravels row-major over `dims`, last axis fastest. [MATH]
+   */
+  readonly dims: readonly number[];
+  /**
+   * Flat row-major bin index of each retained mode (length topK) — the mode's
+   * ADDRESS on the grid. Without it a bare (re, im) pair is unanchored: the
+   * coefficient could not be placed back into the spectrum. [MATH]
+   */
+  readonly indices: Uint32Array;
+  /** Real parts of the top-k modes, descending by power (length topK). */
+  readonly re: Float64Array;
+  /** Imaginary parts of the top-k modes, descending by power (length topK). */
+  readonly im: Float64Array;
+}
+
+/**
+ * ADR-002 M4 — the movement-anchor: where the world MOVED, computed by real
+ * optical flow over the sensor's luminance grid (optical_flow.ts). Attach to a
+ * vision frame so the cross-modal correlator can anchor a concurrent sound to the
+ * REGION that moved rather than to the whole frame. Optional: frames without it
+ * are the whole-frame path. Additive; never touches the 28-field. [SPEC]
+ */
+export interface MotionAnchor {
+  /** Region row/col (0-based) of the dominant confident motion. */
+  readonly row: number;
+  readonly col: number;
+  /** |flow| in grid cells / frame. */
+  readonly magnitude: number;
+  /** Structure-tensor conditioning confidence in [0,1]. */
+  readonly confidence: number;
+}
+
+/**
+ * ADR-002 M2 — one separated auditory stream (stream_separator.ts): a set of
+ * time-frequency support sharing a spectral identity, energy-certified. Attach a
+ * frame's stream decomposition so a mixed soundscape (bark + vroom) is correlated
+ * per-stream rather than as one smeared blob. Additive; 28-field untouched. [SPEC]
+ */
+export interface AudioStreamRef {
+  /** Whitened spectral signature of the stream (timbre fingerprint). */
+  readonly signature: Float64Array;
+  /** Fraction of the clip's total energy this stream holds, in [0,1]. */
+  readonly energyFraction: number;
+  /** Dominant frequency anchor (Hz) of the stream's strongest frame. */
+  readonly dominantHz: number;
 }
 
 /** A single validated sensory frame entering the engine. */
@@ -319,6 +403,18 @@ export interface SensoryFrame {
   readonly field: Float64Array;
   /** Optional certified spectral enrichment (see SpectralEnrichment). */
   readonly spectral?: SpectralEnrichment;
+  /**
+   * Optional movement-anchor (ADR-002 M4): the region that moved this frame, from
+   * real optical flow. Present only on vision frames when the region side-channel
+   * is enabled. Null-absent ⇒ whole-frame path (no regional claim made). [SPEC]
+   */
+  readonly motion?: MotionAnchor;
+  /**
+   * Optional stream decomposition (ADR-002 M2): the separated auditory streams of
+   * this audio frame. Present only on audio frames when stream separation is
+   * enabled. Absent ⇒ single whole-clip signature (no per-stream claim). [SPEC]
+   */
+  readonly streams?: readonly AudioStreamRef[];
 }
 
 export function validateSensoryFrame(raw: unknown): ValidationResult<SensoryFrame> {
@@ -356,6 +452,26 @@ export function validateSensoryFrame(raw: unknown): ValidationResult<SensoryFram
     spectral = s.value;
   }
 
+  // ADR-002 M4 — optional movement-anchor (vision). Validate-if-present.
+  let motion: MotionAnchor | undefined;
+  if (o["motion"] !== undefined) {
+    const m = validateMotionAnchor(o["motion"]);
+    if (!m.ok) {
+      return { ok: false, reason: `frame.motion: ${m.reason}` };
+    }
+    motion = m.value;
+  }
+
+  // ADR-002 M2 — optional stream decomposition (audio). Validate-if-present.
+  let streams: readonly AudioStreamRef[] | undefined;
+  if (o["streams"] !== undefined) {
+    const st = validateAudioStreams(o["streams"]);
+    if (!st.ok) {
+      return { ok: false, reason: `frame.streams: ${st.reason}` };
+    }
+    streams = st.value;
+  }
+
   return {
     ok: true,
     value: {
@@ -364,8 +480,62 @@ export function validateSensoryFrame(raw: unknown): ValidationResult<SensoryFram
       meta,
       field: fieldCheck.value,
       ...(spectral !== undefined ? { spectral } : {}),
+      ...(motion !== undefined ? { motion } : {}),
+      ...(streams !== undefined ? { streams } : {}),
     },
   };
+}
+
+/**
+ * Validate the optional movement-anchor (ADR-002 M4). Light-touch: finite
+ * numbers, confidence in [0,1]. The optical-flow certificate lives upstream in
+ * the structure-tensor conditioning; here we only refuse malformed blocks. [SPEC]
+ */
+function validateMotionAnchor(raw: unknown): ValidationResult<MotionAnchor> {
+  if (typeof raw !== "object" || raw === null) return { ok: false, reason: "not an object" };
+  const m = raw as Record<string, unknown>;
+  for (const k of ["row", "col", "magnitude", "confidence"] as const) {
+    if (!isFiniteNumber(m[k])) return { ok: false, reason: `${k} is not a finite number` };
+  }
+  const confidence = m["confidence"] as number;
+  if (confidence < 0 || confidence > 1) return { ok: false, reason: "confidence out of [0,1]" };
+  return {
+    ok: true,
+    value: {
+      row: m["row"] as number,
+      col: m["col"] as number,
+      magnitude: m["magnitude"] as number,
+      confidence,
+    },
+  };
+}
+
+/**
+ * Validate the optional stream decomposition (ADR-002 M2). Each stream's
+ * signature must be a finite Float64Array; energyFraction in [0,1]. [SPEC]
+ */
+function validateAudioStreams(raw: unknown): ValidationResult<readonly AudioStreamRef[]> {
+  if (!Array.isArray(raw)) return { ok: false, reason: "not an array" };
+  const out: AudioStreamRef[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const s = raw[i] as Record<string, unknown>;
+    if (typeof s !== "object" || s === null) return { ok: false, reason: `streams[${i}] not an object` };
+    const sig = s["signature"];
+    if (!(sig instanceof Float64Array) || sig.length === 0) {
+      return { ok: false, reason: `streams[${i}].signature not a non-empty Float64Array` };
+    }
+    for (let k = 0; k < sig.length; k++) {
+      if (!Number.isFinite(sig[k])) return { ok: false, reason: `streams[${i}].signature[${k}] not finite` };
+    }
+    const ef = s["energyFraction"];
+    const hz = s["dominantHz"];
+    if (!isFiniteNumber(ef) || (ef as number) < 0 || (ef as number) > 1) {
+      return { ok: false, reason: `streams[${i}].energyFraction out of [0,1]` };
+    }
+    if (!isFiniteNumber(hz)) return { ok: false, reason: `streams[${i}].dominantHz not finite` };
+    out.push({ signature: sig, energyFraction: ef as number, dominantHz: hz as number });
+  }
+  return { ok: true, value: out };
 }
 
 /**
@@ -426,7 +596,48 @@ function validateSpectralEnrichment(raw: unknown): ValidationResult<SpectralEnri
     if (!isFiniteNumber(s["dominantHz"]) || (s["dominantHz"] as number) < 0) {
       return { ok: false, reason: "dominantHz must be a non-negative finite number" };
     }
-    return { ok: true, value: { ...enrichment, dominantHz: s["dominantHz"] as number } };
+    Object.assign(enrichment as { dominantHz?: number }, { dominantHz: s["dominantHz"] as number });
+  }
+  // ADR-003 — spectral codes are optional; if present they must be a coherent
+  // top-k triple (positive integer k, equal-length finite re/im coefficient arrays).
+  if (s["codes"] !== undefined) {
+    const cd = s["codes"] as Record<string, unknown> | null;
+    if (typeof cd !== "object" || cd === null) {
+      return { ok: false, reason: "codes is not an object" };
+    }
+    const topK = cd["topK"];
+    const dims = cd["dims"];
+    const indices = cd["indices"];
+    const re = cd["re"];
+    const im = cd["im"];
+    if (!Number.isInteger(topK) || (topK as number) < 1) {
+      return { ok: false, reason: "codes.topK must be a positive integer" };
+    }
+    if (!Array.isArray(dims) || dims.length < 1 || !dims.every((d) => Number.isInteger(d) && (d as number) >= 1)) {
+      return { ok: false, reason: "codes.dims must be a non-empty array of positive integers" };
+    }
+    if (!(indices instanceof Uint32Array)) {
+      return { ok: false, reason: "codes.indices must be a Uint32Array" };
+    }
+    if (!(re instanceof Float64Array) || !(im instanceof Float64Array)) {
+      return { ok: false, reason: "codes.re / codes.im must be Float64Array" };
+    }
+    if (indices.length !== topK || re.length !== topK || im.length !== topK) {
+      return { ok: false, reason: "codes.indices / re / im length must equal codes.topK" };
+    }
+    const gridProduct = (dims as number[]).reduce((a, d) => a * d, 1);
+    for (let i = 0; i < (topK as number); i++) {
+      if (!Number.isFinite(re[i]) || !Number.isFinite(im[i])) {
+        return { ok: false, reason: `codes coefficient ${i} is not finite` };
+      }
+      const binIndex = indices[i]!;
+      if (binIndex >= gridProduct) {
+        return { ok: false, reason: `codes.indices[${i}] out of grid range` };
+      }
+    }
+    Object.assign(enrichment as { codes?: SpectralCodes }, {
+      codes: { topK: topK as number, dims: dims as number[], indices, re, im },
+    });
   }
   return { ok: true, value: enrichment };
 }

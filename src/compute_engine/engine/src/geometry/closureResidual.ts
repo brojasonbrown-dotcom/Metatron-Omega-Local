@@ -59,20 +59,20 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PI, TWO_PI, PHI_NEG26 } from "../core/constants.js";
+import { PI, TWO_PI, PHI_NEG26 } from "../core/constants.ts";
 import {
   Scaled,
   classify,
   tainted,
   type Classified,
-} from "../core/provenance.js";
+} from "../core/provenance.ts";
 import {
   metric,
   wrapAngle,
   type TorusField,
   type TorusParams,
   type TorusPoint,
-} from "./torus.js";
+} from "./torus.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Quadrature configuration

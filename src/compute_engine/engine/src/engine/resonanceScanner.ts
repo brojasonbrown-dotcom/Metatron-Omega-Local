@@ -112,9 +112,9 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, PHI_NEG2 } from "../core/constants.js";
-import { spectralLines } from "../core/lucas.js";
-import { classify, tainted, type Classified } from "../core/provenance.js";
+import { PHI, PHI_NEG2 } from "../core/constants.ts";
+import { spectralLines } from "../core/lucas.ts";
+import { classify, tainted, type Classified } from "../core/provenance.ts";
 import { closureResidual } from "../geometry/closureResidual.ts";
 import { torusForScale, type TorusField, type TorusParams } from "../geometry/torus.ts";
 import { MemoryKernel } from "../dynamics/memoryKernel.ts";

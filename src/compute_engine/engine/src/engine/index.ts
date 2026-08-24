@@ -1,6 +1,6 @@
 /** engine layer — public re-exports (aggregated by src/index.ts barrel). */
-export * from "./morphismPipeline.js";
-export * from "./multiscaleEngine.js";
-export * from "./resonanceScanner.js";
-export * from "./scaleMeasurement.js";
-export * from "./verificationSuite.js";
+export * from "./morphismPipeline.ts";
+export * from "./multiscaleEngine.ts";
+export * from "./resonanceScanner.ts";
+export * from "./scaleMeasurement.ts";
+export * from "./verificationSuite.ts";

@@ -7,10 +7,20 @@
  *
  * Contracts (spec §3/File 3):
  *   - lucas(n), fibonacci(n) exact for n ≤ 200 (BigInt).
- *   - isStable(n) ⇔ odd(n) ∧ 7∤n  ⇔  n ≡ {1,13,15,27} (mod 28)  [erratum E13].
+ *   - isStable(n) ⇔ min(Lₙ mod 13, 13−·) = 1  ⇔  n ≡ {1,13,15,27} (mod 28)  [erratum E13].
+ *     (Necessary but NOT sufficient superset: odd(n) ∧ 7∤n — that alone also admits
+ *      n = 3,5,9,11,17,… which are NOT stable. The ⇔ form is the mod-28 residues.)
  *   - lucasResidue(n, 13) pattern has period 28; Lₙ ≢ 0 (mod 13) — exact 13-fold
  *     closure is IMPOSSIBLE (theorem), so every real scale is minimally open.
  *   - Binet defect |φⁿ − Lₙ| = φ⁻ⁿ.
+ *
+ * THE SINGLE OWNER OF THE STABLE CENSUS. Historically the materialized list of
+ * stable rungs ≤ 293 was RE-DERIVED independently in scaleTable, crossScaleFlow and
+ * verificationSuite — the strict DAG forced each consumer to recompute from the
+ * predicate rather than read a shared value. That scatter is closed here: this root
+ * now materializes the census ONCE (LUCAS_STABLE_RUNGS_293), cross-checked at module
+ * load, and every consumer reads it. The predicate isStable stays the source of
+ * truth; the census is its verified materialization, never a second definition.
  */
 
 import { PHI } from "./constants.ts";
@@ -71,6 +81,43 @@ export function closureResidueMin(n: number): number {
   const r = lucasResidue(n, 13);
   return Math.min(r, 13 - r);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The materialized stable census — THE single owner (built once, verified, frozen)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The largest rung of the engine's materialized domain (the cosmic rung). */
+export const MAX_STABLE_DOMAIN = 293 as const;
+
+/**
+ * The canonical Lucas-stable census: every stable rung 1 ≤ n ≤ 293, ascending.
+ * Derived ONCE from the predicate isStable and cross-checked against the mod-28
+ * residue-class corollary at module load — the two must agree exactly or the module
+ * refuses to load (a drifted census must surface loudly, never silently). Frozen, so
+ * no consumer can mutate the shared law. Read this instead of re-deriving the domain.
+ */
+export const LUCAS_STABLE_RUNGS_293: readonly number[] = Object.freeze(
+  (() => {
+    const census = stableScalesUpTo(MAX_STABLE_DOMAIN);
+    // Cross-check: the predicate form and the mod-28 residue form must enumerate the
+    // identical set over the whole domain. This is the erratum-E13 equivalence,
+    // asserted at load time rather than assumed.
+    for (let n = 1; n <= MAX_STABLE_DOMAIN; n++) {
+      const byPredicate = isStable(n);
+      const byResidue = [1, 13, 15, 27].includes(((n % 28) + 28) % 28);
+      if (byPredicate !== byResidue) {
+        throw new Error(
+          `lucas: stable census drift at n=${n} — predicate(${byPredicate}) ≠ residue(${byResidue}); the mod-28 law is inconsistent`,
+        );
+      }
+    }
+    return census;
+  })(),
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Binet defect + closure impossibility
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Binet defect |φⁿ − Lₙ| = φ⁻ⁿ (dimensionless, Float64).

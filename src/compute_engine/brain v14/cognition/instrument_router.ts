@@ -40,6 +40,7 @@ import { LlmTool } from "./../adapters/llm_tool.ts";
 import { KimiK3Tool, k3ConfigFromEnv } from "./../adapters/kimi_k3_tool.ts";
 import { SplitInstrument } from "./../adapters/split_instrument.ts";
 import { MATHSTRAL_MODEL, PHI_MODEL } from "./../adapters/ollama_supervisor.ts";
+import { stampProvenance, verifyProvenance, type Provenance } from "./../core/provenance.ts";
 import type {
   DefineResponse,
   LexicalResponse,
@@ -144,6 +145,8 @@ export class InstrumentRouter implements LanguageInstrument {
   private _active: InstrumentId = "ollama";
   private _ollamaModel: string = PHI_MODEL;
   private _verifyModel: string = MATHSTRAL_MODEL;
+  /** A6/P9 — the resolved K3 language-model id, for provenance stamps. */
+  private readonly _k3Model: string;
   /**
    * The Ollama off-switch. When false the router treats the local instrument as
    * switched OFF: availability() reports it disabled without probing the server,
@@ -173,16 +176,30 @@ export class InstrumentRouter implements LanguageInstrument {
     this._stateDir = deps.stateDir;
     this._store = deps.store;
     this._ollama = new LlmTool(deps.ollamaBaseUrl, this._ollamaModel, this._verifyModel);
-    this._k3 = new KimiK3Tool(deps.k3Config ?? k3ConfigFromEnv());
+    const k3Config = deps.k3Config ?? k3ConfigFromEnv();
+    this._k3Model = k3Config.languageModel;
+    this._k3 = new KimiK3Tool(k3Config);
     // A persisted choice wins; otherwise auto-detect picks the best available.
     this._restore();
-    // The split facade the loop queries. Its Ollama-availability probe is live:
-    // a cached model list is honest ONLY within the probe TTL, so the split asks
-    // the router to re-measure (the router's probe is itself TTL-cached).
+    // The split facade the loop queries. Its Ollama-availability probe is LIVE
+    // and FORCE-FRESH: at failover time it re-measures /api/tags (bypassing the
+    // status TTL cache) so a rebound/crash-restarted server is never read stale
+    // and a just-died server is never routed into. [SPEC]
     this._split = new SplitInstrument(
-      { ollama: this._ollama, k3: this._k3, ollamaAvailable: () => this._ollamaEnabled && this._ollamaModels.length > 0, store: deps.store },
+      { ollama: this._ollama, k3: this._k3, ollamaAvailable: () => this._ollamaLiveFresh(), store: deps.store },
       this._kimiOn,
     );
+  }
+
+  /**
+   * FORCE-FRESH Ollama liveness for failover decisions. Unlike availability()
+   * (which is TTL-cached for the polling Σ panel), this always re-probes the
+   * live server so a failover never trusts a stale cache. [SPEC]
+   */
+  private async _ollamaLiveFresh(): Promise<boolean> {
+    if (!this._ollamaEnabled) return false;
+    const models = await this.refreshOllamaModels(true);
+    return models.length > 0;
   }
 
   /** Re-point the Ollama tool at the supervisor's CURRENT port (a crash-restart can rebind). */
@@ -445,6 +462,63 @@ export class InstrumentRouter implements LanguageInstrument {
     depth: "standard" | "deep" = "standard",
   ): Promise<ToolOutcome<string>> {
     return this._split.answer(question, context, depth);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // A6 / P9 — provenance-hashed routing. Every routed output can carry a stamp
+  // sha1(model_id ‖ prompt_hash ‖ ts) so the exact model+prompt that produced it
+  // is traceable (the dog/cat class of hallucination becomes auditable). The
+  // model_id is read LIVE at call time — never a cached default.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * The instrument-qualified model id that would serve `answer()` right now
+   * (e.g. "k3/kimi-k3" when the Kimi toggle is live, else "ollama/<model>").
+   */
+  private get _answerModelId(): string {
+    return this._split.answerSource === "k3"
+      ? `k3/${this._k3Model}`
+      : `ollama/${this._ollamaModel}`;
+  }
+
+  /** The instrument-qualified model id that serves `verifyStructure()` (the verifier). */
+  private get _verifyModelId(): string {
+    return this._split.answerSource === "k3"
+      ? `k3/${this._k3Model}`
+      : `ollama/${this._verifyModel}`;
+  }
+
+  /**
+   * Answer with a provenance stamp. Routes through the same split facade (so all
+   * failover behaviour is identical), then stamps the outcome with the model that
+   * actually served it. The prompt hashed is the exact question string handed to
+   * the instrument. A failed route is stamped too — the audit records the attempt.
+   */
+  async answerWithProvenance(
+    question: string,
+    context: { engineFacts: string; concepts: Array<{ labels: string[]; resonance: number }> },
+    depth: "standard" | "deep" = "standard",
+  ): Promise<{ outcome: ToolOutcome<string>; provenance: Provenance }> {
+    const modelId = this._answerModelId; // read BEFORE the call: the model that will serve
+    const outcome = await this._split.answer(question, context, depth);
+    return { outcome, provenance: stampProvenance(modelId, question) };
+  }
+
+  /**
+   * verifyStructure with a provenance stamp on the verifier (mathstral, or K3 when
+   * the toggle is live). The claim being checked is the hashed prompt.
+   */
+  async verifyStructureWithProvenance(
+    claim: string,
+  ): Promise<{ outcome: ToolOutcome<VerifyResponse>; provenance: Provenance }> {
+    const modelId = this._verifyModelId;
+    const outcome = await this._split.verifyStructure(claim);
+    return { outcome, provenance: stampProvenance(modelId, claim) };
+  }
+
+  /** Re-export so a host can resolve a stamp without importing core/provenance. */
+  static verifyProvenance(p: Provenance): boolean {
+    return verifyProvenance(p);
   }
 
   /**

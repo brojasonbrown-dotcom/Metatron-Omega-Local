@@ -35,12 +35,12 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PI } from "../core/constants.js";
+import { PI } from "../core/constants.ts";
 import {
   metric,
   type TorusParams,
   type TorusPoint,
-} from "./torus.js";
+} from "./torus.ts";
 
 const TWO_PI = 2 * PI;
 

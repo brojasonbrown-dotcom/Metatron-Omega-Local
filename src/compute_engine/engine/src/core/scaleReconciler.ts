@@ -30,13 +30,30 @@
  * provenance, constants }.
  */
 
-import { PHI, PLANCK_LENGTH, PLANCK_TIME, C } from "./constants.js";
-import { Scaled } from "./provenance.js";
-import { isStable, stableScalesUpTo } from "./lucas.js";
-import { getScale } from "./scaleTable.js";
+import { PHI, PLANCK_LENGTH, PLANCK_TIME, C } from "./constants.ts";
+import { Scaled } from "./provenance.ts";
+import { isStable, LUCAS_STABLE_RUNGS_293, MAX_STABLE_DOMAIN } from "./lucas.ts";
+import { getScale } from "./scaleTable.ts";
 
 /** The largest n the engine's stable table is materialised for. */
 const MAX_STABLE_RUNG = 125;
+
+/**
+ * The Lucas-stable rungs to search for a given ceiling, with the canonical census
+ * (LUCAS_STABLE_RUNGS_293, owned by lucas.ts) as the base. For ceilings at or below
+ * the cosmic rung this IS the census — no recomputation. Only when the mind navigates
+ * ABOVE 293 (its larger domain) do we derive the small stable tail beyond the census
+ * and append it; the result is bit-identical to stableScalesUpTo(max) in all cases.
+ */
+function stableRungsUpTo(max: number): number[] {
+  if (max <= MAX_STABLE_DOMAIN) {
+    return LUCAS_STABLE_RUNGS_293.filter((n) => n <= max);
+  }
+  // Extend above the materialised domain: census + the stable tail in (293, max].
+  const tail: number[] = [];
+  for (let n = MAX_STABLE_DOMAIN + 1; n <= max; n++) if (isStable(n)) tail.push(n);
+  return [...LUCAS_STABLE_RUNGS_293, ...tail];
+}
 
 /**
  * Nearest Lucas-stable rung to `n` (the bridge between the two ladders).
@@ -45,7 +62,7 @@ const MAX_STABLE_RUNG = 125;
  */
 export function nearestStableRung(n: number): number | null {
   if (!Number.isInteger(n)) throw new RangeError(`nearestStableRung: non-integer ${n}`);
-  const rungs = stableScalesUpTo(Math.max(n, MAX_STABLE_RUNG));
+  const rungs = stableRungsUpTo(Math.max(n, MAX_STABLE_RUNG));
   if (rungs.length === 0) return null;
   let best: number | null = null;
   let bestDist = Infinity;
@@ -102,7 +119,7 @@ export function reconciliationResidual(n: number): number {
   if (nearest === null) return 1; // no stable rung in range: fully unreconciled
   if (nearest === n) return 0;
   // spacing to the next stable rung above `nearest` (local ladder gap)
-  const above = stableScalesUpTo(nearest + 40).find((r) => r > nearest) ?? nearest + 14;
+  const above = stableRungsUpTo(nearest + 40).find((r) => r > nearest) ?? nearest + 14;
   const gap = Math.max(1, above - nearest);
   return Math.abs(n - nearest) / gap;
 }

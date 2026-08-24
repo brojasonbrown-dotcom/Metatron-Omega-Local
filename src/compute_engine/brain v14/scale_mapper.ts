@@ -37,6 +37,16 @@ import {
 } from "./core/constants.ts";
 
 import { at } from "./core/indexing.ts";
+// L0 — the dual-registry reconciler (engine M5). Bridges the mind's 10 canonical
+// scales to the engine's 42-rung Lucas-stable ladder WITHOUT conflating them, and
+// gives the EXACT scale law (ℓ_P·φⁿ as a Scaled, never Float64 Math.pow overflow).
+import {
+  nearestStableRung,
+  isStableRung,
+  reconciliationResidual,
+  scaleLengthAt,
+  scaleFrequencyAt,
+} from "./../engine/src/core/scaleReconciler.ts";
 // ───────────────────────────────────────────────────────────────────────────────
 // 1. ScaleConfig Interface (re-exported for local reference)
 // ───────────────────────────────────────────────────────────────────────────────
@@ -340,18 +350,69 @@ export class ScaleMapper {
    * Computes the scale law L(n) = ℓ_P · φⁿ.
    *
    * [SPEC] — Characteristic length at scale n. Returns Float64 (≈15 digits).
+   * L0: now computed via the engine reconciler's exact Scaled arithmetic — never
+   * Math.pow into overflow at large n. toFloat64OrNull handles |exp10| > 308 by
+   * returning null → Infinity (the honest "unrepresentable length" at huge n).
    */
   compute_length(n: number): Float64 {
-    return (PLANCK_LENGTH * Math.pow(PHI, n)) as Float64;
+    const exact = scaleLengthAt(Math.round(n)).toFloat64OrNull();
+    return (exact ?? Infinity) as Float64;
   }
 
   /**
-   * Computes the harmonic cascade f(n) = f_P · φ⁻ⁿ.
+   * Computes the harmonic cascade f(n) = f_P · φ⁻ⁿ (≡ c/L(n), single-sourced).
    *
    * [SPEC] — Characteristic frequency at scale n. Returns Float64 (≈15 digits).
+   * L0: exact via the reconciler's Scaled (c/L), so the length and frequency
+   * ladders always agree by construction (single-sourced PLANCK_LENGTH + C).
    */
   compute_frequency(n: number): Float64 {
-    return (PLANCK_FREQUENCY * Math.pow(PHI, -n)) as Float64;
+    const exact = scaleFrequencyAt(Math.round(n)).toFloat64OrNull();
+    return (exact ?? 0) as Float64;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4a. L0 — Ladder Reconciliation (the engine bridge)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * The nearest Lucas-stable engine rung to any scale index n (the bridge between
+   * the mind's 10-scale canonical ladder and the engine's 42-rung stable ladder).
+   * Ties break to the lower rung (deterministic). Null when no stable rung is in range.
+   */
+  nearest_stable_rung(n: number): number | null {
+    return nearestStableRung(Math.round(n));
+  }
+
+  /** True iff n is itself a Lucas-stable engine rung. */
+  is_stable_rung(n: number): boolean {
+    return isStableRung(Math.round(n));
+  }
+
+  /**
+   * How far n sits from a verified engine rung: |n − nearestStableRung(n)| as a
+   * fraction of the local rung gap. 0 when n is itself stable (perfectly reconciled),
+   * rising toward 1 mid-gap. Read-only and honest — the mind's canonical scales are
+   * NOT engine rungs, and this reports that distance rather than pretending otherwise.
+   */
+  reconciliation_residual(n: number): number {
+    return reconciliationResidual(Math.round(n));
+  }
+
+  /**
+   * The full reconciliation view of a canonical scale: its engine rung partner and
+   * how honestly it reconciles. This is the L0 seam the deeper layers (toroidal
+   * cross-scale flow, eigenmode grids) build on — the mind's navigation and the
+   * engine's verified ladder, one law, two views.
+   */
+  reconcile(n: number): { scale: number; nearestRung: number | null; residual: number; stable: boolean } {
+    const s = Math.round(n);
+    return {
+      scale: s,
+      nearestRung: nearestStableRung(s),
+      residual: reconciliationResidual(s),
+      stable: isStableRung(s),
+    };
   }
 
   /**

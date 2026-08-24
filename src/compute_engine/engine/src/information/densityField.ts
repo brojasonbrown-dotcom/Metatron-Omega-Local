@@ -80,7 +80,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import type { StableScaleIndex } from "../core/constants.js";
+import type { StableScaleIndex } from "../core/constants.ts";
 import { getScale } from "../core/scaleTable.ts";
 import { classify, tainted, type Classified, type Provenance } from "../core/provenance.ts";
 import { Scaled } from "../core/provenance.ts";

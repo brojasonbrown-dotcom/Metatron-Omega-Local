@@ -73,7 +73,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, PHI_NEG2 } from "../core/constants.js";
+import { PHI, PHI_NEG2 } from "../core/constants.ts";
 
 /**
  * Default conservative coupling λ = φ⁻². Imported from the single source of

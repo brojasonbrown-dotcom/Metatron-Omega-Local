@@ -53,7 +53,7 @@
  */
 
 import type { ScaleRecord } from "../core/scaleTable.ts";
-import type { Field, FieldValue } from "./memoryKernel.js";
+import type { Field, FieldValue } from "./memoryKernel.ts";
 
 /**
  * The operating CFL limit the engine runs at (contract invariant dt ≤ dx/v).

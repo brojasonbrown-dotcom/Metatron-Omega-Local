@@ -30,7 +30,7 @@ function help() {
     "• `torus 13` — torus geometry + surface area + Lucas floor",
     "• `memory` — conservative kernel: roots, deep-memory weights, W∞ = 1/2",
     "• `overlap` — golden-delay self-overlap C(t) on a live recursion",
-    "• `status` — engine build state from the file system",
+    "• `status` — engine structure read live (subsystems, modules, exports)",
   ].join("\n");
 }
 
@@ -97,25 +97,40 @@ function overlapInfo() {
   ].join("\n");
 }
 
-/** status — build state read from the file system (no hardcoding). */
+/** status — engine structure read live from the file system (no hardcoding).
+ *  Golden rule B-10: report what actually exists on disk, never a frozen
+ *  count. Scans engine/src per subsystem and counts the real modules — the
+ *  engine is a living tree, so this is recomputed on every call. */
 function statusInfo() {
   const fs = require("node:fs");
   const path = require("node:path");
   const srcRoot = path.join(__dirname, "..", "..", "engine", "src");
-  const expected = [
-    "core/constants.ts", "core/provenance.ts", "core/lucas.ts", "core/scaleTable.ts",
-    "geometry/torus.ts", "geometry/closureResidual.ts", "geometry/lattice.ts", "geometry/basisGenerators.ts",
-    "dynamics/memoryKernel.ts", "dynamics/propagation.ts", "dynamics/crossScaleFlow.ts", "dynamics/selfMeasurement.ts",
-    "information/densityField.ts", "information/burden.ts", "information/actualizer.ts",
-    "engine/multiscaleEngine.ts", "engine/morphismPipeline.ts", "engine/verificationSuite.ts",
-  ];
-  const present = expected.filter((f) => fs.existsSync(path.join(srcRoot, f)));
+  if (!fs.existsSync(srcRoot)) {
+    return `Engine source not found at ${srcRoot} — bundle path is broken.`;
+  }
+  // Every subsystem directory; each module is a .ts file. index.ts files are
+  // just re-export barrels, not implementation, so they are not counted.
+  const subsystems = fs
+    .readdirSync(srcRoot, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .sort();
+  const lines = [];
+  let total = 0;
+  for (const sub of subsystems) {
+    const modules = fs
+      .readdirSync(path.join(srcRoot, sub))
+      .filter((f) => f.endsWith(".ts") && f !== "index.ts")
+      .map((f) => f.replace(/\.ts$/, ""));
+    total += modules.length;
+    lines.push(`  ${sub.padEnd(12)} ${String(modules.length).padStart(2)}  ${modules.join(", ")}`);
+  }
   return [
-    `Engine build state (read live from ${path.relative(process.cwd(), srcRoot)}):`,
-    `  ${present.length}/18 files present`,
-    `  present: ${present.map((p) => p.split("/")[1]).join(", ")}`,
-    `  next up: ${expected.find((f) => !present.includes(f)) ?? "— complete —"}`,
-    `  B2 open postulate: ${E.UNRESOLVED.mediumWaveSpeed.slice(0, 80)}…`,
+    `Engine structure (read live from ${path.relative(process.cwd(), srcRoot)}):`,
+    `  ${subsystems.length} subsystems, ${total} modules:`,
+    ...lines,
+    `  exports in bundle: ${Object.keys(E).length}`,
+    `  open postulate: ${E.UNRESOLVED.mediumWaveSpeed}`,
   ].join("\n");
 }
 

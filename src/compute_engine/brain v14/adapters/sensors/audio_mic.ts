@@ -20,9 +20,14 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { COHERENCE_THRESHOLD } from "./../../core/constants.ts";
+import { resonance } from "./../language_codec.ts";
 import type { SensorBus } from "./sensor_bus.ts";
 import { fieldFromWaveform } from "./signal_codec.ts";
 import { audioSpectralEnrichment } from "./spectral_enrichment.ts";
+import { spectrogramFromWaveform } from "./spectral_audio.ts";
+import { separateStreams } from "./stream_separator.ts";
+import type { AudioStreamRef } from "./../../schemas/validate.ts";
 
 /** Mic segment length in seconds: F_5 = 5. [SPEC] */
 const SEGMENT_SECONDS = 5;
@@ -39,9 +44,16 @@ const MAX_STABLE_RETRIES = 13;
 /** Cap analysed audio at 30 s to bound Goertzel cost. [SPEC] */
 const MAX_ANALYSIS_SECONDS = 30;
 
+/** Force-inject the mic stream every Nth clip even without novelty: F_6 = 8. [SPEC]
+ *  Mirrors vision_screen's FORCE_EVERY = 89 — a changing-but-redundant soundscape still
+ *  lets the mind hear the room periodically, so the gate never goes deaf. */
+const MIC_FORCE_EVERY = 8;
+
 export interface AudioSensorStats {
   readonly sensed: number;
   readonly failures: number;
+  /** W1 — mic clips the novelty gate declined to inject (observable, never silent). */
+  readonly micGated: number;
   readonly micActive: boolean;
   readonly micDevice: string | null;
   readonly lastError: string | null;
@@ -60,11 +72,23 @@ export class AudioSensor {
   private _sensed = 0;
   private _failures = 0;
   private _lastError: string | null = null;
+  /** ADR-002 M2 — when true, separate each clip into auditory streams (config-gated). */
+  private readonly _streamsEnabled: boolean;
+  /** W1 — the previous mic field, for the novelty gate (continuous stream only). */
+  private _prevMicField: Float64Array | null = null;
+  /** W1 — mic clips seen, drives the force-inject cadence. */
+  private _micClips = 0;
+  /** W1 — mic clips the gate declined (the throttled flood, made visible). */
+  private _micGated = 0;
+  /** W1 — mic novelty gate (default ON; MIND_MIC_GATE=0 restores the legacy flood). */
+  private readonly _micGate: boolean;
 
-  constructor(bus: SensorBus, inboxDir: string) {
+  constructor(bus: SensorBus, inboxDir: string, streamsEnabled: boolean = false) {
     this._bus = bus;
     this.watchDir = path.join(inboxDir, "audio");
     this.processedDir = path.join(this.watchDir, "processed");
+    this._streamsEnabled = streamsEnabled;
+    this._micGate = process.env["MIND_MIC_GATE"] !== "0";
   }
 
   async start(): Promise<void> {
@@ -98,6 +122,7 @@ export class AudioSensor {
     return {
       sensed: this._sensed,
       failures: this._failures,
+      micGated: this._micGated,
       micActive: this._micProc !== null,
       micDevice: this._micDevice,
       lastError: this._lastError,
@@ -142,6 +167,38 @@ export class AudioSensor {
       const field = fieldFromWaveform(samples, sampleRate);
       const spectral = audioSpectralEnrichment(samples, sampleRate);
       const isMic = path.basename(filePath).startsWith("mic-");
+      // ADR-002 M2 — separate the soundscape into energy-certified auditory
+      // streams (bark-stream / car-stream) so a mixed clip is correlated
+      // per-stream rather than as one smeared blob. Additive; 28-field untouched.
+      let streams: readonly AudioStreamRef[] | undefined;
+      if (this._streamsEnabled) {
+        const spec = spectrogramFromWaveform(samples, sampleRate, { windowSize: 1024 });
+        const dec = separateStreams(spec, sampleRate);
+        streams = dec.streams.map((s) => ({
+          signature: s.signature,
+          energyFraction: s.energyFraction,
+          dominantHz: s.dominantHz,
+        }));
+      }
+      // W1 — MIC NOVELTY GATE (continuous stream only; dropped .wav files are
+      // operator-curated and always learned). The mic captures every 5 s and was
+      // 89.6% of all sensory traffic, flooding the 89-frame bus (drained ≤5/tick) so
+      // vision co-arrived rarely and the cross-modal correlator starved. Mirror
+      // vision_screen: inject only a real change (resonance < COHERENCE_THRESHOLD vs
+      // the previous mic field) or every MIC_FORCE_EVERYth clip regardless. [SPEC]
+      if (isMic && this._micGate) {
+        this._micClips++;
+        const novel =
+          this._prevMicField === null || resonance(field, this._prevMicField) < COHERENCE_THRESHOLD;
+        const forced = this._micClips % MIC_FORCE_EVERY === 0;
+        if (!novel && !forced) {
+          this._micGated++;
+          this._pending.delete(filePath);
+          this._archive(filePath, isMic); // consumed, not learned — keep the inbox clean
+          return;
+        }
+      }
+      if (isMic) this._prevMicField = field;
       const accepted = this._bus.push({
         source: isMic ? "audio.mic" : "audio.file",
         timestamp: Date.now(),
@@ -153,6 +210,7 @@ export class AudioSensor {
         },
         field,
         spectral,
+        ...(streams !== undefined ? { streams } : {}),
       });
       if (accepted) {
         this._sensed++;

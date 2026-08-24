@@ -29,3 +29,12 @@ __pycache__/
 sandbox/
 backup/
 *.canvas
+
+# environment files — never commit real secrets. The tracked root .env holds only
+# devcontainer build config (no credentials); ignore all OTHER .env variants so a
+# future real key (`.env.local`, `app/.env`, …) can never slip into git.
+**/.env.local
+**/.env.*.local
+**/.env.development
+**/.env.production
+src/compute_engine/app/.env

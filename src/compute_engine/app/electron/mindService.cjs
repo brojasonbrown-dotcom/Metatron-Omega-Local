@@ -261,7 +261,11 @@ class MindService {
     this._stopping = false;
     this._state = "starting";
     this._buf = "";
-    const proc = spawn(resolveNode(), [this._entry], {
+    // --experimental-transform-types: the v14/engine sources may use TS the
+    // default strip-only mode rejects (parameter properties, etc.). Transform
+    // mode handles them AND maps the sources' .js-extension ESM specifiers onto
+    // the shipped .ts files — without it the sidecar dies at module link.
+    const proc = spawn(resolveNode(), ["--experimental-transform-types", this._entry], {
       cwd: this._brainDir,
       env: { ...process.env, MIND_TTS: "0" },
       stdio: ["pipe", "pipe", "pipe"],

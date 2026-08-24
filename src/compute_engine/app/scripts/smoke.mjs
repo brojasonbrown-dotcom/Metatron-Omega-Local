@@ -36,7 +36,7 @@ check("torus 27", respond("torus 27"), ["aspect R/r = φ", "surface area"]);
 check("memory kernel", respond("memory"), ["z₁ = 1", "1/2", "isConservative() = true"]);
 check("overlap live recursion", respond("overlap"), ["C(t) =", "ignition threshold"]);
 check("density envelope", respond("density"), ["ρ_I(1)", "ρ_I(125)"]);
-check("status from filesystem", respond("status"), ["/18 files present"]);
+check("status from filesystem", respond("status"), ["subsystems", "modules"]);
 check("fallback is honest", respond("tell me a poem"), ["don't have a computed answer"]);
 
 // ── sensory codec (ported v14 projections) — real signal verification ──
@@ -86,6 +86,18 @@ checkSense("sensory: vision grid → unit-norm field; uniform grid → zero stru
 
 // ── engine loop — live simulation service verification ──
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// Poll until `pred()` holds or `deadlineMs` elapses. A fixed sleep races the
+// child agent's cold start (system-Node type-stripping, AV scan, disk pressure)
+// and cascade-fails every downstream check; polling waits only as long as the
+// boot actually needs and no longer. Returns the final predicate result.
+async function until(pred, deadlineMs, stepMs = 50) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < deadlineMs) {
+    if (pred()) return true;
+    await wait(stepMs);
+  }
+  return pred();
+}
 async function checkLoop() {
   const loop = new EngineLoop();
   const s0 = loop.state();
@@ -209,12 +221,15 @@ async function checkMindService() {
   checks.push(["capabilities honest (fixture present)", st0.brainPresent === true]);
   checks.push(["starts stopped", st0.state === "stopped" && !st0.running]);
   svc.start();
-  await wait(600);
+  // Poll for awake (up to 5s) instead of a fixed 600ms sleep — cold-start
+  // type-stripping can exceed 600ms under load and cascade-fail the suite.
+  await until(() => svc.status().state === "awake", 5000);
   const st1 = svc.status();
   checks.push(["awake after boot frames", st1.state === "awake" && st1.running]);
   const chat = svc.chat("hello agent");
   checks.push(["chat accepted while awake", chat.ok === true]);
-  await wait(300);
+  // Poll for the async ack (up to 3s) — the child answers on its own tick.
+  await until(() => events.some((f) => f.type === "chat.ack" && f.accepted), 3000);
   checks.push(["chat.ack received", events.some((f) => f.type === "chat.ack" && f.accepted)]);
     // F4 — the web sense verb: id-keyed honest verdict over the real stdio protocol.
     const web = await svc.webFeed("https://example.com/");

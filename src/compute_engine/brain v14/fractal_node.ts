@@ -545,8 +545,19 @@ export class FractalNode {
     if (opts.include_memory_term && this._previousField !== null) {
       memoryField = new Float64Array(fieldSize);
       const prev = this._previousField;
-      for (let i = 0; i < fieldSize; i++) {
-        memoryField[i] = (PHI_NEG2 * (prev[i] ?? 0)) as Float64;
+      if (opts.conservative_memory) {
+        // [L2-B] engine MemoryKernel convex law (1-λ)·summation + λ·prev — weights
+        // sum to 1 exactly, characteristic roots {1, −φ⁻²} (marginally stable),
+        // replacing the raw φ⁻²·prev pull whose weights do NOT sum to 1.
+        const lambda = PHI_NEG2; // λ = φ⁻²
+        const keep = 1.0 - lambda;
+        for (let i = 0; i < fieldSize; i++) {
+          memoryField[i] = (keep * at(summationField, i) + lambda * (prev[i] ?? 0)) as Float64;
+        }
+      } else {
+        for (let i = 0; i < fieldSize; i++) {
+          memoryField[i] = (PHI_NEG2 * (prev[i] ?? 0)) as Float64;
+        }
       }
     } else {
       memoryField = new Float64Array(fieldSize); // zero field

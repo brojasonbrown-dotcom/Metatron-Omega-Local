@@ -66,7 +66,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, HARMONIC_COUNT, METATRON_SHELL, type StableScaleIndex } from "../core/constants.js";
+import { PHI, HARMONIC_COUNT, METATRON_SHELL, type StableScaleIndex } from "../core/constants.ts";
 import { spectralLines } from "../core/lucas.ts";
 import { classify, tainted, type Classified, type Provenance } from "../core/provenance.ts";
 import { torusForScale, type TorusParams, type TorusPoint } from "../geometry/torus.ts";

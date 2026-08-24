@@ -343,6 +343,22 @@ function closureResidueMin(n) {
   const r = lucasResidue(n, 13);
   return Math.min(r, 13 - r);
 }
+var MAX_STABLE_DOMAIN = 293;
+var LUCAS_STABLE_RUNGS_293 = Object.freeze(
+  (() => {
+    const census = stableScalesUpTo(MAX_STABLE_DOMAIN);
+    for (let n = 1; n <= MAX_STABLE_DOMAIN; n++) {
+      const byPredicate = isStable(n);
+      const byResidue = [1, 13, 15, 27].includes((n % 28 + 28) % 28);
+      if (byPredicate !== byResidue) {
+        throw new Error(
+          `lucas: stable census drift at n=${n} \u2014 predicate(${byPredicate}) \u2260 residue(${byResidue}); the mod-28 law is inconsistent`
+        );
+      }
+    }
+    return census;
+  })()
+);
 function binetDefect(n) {
   return Math.pow(PHI, -n);
 }
@@ -382,7 +398,7 @@ function buildRecord(n) {
   });
 }
 var TABLE = /* @__PURE__ */ new Map();
-for (const n of stableScalesUpTo(293)) TABLE.set(n, buildRecord(n));
+for (const n of LUCAS_STABLE_RUNGS_293) TABLE.set(n, buildRecord(n));
 function getScale(n) {
   const rec = TABLE.get(n);
   if (!rec) throw new RangeError(`getScale: n=${n} is not a Lucas-stable scale`);
@@ -391,13 +407,21 @@ function getScale(n) {
 function allScales() {
   return STABLE_SCALES.map((n) => getScale(n));
 }
-var CONTINUATION = stableScalesUpTo(293).filter((n) => !STABLE_SCALES.includes(n)).map((n) => getScale(n));
+var CONTINUATION = LUCAS_STABLE_RUNGS_293.filter((n) => !STABLE_SCALES.includes(n)).map((n) => getScale(n));
 
 // ../engine/src/core/scaleReconciler.ts
 var MAX_STABLE_RUNG = 125;
+function stableRungsUpTo(max) {
+  if (max <= MAX_STABLE_DOMAIN) {
+    return LUCAS_STABLE_RUNGS_293.filter((n) => n <= max);
+  }
+  const tail = [];
+  for (let n = MAX_STABLE_DOMAIN + 1; n <= max; n++) if (isStable(n)) tail.push(n);
+  return [...LUCAS_STABLE_RUNGS_293, ...tail];
+}
 function nearestStableRung(n) {
   if (!Number.isInteger(n)) throw new RangeError(`nearestStableRung: non-integer ${n}`);
-  const rungs = stableScalesUpTo(Math.max(n, MAX_STABLE_RUNG));
+  const rungs = stableRungsUpTo(Math.max(n, MAX_STABLE_RUNG));
   if (rungs.length === 0) return null;
   let best = null;
   let bestDist = Infinity;
@@ -429,7 +453,7 @@ function reconciliationResidual(n) {
   const nearest = nearestStableRung(n);
   if (nearest === null) return 1;
   if (nearest === n) return 0;
-  const above = stableScalesUpTo(nearest + 40).find((r) => r > nearest) ?? nearest + 14;
+  const above = stableRungsUpTo(nearest + 40).find((r) => r > nearest) ?? nearest + 14;
   const gap = Math.max(1, above - nearest);
   return Math.abs(n - nearest) / gap;
 }
@@ -1619,7 +1643,7 @@ function selfOverlap(history, tIndex) {
 
 // ../engine/src/dynamics/crossScaleFlow.ts
 var OCTAVE_STEP = 13;
-var LADDER = Object.freeze(stableScalesUpTo(293));
+var LADDER = LUCAS_STABLE_RUNGS_293;
 var LADDER_POS = new Map(LADDER.map((n, i) => [n, i]));
 function assertOnLadder(n, fn) {
   if (!LADDER_POS.has(n)) {
@@ -2211,6 +2235,71 @@ function relativeRestrictionResidual(children) {
   return restrictionConservationResidual(children) / scale;
 }
 
+// ../engine/src/refinement/boundary.ts
+function boundaryCoupling(parentCoupling = PHI_NEG2) {
+  if (!(parentCoupling >= 0) || !Number.isFinite(parentCoupling)) {
+    throw new RangeError(
+      `boundaryCoupling: parentCoupling must be non-negative finite; got ${parentCoupling}.`
+    );
+  }
+  return PHI_NEG2 * parentCoupling;
+}
+function checkFront(front) {
+  const { coarse, fine, coarseSize } = front;
+  if (!Number.isFinite(coarse)) {
+    throw new RangeError(`front: coarse value is not finite (${coarse}).`);
+  }
+  if (fine.length !== 2 || !Number.isFinite(fine[0]) || !Number.isFinite(fine[1])) {
+    throw new RangeError(
+      `front: expected exactly two finite fine values; got [${fine[0]}, ${fine[1]}].`
+    );
+  }
+  if (!(coarseSize > 0) || !Number.isFinite(coarseSize)) {
+    throw new RangeError(`front: coarseSize must be > 0 finite; got ${coarseSize}.`);
+  }
+}
+function valueMismatch(front) {
+  checkFront(front);
+  return (front.fine[0] + front.fine[1]) / 2 - front.coarse;
+}
+function fluxMismatch(front) {
+  checkFront(front);
+  return (front.fine[1] - front.fine[0]) / front.coarseSize;
+}
+function frontClosureResidual(front) {
+  checkFront(front);
+  const scale = Math.max(1, Math.abs(front.coarse), Math.abs(front.fine[0]), Math.abs(front.fine[1]));
+  const valueTerm = Math.abs(valueMismatch(front)) / scale;
+  const fluxTerm = Math.abs(fluxMismatch(front)) * front.coarseSize / scale;
+  return valueTerm + fluxTerm;
+}
+function closeFront(front, coupling = boundaryCoupling()) {
+  checkFront(front);
+  if (!(coupling >= 0) || !Number.isFinite(coupling)) {
+    throw new RangeError(`closeFront: coupling must be non-negative finite; got ${coupling}.`);
+  }
+  const vm = valueMismatch(front);
+  const fm = fluxMismatch(front);
+  const afterValue0 = front.fine[0] - coupling * vm;
+  const afterValue1 = front.fine[1] - coupling * vm;
+  const halfDiff = fm * front.coarseSize / 2;
+  const closed0 = afterValue0 + coupling * halfDiff;
+  const closed1 = afterValue1 - coupling * halfDiff;
+  return [closed0, closed1];
+}
+function frontNetFlux(front) {
+  checkFront(front);
+  const hf = front.coarseSize / 2;
+  const coarseExport = front.coarse * (2 * hf);
+  const fineImport = (front.fine[0] + front.fine[1]) * hf;
+  return coarseExport - fineImport;
+}
+function relativeFrontNetFlux(front) {
+  checkFront(front);
+  const scale = Math.max(1, Math.abs(front.coarse), Math.abs(front.fine[0]), Math.abs(front.fine[1])) * front.coarseSize;
+  return Math.abs(frontNetFlux(front)) / scale;
+}
+
 // ../engine/src/refinement/adaptiveMesh.ts
 var TWO_PI4 = 2 * Math.PI;
 var AdaptiveMesh = class {
@@ -2275,6 +2364,8 @@ var AdaptiveMesh = class {
     let coarsened = 0;
     let conservationResidual2 = 0;
     let restrictionResidual = 0;
+    let boundaryResidual = 0;
+    let boundaryFluxResidual = 0;
     if (maxLambda > 0) {
       const decisions = leaves.map((leaf, i) => ({
         leaf,
@@ -2295,6 +2386,17 @@ var AdaptiveMesh = class {
         this._tree = this._tree.refine(d.path);
         this._spliceValues(d.path, childValues);
         refined++;
+        for (const front of this._frontsForLeaf(node, childValues, fieldAt)) {
+          const closed = closeFront(front);
+          boundaryResidual = Math.max(
+            boundaryResidual,
+            frontClosureResidual({ ...front, fine: closed })
+          );
+          boundaryFluxResidual = Math.max(
+            boundaryFluxResidual,
+            relativeFrontNetFlux({ ...front, fine: closed })
+          );
+        }
       }
       const coarsenVotes = /* @__PURE__ */ new Map();
       for (const d of decisions) {
@@ -2347,6 +2449,8 @@ var AdaptiveMesh = class {
       coarsened,
       conservationResidual: conservationResidual2,
       restrictionResidual,
+      boundaryResidual,
+      boundaryFluxResidual,
       refineThreshold: REFINE_THRESHOLD,
       coarsenThreshold: COARSEN_THRESHOLD,
       leafNodes
@@ -2491,6 +2595,62 @@ var AdaptiveMesh = class {
       fieldAt({ u: u0 + half + quarter, v: v0 + half + quarter })
       // 3: du=1 dv=1
     ];
+  }
+  /**
+   * The refinement fronts of a just-refined leaf: one non-conforming
+   * (hanging-node) front per face whose across-face neighbour is at a COARSER
+   * level. A face is internal to the new 2x2 block (its across-face cell is a
+   * sibling at the SAME finer level) when the leaf sits on that side of its
+   * parent; such faces are conforming and are skipped. Only the parent's
+   * OUTER faces - where the new fine block meets the coarser tree - are fronts.
+   *
+   * The coarse face value is read from the live field at the coarse cell centre
+   * one coarse-cell-width across the face; the two fine face values are the two
+   * prolongated children adjacent to that face. boundary.ts closes the front.
+   */
+  _frontsForLeaf(leaf, childValues, fieldAt) {
+    const h = leaf.cell.size;
+    const hc = 2 * h;
+    const { u0, v0 } = leaf.cell;
+    const wrap = (x) => (x % TWO_PI4 + TWO_PI4) % TWO_PI4;
+    const du = leaf.slot >> 1;
+    const dv = leaf.slot & 1;
+    const coarseAtU = (v) => fieldAt({ u: wrap(u0 + h + hc / 2), v });
+    const coarseAtUm = (v) => fieldAt({ u: wrap(u0 - hc / 2), v });
+    const coarseAtV = (u) => fieldAt({ u, v: v0 + h + hc / 2 });
+    const coarseAtVm = (u) => fieldAt({ u, v: v0 - hc / 2 });
+    const fronts = [];
+    if (du === 1) {
+      fronts.push({
+        coarse: coarseAtU(v0 + h / 2),
+        fine: [childValues[2] ?? 0, childValues[3] ?? 0],
+        // du=1 row: slots 2,3
+        coarseSize: hc
+      });
+    } else {
+      fronts.push({
+        coarse: coarseAtUm(v0 + h / 2),
+        fine: [childValues[0] ?? 0, childValues[1] ?? 0],
+        // du=0 row: slots 0,1
+        coarseSize: hc
+      });
+    }
+    if (dv === 1) {
+      fronts.push({
+        coarse: coarseAtV(u0 + h / 2),
+        fine: [childValues[1] ?? 0, childValues[3] ?? 0],
+        // dv=1 column: slots 1,3
+        coarseSize: hc
+      });
+    } else {
+      fronts.push({
+        coarse: coarseAtVm(u0 + h / 2),
+        fine: [childValues[0] ?? 0, childValues[2] ?? 0],
+        // dv=0 column: slots 0,2
+        coarseSize: hc
+      });
+    }
+    return fronts;
   }
 };
 // Annotate the CommonJS export names for ESM import in node:

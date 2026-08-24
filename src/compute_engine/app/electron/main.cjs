@@ -277,6 +277,20 @@ ipcMain.handle("ava:sensor:video", async (_event, grid, width, height) => {
 });
 
 app.whenReady().then(() => {
+  // ADR-010 — SPEECH-MODULE MATERIALIZATION (first-run, offline, no admin). The
+  // phi + mathstral weights are too large for the NSIS installer (~2 GB ceiling),
+  // so they ship as a sibling weights/ folder and are copied into the user-writable
+  // install brain dir BEFORE the mind boots. Idempotent + atomic; if absent it reports
+  // honestly (the mind wakes mute offline) and never blocks the boot. [SPEC]
+  try {
+    const { materializeWeights } = require("./weightsMaterialize.cjs");
+    const wres = materializeWeights(mind.brainDir, (done, total) => {
+      if (total > 0) console.log(`[weights] materializing speech module ${(done/1e9).toFixed(2)}/${(total/1e9).toFixed(2)} GB`);
+    });
+    console.log(`[weights] ${wres.note}`);
+  } catch (e) {
+    console.warn(`[weights] materializer error (boot continues): ${e && e.message ? e.message : e}`);
+  }
   mainWindow = createWindow();
   // The mind pushes its stream of consciousness to the renderer as it happens.
   mind.onEvent((frame) => {

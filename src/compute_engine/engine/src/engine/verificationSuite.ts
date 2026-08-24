@@ -71,17 +71,17 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, PHI_NEG2, PHI_NEG26, STABLE_SCALES, METATRON_SHELL, PLANCK_LENGTH } from "../core/constants.js";
-import { lucas, isStable, closureResidueMin, stableScalesUpTo } from "../core/lucas.js";
-import { Scaled, type Provenance } from "../core/provenance.js";
-import { torusForScale } from "../geometry/torus.js";
-import { closureResidual, minimallyOpenFloor } from "../geometry/closureResidual.js";
-import { initialCondition } from "../geometry/lattice.js";
-import { l2Basis, l2Inner } from "../geometry/basisGenerators.js";
-import { Propagator, CFL_LIMIT, CFL_STABILITY_BOUNDARY } from "../dynamics/propagation.js";
-import { getScale } from "../core/scaleTable.js";
-import { selfOverlap, exceedsThreshold, IGNITION_THRESHOLD, type FieldHistory } from "../dynamics/selfMeasurement.js";
-import { MultiscaleEngine } from "./multiscaleEngine.js";
+import { PHI, PHI_NEG2, PHI_NEG26, STABLE_SCALES, METATRON_SHELL, PLANCK_LENGTH } from "../core/constants.ts";
+import { lucas, isStable, closureResidueMin, LUCAS_STABLE_RUNGS_293 } from "../core/lucas.ts";
+import { Scaled, type Provenance } from "../core/provenance.ts";
+import { torusForScale } from "../geometry/torus.ts";
+import { closureResidual, minimallyOpenFloor } from "../geometry/closureResidual.ts";
+import { initialCondition } from "../geometry/lattice.ts";
+import { l2Basis, l2Inner } from "../geometry/basisGenerators.ts";
+import { Propagator, CFL_LIMIT, CFL_STABILITY_BOUNDARY } from "../dynamics/propagation.ts";
+import { getScale } from "../core/scaleTable.ts";
+import { selfOverlap, exceedsThreshold, IGNITION_THRESHOLD, type FieldHistory } from "../dynamics/selfMeasurement.ts";
+import { MultiscaleEngine } from "./multiscaleEngine.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Report types
@@ -223,7 +223,7 @@ function suiteLucasClosure(): CheckResult[] {
   // The theorem: Lₙ ≢ 0 (mod 13) and residue-min = 1 for every stable rung.
   let allOpen = true;
   let allResidueOne = true;
-  for (const n of stableScalesUpTo(293)) {
+  for (const n of LUCAS_STABLE_RUNGS_293) {
     if (lucas(n) % 13n === 0n) allOpen = false;
     if (closureResidueMin(n) !== 1) allResidueOne = false;
   }
@@ -238,7 +238,7 @@ function suiteLucasClosure(): CheckResult[] {
       : bad("closureResidueMin = 1 ∀ stable n", undefined, 1, "EXACT", "a stable rung is not minimally open"),
   );
   // Stable set is exactly the spec's 18 dense-core rungs.
-  const dense = stableScalesUpTo(293).filter((n) => n <= 125);
+  const dense = LUCAS_STABLE_RUNGS_293.filter((n) => n <= 125);
   const matchesSpec = dense.length === STABLE_SCALES.length && dense.every((n, i) => n === STABLE_SCALES[i]);
   checks.push(
     matchesSpec && STABLE_SCALES.every((n) => isStable(n))

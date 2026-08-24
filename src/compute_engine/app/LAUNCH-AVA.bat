@@ -8,12 +8,12 @@ REM ═════════════════════════�
 setlocal EnableExtensions
 cd /d "%~dp0"
 title AVA Launcher
-set "ELECTRON_RUN_AS_NODE="
-
-REM ── Kimi (K3) API key ──────────────────────────────────────────────────────
-REM Personal-use key, written here by the UI's "set" action so the instrument
-REM survives restarts. Plaintext by request. Remove this line to revoke.
-if not defined KIMI_K3_API_KEY set "KIMI_K3_API_KEY=sk-otsg4Bpo5EhkFYmqohEIFBBxF3yFvBiUcSGcsbxvNUDb6xMQ"
+set "ELECTRON_RUN_AS_NODE="
+
+REM ── Kimi (K3) API key ──────────────────────────────────────────────────────
+REM Read from the ENVIRONMENT (set KIMI_K3_API_KEY, or persist via the UI) — NOT
+REM hardcoded: a committed plaintext key is a live secret in version control.
+if not defined KIMI_K3_API_KEY echo [ava] KIMI_K3_API_KEY not set — K3 instrument unavailable (set it in env or via the UI).
 
 
 REM prefer the installed app (read its location from the registry)

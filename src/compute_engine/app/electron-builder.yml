@@ -4,6 +4,15 @@ appId: com.rhuft.ava
 productName: AVA
 copyright: RHUFT Project 2026
 
+# Local portable/NSIS distribution only — NO auto-update server. Without this,
+# electron-builder's update-info builder infers a publish provider from the git
+# remote; when the remote isn't readable from the packaged subfolder it resolves
+# to null and computeChannelNames dereferences null.channel ("Cannot read
+# properties of null"), failing the dist step AFTER signing succeeds. Declaring
+# `publish: null` (the honest "no provider") skips update-info generation, so the
+# NSIS installer + portable exe build cleanly. [BUILD FIX 2026-08-17]
+publish: null
+
 directories:
   output: release
   buildResources: build
@@ -30,6 +39,7 @@ extraResources:
     to: "brain v14"
     filter:
       - "*.ts"
+      - "package.json"
       - adapters/**
       - cognition/**
       - parallel/**
@@ -50,6 +60,12 @@ extraResources:
     filter:
       - "**/*.ts"
       - "!**/*.test.ts"
+  # engine/package.json carries "type":"module" — the ESM context Node's
+  # type-stripping resolver needs to map the engine's internal .js-extension
+  # imports onto the shipped .ts files. Without it the resolver demands exact
+  # file URLs and the mind dies at module link (ERR_MODULE_NOT_FOUND lucas.js).
+  - from: "../engine/package.json"
+    to: "engine/package.json"
 
 win:
   executableName: AVA

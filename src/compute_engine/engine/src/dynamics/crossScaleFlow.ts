@@ -14,8 +14,8 @@
  *      cannot mean raw integer n±1: stable rungs satisfy n ≡ {1,13,15,27}
  *      (mod 28) — all odd — so n±1 is even and NEVER stable. It means the
  *      adjacent stable rung in ladder order (…, 13, 15, 27, 29, …), exactly
- *      the domain File 4's table is built on (stableScalesUpTo(293), the 18
- *      dense-core + 25 continuation rungs). [EXACT — parity theorem]
+ *      the domain File 4's table is built on (LUCAS_STABLE_RUNGS_293, the 18
+ *      dense-core + 24 continuation rungs). [EXACT — parity theorem]
  *
  *   2. OCTAVE PARTNERS ARE THEMSELVES OBSTRUCTED. The contract fixes the
  *      octave step at ±13 (the Metatron winding). But 13 is odd, so n±13
@@ -54,9 +54,9 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { isStable, stableScalesUpTo } from "../core/lucas.js";
-import type { Classified } from "../core/provenance.js";
-import { getScale } from "../core/scaleTable.js";
+import { isStable, LUCAS_STABLE_RUNGS_293 } from "../core/lucas.ts";
+import type { Classified } from "../core/provenance.ts";
+import { getScale } from "../core/scaleTable.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The ladder — the ordered domain flux moves on
@@ -69,7 +69,7 @@ export const OCTAVE_STEP = 13;
  * The full stable ladder File 4's table is built on: 18 dense-core rungs
  * (1…125) + 25 continuation rungs (127…293), ascending. Frozen at module load.
  */
-export const LADDER: readonly number[] = Object.freeze(stableScalesUpTo(293));
+export const LADDER: readonly number[] = LUCAS_STABLE_RUNGS_293;
 
 /** O(1) rung → ladder-position lookup. */
 const LADDER_POS = new Map<number, number>(LADDER.map((n, i) => [n, i]));

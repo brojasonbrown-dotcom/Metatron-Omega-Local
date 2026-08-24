@@ -50,7 +50,10 @@ export interface JournalEntry {
     | "replay.deferred"
     | "spectral.percept"
     | "novelty.gate"
-    | "shutdown";
+      | "retention.admit"
+      | "retention.defer"
+      | "sense.toggle"
+      | "shutdown";
   readonly data: Record<string, unknown>;
 }
 

@@ -20,6 +20,8 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { PHI } from "./../core/constants.ts";
 
 /** Models the mind requires. [SPEC] */
@@ -54,6 +56,46 @@ export class OllamaSupervisor {
 
   get baseUrl(): string {
     return this._baseUrl;
+  }
+
+  /**
+   * ADR-009 — SPEECH-MODULE SELF-HEAL. The brain's blobs/ + manifests/ ARE the
+   * speech module (the phi/mathstral weights the mind thinks + speaks with). The
+   * installer deliberately does NOT ship 5.4 GB of weights, so a fresh install can
+   * wake MUTE. This verifies the phi + mathstral manifests are present in the brain
+   * store and, when any is missing AND a network pull is possible, repairs it.
+   * Read-only on the engine; only ever ADDS model files. Never throws — a missing
+   * module is reported honestly in the result, never faked. [SPEC]
+   *
+   * @returns per-model presence after the heal attempt (true = speech module ready).
+   */
+  async ensureModelsPresent(): Promise<{ phi: boolean; mathstral: boolean; healed: string[]; note: string }> {
+    const healed: string[] = [];
+    const missing: string[] = [];
+    for (const model of [PHI_MODEL, MATHSTRAL_MODEL]) {
+      const name = model.split(":")[0]!;
+      const manifest = path.join(this.modelsDir, "manifests", "registry.ollama.ai", "library", name, "latest");
+      if (fs.existsSync(manifest)) continue; // speech module already present
+      // Missing → best-effort repair via the running server (needs network). The
+      // spawn in ensureRunning brings the server up; here we only ask it to pull.
+      try {
+        const base = this._baseUrl;
+        const res = await fetch(`${base}/api/pull`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: model, stream: false }),
+        });
+        if (res.ok) healed.push(model); else missing.push(model);
+      } catch {
+        missing.push(model);
+      }
+    }
+    const phi = fs.existsSync(path.join(this.modelsDir, "manifests", "registry.ollama.ai", "library", "phi", "latest"));
+    const mathstral = fs.existsSync(path.join(this.modelsDir, "manifests", "registry.ollama.ai", "library", "mathstral", "latest"));
+    const note = phi && mathstral
+      ? (healed.length > 0 ? `speech module repaired: pulled ${healed.join(", ")}` : "speech module present")
+      : `speech module INCOMPLETE — missing manifests for ${missing.join(", ") || "unknown"} (offline? weights not shipped)`;
+    return { phi, mathstral, healed, note };
   }
 
   /**
@@ -92,19 +134,51 @@ export class OllamaSupervisor {
     };
   }
 
-  /** Warm both models so first real tool call is fast (keep_alive pinned). */
+  /**
+   * Warm both models so first real tool call is fast (keep_alive pinned).
+   *
+   * VERIFIED warm-up (measured 2026-08-13): the old probe sent an EMPTY prompt
+   * and ignored the body, so it confirmed only that the weights LOADED — not
+   * that the model could GENERATE. A cold model answers its first real calls
+   * with empty responses (the "llama not responding" symptom) while the
+   * supervisor already reported ready. Now the warm-up is a REAL bounded
+   * generate, retried until the model returns a non-empty completion (or the
+   * attempt budget runs out) — "ready" means "responsive", not "loaded". [FIX]
+   */
   async warmModels(): Promise<void> {
     for (const model of [PHI_MODEL, MATHSTRAL_MODEL]) {
+      await this._warmOne(model, 3); // 3 = F_4 attempts per model. [SPEC]
+    }
+  }
+
+  /**
+   * Drive one model until it produces a non-empty generate (weights loaded AND
+   * sampler live), or the attempt budget is spent. Best-effort: a model that
+   * never responds is left for the real call path's own retries to surface —
+   * warm-up never throws. [SPEC]
+   */
+  private async _warmOne(model: string, attempts: number): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
       try {
-        await fetch(`${this._baseUrl}/api/generate`, {
+        const res = await fetch(`${this._baseUrl}/api/generate`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ model, prompt: "", keep_alive: "30m", stream: false }),
+          body: JSON.stringify({
+            model,
+            prompt: "Reply with the single word: ready.",
+            keep_alive: "30m",
+            stream: false,
+            options: { num_predict: 8, temperature: 0 },
+          }),
           signal: AbortSignal.timeout(120_000),
         });
+        if (!res.ok) continue;
+        const body = (await res.json()) as { response?: unknown };
+        if (typeof body.response === "string" && body.response.trim().length > 0) return;
       } catch {
         // Warm-up is best-effort; the real call path has its own retries.
       }
+      await new Promise((r) => setTimeout(r, backoffMs(i)));
     }
   }
 

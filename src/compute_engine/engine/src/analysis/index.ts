@@ -1,7 +1,7 @@
 /** analysis layer — public re-exports (aggregated by src/index.ts barrel). */
-export * from "./complexityProbe.js";
-export * from "./eigenmodes.js";
-export * from "./radialTransform.js";
-export * from "./resolutionLadder.js";
-export * from "./spectralND.js";
-export * from "./toroidalFlow.js";
+export * from "./complexityProbe.ts";
+export * from "./eigenmodes.ts";
+export * from "./radialTransform.ts";
+export * from "./resolutionLadder.ts";
+export * from "./spectralND.ts";
+export * from "./toroidalFlow.ts";

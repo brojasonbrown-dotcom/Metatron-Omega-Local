@@ -121,6 +121,44 @@ function _fftInPlace(a: Float64Array, size: number): void {
 }
 
 /**
+ * Exact N-point DFT of a COMPLEX field, for ANY N ≥ 2 (prime or composite).
+ * Same Bluestein chirp-z factorisation as _dftReal, but the input carries an
+ * imaginary part — required by the separable multidimensional transform, where
+ * every axis after the first operates on already-complex data. Unnormalised:
+ * û_k = Σ_i u_i e^{−2πiki/N}. Exposed for spectralND; not a panel surface.
+ */
+export function rawDftComplex(re: Float64Array, im: Float64Array, n: number): { re: Float64Array; im: Float64Array } {
+  const { are, aim, bre, bim, m } = _chirps(n);
+  // a = (re + i·im) × forward chirp, transformed in place.
+  const fa = new Float64Array(2 * m);
+  for (let i = 0; i < n; i++) {
+    const xr = re[i]!, xi = im[i]!;
+    // (xr + i·xi)(are + i·aim)
+    fa[2 * i] = xr * are[i]! - xi * aim[i]!;
+    fa[2 * i + 1] = xr * aim[i]! + xi * are[i]!;
+  }
+  const fb = new Float64Array(2 * m);
+  for (let i = 0; i < m; i++) { fb[2 * i] = bre[i]!; fb[2 * i + 1] = bim[i]!; }
+  _fftInPlace(fa, m);
+  _fftInPlace(fb, m);
+  for (let i = 0; i < m; i++) {
+    const ar = fa[2 * i]!, ai = fa[2 * i + 1]!;
+    const br = fb[2 * i]!, bi = fb[2 * i + 1]!;
+    fa[2 * i] = ar * br - ai * bi;
+    fa[2 * i + 1] = ar * bi + ai * br;
+  }
+  for (let i = 0; i < 2 * m; i += 2) fa[i + 1] = -fa[i + 1]!;
+  _fftInPlace(fa, m);
+  const ore = new Float64Array(n), oim = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    const cr = fa[2 * k]! / m, ci = -fa[2 * k + 1]! / m;
+    ore[k] = are[k]! * cr - aim[k]! * ci;
+    oim[k] = are[k]! * ci + aim[k]! * cr;
+  }
+  return { re: ore, im: oim };
+}
+
+/**
  * Exact N-point DFT of a real field, for ANY N ≥ 2 (prime or composite).
  *
  * The ladder's rungs are Fibonacci numbers, and several are prime (89, 233,
@@ -160,7 +198,7 @@ function _chirps(n: number): { are: Float64Array; aim: Float64Array; bre: Float6
   return c;
 }
 
-function _dftReal(field: Field, n: number): { re: Float64Array; im: Float64Array } {
+function _dftReal(field: ArrayLike<number>, n: number): { re: Float64Array; im: Float64Array } {
   const { are, aim, bre, bim, m } = _chirps(n);
   // a = signal × forward chirp, transformed in place.
   const fa = new Float64Array(2 * m);
@@ -192,6 +230,17 @@ function _dftReal(field: Field, n: number): { re: Float64Array; im: Float64Array
     im[k] = are[k]! * ci + aim[k]! * cr;
   }
   return { re, im };
+}
+
+/**
+ * Raw exact DFT of a real field, exposed so the multidimensional transform
+ * (analysis/spectralND.ts) reuses the SAME certified primitive per axis
+ * instead of re-deriving it. Returns interleaved-style separate re/im arrays
+ * of length n, unnormalised (û_k = Σ_i u_i e^{−2πiki/N}). Not a public API
+ * surface for the panel — use eigenSpectrum for the 1-D certified read.
+ */
+export function rawDftReal(field: ArrayLike<number>, n: number): { re: Float64Array; im: Float64Array } {
+  return _dftReal(field, n);
 }
 
 /**

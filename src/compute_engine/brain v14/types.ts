@@ -347,6 +347,13 @@ export interface ComputeOptions {
   readonly include_surface_term?: boolean;
   /** Include recursive memory term (default: true) */
   readonly include_memory_term?: boolean;
+  /**
+   * [L2-B] Use the engine MemoryKernel's conservative convex memory law
+   * (1−λ)·summation + λ·prev (characteristic roots {1, −φ⁻²}, marginally stable)
+   * for Term 2 instead of the raw φ⁻²·prev pull. Default false → legacy behaviour,
+   * byte-identical. Opt-in; the conservative form is the proven-stable kernel. [SPEC]
+   */
+  readonly conservative_memory?: boolean;
   /** Maximum summation index N (default: 13 = F_7) */
   readonly max_k?: number;
   /** Convergence tolerance for iterative stabilization (default: 1e-12) */

@@ -33,10 +33,10 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { PHI, PHI_INV, HARMONIC_COUNT, METATRON_SHELL, PHI_NEG26 } from "../core/constants.js";
-import { spectralLines } from "../core/lucas.js";
-import { classify, type Classified } from "../core/provenance.js";
-import type { TorusParams, TorusPoint } from "./torus.js";
+import { PHI, PHI_INV, HARMONIC_COUNT, METATRON_SHELL, PHI_NEG26 } from "../core/constants.ts";
+import { spectralLines } from "../core/lucas.ts";
+import { classify, type Classified } from "../core/provenance.ts";
+import type { TorusParams, TorusPoint } from "./torus.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Complex numbers (self-contained; the field amplitude is complex)
