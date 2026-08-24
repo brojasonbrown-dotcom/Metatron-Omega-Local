@@ -280,6 +280,37 @@ html, body {
   letter-spacing: 0.2em;
 }
 
+/* ── Telemetry deck tabs ── */
+.deck-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: -4px 0 10px;
+  border-bottom: 1px solid var(--edge-bright);
+  padding-bottom: 8px;
+}
+.deck-tab {
+  flex: 1 1 auto;
+  text-align: center;
+  padding: 4px 2px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  text-decoration: none;
+  border-radius: 3px 3px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+.deck-tab:hover { color: var(--green-soft); }
+.deck-tab.active {
+  color: var(--green);
+  background: rgba(0, 230, 107, 0.07);
+  border-color: var(--edge-bright);
+  text-shadow: var(--glow);
+}
+.deck-body { animation: deckfade 0.18s ease; }
+@keyframes deckfade { from { opacity: 0.35; } to { opacity: 1; } }
+
 #camprev {
   position: fixed;
   right: 18px;

@@ -134,6 +134,6 @@ async function ingestFile(file) {
 }
 
 addBubble(
-  "AVA online · terminal linked to the RHUFT engine.\nEvery reply below is computed live. Type `help` for the command set.",
+  "METATRON Ω online · toroidal brain linked.\nEvery reply is computed live from the field. Type `help` for the command set.",
   "ava",
 );

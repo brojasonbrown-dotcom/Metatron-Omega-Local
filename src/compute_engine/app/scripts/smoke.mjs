@@ -35,12 +35,23 @@ check("ticks advanced while awake", s1.ticks > 0);
 check("stops on request", s1.running === false);
 check("digest is a hash string", typeof s1.digest === "string" && s1.digest.length > 0);
 check("per-rung telemetry has coherence + regime", s1.rungs.every((r) => typeof r.coherence === "number" && typeof r.regime === "string"));
+// The enriched live views (additive surfacing).
+check("describe view present with rung structure", s1.describe && Array.isArray(s1.describe.rungs) && typeof s1.describe.rungs[0].logRadius === "number");
+check("web view present with flux ledger", s1.web && typeof s1.web.turnover === "number" && Array.isArray(s1.web.net));
+check("spectral view present with 13-mode signature", s1.spectral && Array.isArray(s1.spectral.signature) && s1.spectral.signature.length === 13);
+check("organ snapshot present", s1.organ && typeof s1.organ.organNodes === "number");
+check("sense report present", s1.sense && s1.sense.report && typeof s1.sense.report.loopGain === "number");
+check("cognition view present", s1.cognition && Array.isArray(s1.cognition.top) && Array.isArray(s1.cognition.recent));
 
 // ── responder (chat answers computed from the brain) ──
 check("help is computed", respond(loop, "help").includes("METATRON"));
 check("status reports live state", respond(loop, "status").includes("coherence"));
 check("ladder lists rungs", respond(loop, "ladder").includes("n="));
+check("web reports flux", respond(loop, "web").includes("Flux web"));
+check("spectral reports signature", respond(loop, "spectral").includes("signature"));
 check("memory reports braid", respond(loop, "memory").includes("Braid"));
+check("mind reports cognition", respond(loop, "mind").includes("Cognition"));
+check("learn reports tiers", respond(loop, "learn").includes("Learning tiers"));
 check("free text is encoded + answered", respond(loop, "the field closes on itself").includes("Encoded"));
 
 // ── sensory codec → brain channel ──

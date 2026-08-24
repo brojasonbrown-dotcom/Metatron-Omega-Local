@@ -105,6 +105,15 @@ class OmegaLoop {
     const s = this._host.snapshot();
     const mem = this._host.memory();
     const cog = this._host.cognition();
+    // The deeper live views (additive; each is the host's own computed view,
+    // read-only). Guarded: a host that has not ticked yet still returns a
+    // coherent (if empty) shape, never a throw.
+    let describe = null, web = null, spectral = null, organ = null, learn = null;
+    try { describe = this._host.describe(); } catch { /* not ready */ }
+    try { web = this._host.web(); } catch { /* not ready */ }
+    try { spectral = this._host.spectral(0); } catch { /* not ready */ }
+    try { organ = this._host.organSnapshot(); } catch { /* not ready */ }
+    try { learn = this._host.learnState(); } catch { /* no learn run yet */ }
     return {
       running: this.running,
       ticks: this._ticks,
@@ -154,6 +163,10 @@ class OmegaLoop {
       // The full memory + cognition views for the panel's detail sections.
       memory: mem,
       cognition: cog,
+      // The live sensory report (per-channel fusion + bound check).
+      sense: this._host.sense(),
+      // The deeper structural views (additive, read-only).
+      describe, web, spectral, organ, learn,
     };
   }
 }
