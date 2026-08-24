@@ -11,7 +11,6 @@
     "icon": "python scripts/make-icon.py",
     "start": "npm run bundle:engine && electron .",
     "smoke": "npm run bundle:engine && node scripts/smoke.mjs",
-    "clean:release": "node scripts/clean-release.mjs",
     "smoke:gui": "npm run bundle:engine && electron . --ci",
     "pack": "npm run bundle:engine && electron-builder --dir",
     "dist": "npm run bundle:engine && electron-builder",

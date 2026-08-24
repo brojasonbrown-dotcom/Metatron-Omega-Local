@@ -206,65 +206,6 @@ async function checkLoop() {
 }
 await checkLoop();
 
-// ── MindService lifecycle — real child agent, real stdio, real protocol ──
-async function checkMindService() {
-  const { MindService } = require("../electron/mindService.cjs");
-  const path = require("node:path");
-  const svc = new MindService({
-    brainDir: path.join(import.meta.dirname, "fixtures"),
-    entry: "child-agent.cjs",
-  });
-  const events = [];
-  svc.onEvent((f) => events.push(f));
-  const checks = [];
-  const st0 = svc.status();
-  checks.push(["capabilities honest (fixture present)", st0.brainPresent === true]);
-  checks.push(["starts stopped", st0.state === "stopped" && !st0.running]);
-  svc.start();
-  // Poll for awake (up to 5s) instead of a fixed 600ms sleep — cold-start
-  // type-stripping can exceed 600ms under load and cascade-fail the suite.
-  await until(() => svc.status().state === "awake", 5000);
-  const st1 = svc.status();
-  checks.push(["awake after boot frames", st1.state === "awake" && st1.running]);
-  const chat = svc.chat("hello agent");
-  checks.push(["chat accepted while awake", chat.ok === true]);
-  // Poll for the async ack (up to 3s) — the child answers on its own tick.
-  await until(() => events.some((f) => f.type === "chat.ack" && f.accepted), 3000);
-  checks.push(["chat.ack received", events.some((f) => f.type === "chat.ack" && f.accepted)]);
-    // F4 — the web sense verb: id-keyed honest verdict over the real stdio protocol.
-    const web = await svc.webFeed("https://example.com/");
-    checks.push(["web.feed verb resolves id-keyed verdict", web.ok === true && web.chunks === 3 && typeof web.url === "string"]);
-    // ADR-001 — the Sigma-panel sense verb: retention/telemetry flip+read over
-    // the same id-keyed protocol. Proves the mindService.cjs transport end-to-end.
-    const senseOff = await svc.setSense("retention", false);
-    checks.push(["sense.set flip resolves id-keyed verdict", senseOff.ok === true && senseOff.sense === "retention" && senseOff.enabled === false]);
-    const senseRead = await svc.setSense("telemetry");
-    checks.push(["sense.set read (enabled omitted) resolves", senseRead.ok === true && senseRead.sense === "telemetry" && typeof senseRead.enabled === "boolean"]);
-    const senseBad = await svc.setSense("nope-sense", true);
-    checks.push(["sense.set unknown sense is honestly refused", senseBad.ok === false && typeof senseBad.error === "string"]);
-  svc.sensorFrame("audio", new Array(28).fill(0.01), { energy: 0.5 });
-  const stop = svc.stop();
-  checks.push(["stop requested", typeof stop === "object"]);
-  await wait(800);
-  checks.push(["child exited cleanly", events.some((f) => f.type === "mind.exit" && f.code === 0)]);
-  // the fixture's grandchild (the simulated ollama) must be stopped by the
-  // mind's OWN supervisor before exit — code null + a real signal is the
-  // honest signature of a kill, never a mocked "clean" code 0
-  const gc = events.find((f) => f.type === "shutdown.grandchild");
-  checks.push([
-    "ollama-style grandchild stopped by the mind's own supervisor",
-    gc !== undefined && gc.code === null && typeof gc.signal === "string",
-    gc ? ("signal=" + gc.signal) : "frame missing",
-  ]);
-  checks.push(["state stopped after exit", svc.status().running === false]);
-  const bad = svc.chat("after death");
-  checks.push(["chat after stop honestly refused", bad.ok === false]);
-  for (const [name, ok] of checks) {
-    if (!ok) failures++;
-    console.log(`${ok ? "PASS" : "FAIL"}  mindService: ${name}`);
-  }
-}
-await checkMindService();
 
 // ── document ingest — type-sniffed, size-capped, honest refusals ──
 {
@@ -279,10 +220,10 @@ await checkMindService();
   const checks = [
     ["text document reads", text.ok && text.kind === "text" && text.text.includes("closure residue")],
     ["PDF text layer extracted", pdf.ok && pdf.kind === "pdf" && pdf.text.includes("Hello Engine")],
-    // A PNG is sniffed as an IMAGE routed to OCR: succeeds when the inbox
-    // is live, honestly refused (real reason) when the mind is not running.
+    // A PNG is sniffed as an image; with no OCR path it is honestly refused
+    // with the real reason. What must never happen is a fabricated read or a crash.
     // What must never happen is a fabricated read or a crash.
-    ["image routed to OCR or honestly refused", (bin.ok && bin.kind === "image") || (!bin.ok && typeof bin.error === "string" && bin.error.length > 0)],
+    ["image honestly refused", (bin.ok && bin.kind === "image") || (!bin.ok && typeof bin.error === "string" && bin.error.length > 0)],
     ["missing file errors cleanly", !ingestDocument(path.join(os.tmpdir(), "ava-nope.txt")).ok],
   ];
   for (const [name, ok] of checks) {

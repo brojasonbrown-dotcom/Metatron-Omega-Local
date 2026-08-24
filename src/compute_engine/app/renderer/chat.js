@@ -49,12 +49,7 @@ async function send() {
     const r = await window.ava.send(text);
     typing.classList.remove("typing");
     if (r.ok) {
-      if (r.via === "mind+engine") {
-        typing.classList.add("mind-answer");
-        typing.textContent = r.answer; // grounding footer removed (was [grounded: ...])
-      } else {
-        typing.textContent = r.answer;
-      }
+      typing.textContent = r.answer;
     } else {
       typing.textContent = `engine error: ${r.error}`;
       typing.classList.add("error");
@@ -124,7 +119,6 @@ async function ingestFile(file) {
     const r = await window.ava.ingestDocument(p);
     typing.classList.remove("typing");
     if (r.ok) {
-      if (r.via === "mind+engine") typing.classList.add("mind-answer");
       typing.textContent = r.answer;
     } else {
       typing.textContent = `couldn't ingest "${file.name}": ${r.error}`;
