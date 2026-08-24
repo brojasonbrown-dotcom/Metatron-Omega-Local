@@ -1,0 +1,20 @@
+{
+  "name": "@metatron/omega",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "METATRON Ω — the certified toroidal RHUFT brain: pure TypeScript, deterministic, zero-dependency engine + cognition + learning + substrate.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.3.0",
+    "@noble/curves": "^2.3.0",
+    "@noble/hashes": "^2.3.0"
+  }
+}

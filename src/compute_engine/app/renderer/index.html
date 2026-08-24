@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AVA — RHUFT Engine Interface</title>
+    <title>METATRON Ω — Toroidal Brain Interface</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -14,10 +14,10 @@
       <header id="bar">
         <div class="brand">
           <span class="dot"></span>
-          <h1>AVA</h1>
-          <span class="tag">RHUFT&nbsp;ENGINE</span>
+          <h1>METATRON</h1>
+          <span class="tag">OMEGA&nbsp;BRAIN</span>
         </div>
-        <p class="sub">18 stable scales · Lucas-locked ladder · every answer computed live · nothing canned</p>
+        <p class="sub">18-rung dense core · certified toroidal engine · every answer computed live · nothing canned</p>
       </header>
 
       <section id="log" aria-live="polite"></section>
@@ -27,17 +27,17 @@
         <textarea
           id="input"
           rows="1"
-          placeholder="query the engine…  (help · scale 13 · closure 13 · lucas 27 · phi · overlap · status)"
+          placeholder="talk to the brain…  (help · status · ladder · memory · mind)"
           autofocus
         ></textarea>
         <button id="send" type="submit" aria-label="send">➤</button>
       </form>
     </main>
 
-    <aside id="stab" class="hidden" aria-label="framework stability">
-      <h2>FRAMEWORK STABILITY</h2>
+    <aside id="stab" class="hidden" aria-label="brain telemetry">
+      <h2>BRAIN TELEMETRY</h2>
       <div id="stab-body">
-        <p class="stab-dim">engine idle — press ⏻ to run the live loop</p>
+        <p class="stab-dim">brain idle — press ⏻ to wake it</p>
       </div>
     </aside>
 
@@ -48,14 +48,14 @@
     <div id="drop" aria-hidden="true">
       <div class="drop-box">
         <span class="drop-glyph">⤓</span>
-        <p>drop a document to feed the engine</p>
+        <p>drop a document to feed the brain</p>
         <p class="drop-sub">txt · md · json · csv · pdf (text layer) — read in the main process, never the sandbox</p>
       </div>
     </div>
 
     <nav id="fab" aria-label="controls">
       <button id="fab-engine" title="engine start / stop">⏻</button>
-      <button id="fab-stab" title="framework stability">Σ</button>
+      <button id="fab-stab" title="brain telemetry">Σ</button>
       <button id="fab-mic" title="microphone">🎙</button>
       <button id="fab-cam" title="camera">📷</button>
     </nav>

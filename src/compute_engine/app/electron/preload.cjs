@@ -1,40 +1,33 @@
 /**
- * Preload — the ONLY bridge between the sandboxed renderer and the engine.
+ * Preload — the ONLY bridge between the sandboxed renderer and the brain.
  * Exposes a minimal, typed surface; the renderer can do nothing else.
  */
 "use strict";
 
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("ava", {
-  /** Send a chat message; resolves to { ok, answer? , error? }. */
-  send: (message) => ipcRenderer.invoke("ava:send", message),
+contextBridge.exposeInMainWorld("omega", {
+  /** Send a chat message; resolves to { ok, answer?, error? }. */
+  send: (message) => ipcRenderer.invoke("omega:send", message),
 
   /**
    * Drop a document on the window: the renderer passes ONLY the file path; the
-   * main process reads + extracts it (type-sniffed, size-capped) and routes the
-   * text like a chat message. Resolves to { ok, name?, kind?, answer?, error? }.
+   * main process reads + extracts it and feeds the text to the brain.
    */
-  ingestDocument: (filePath) => ipcRenderer.invoke("ava:document", filePath),
+  ingestDocument: (filePath) => ipcRenderer.invoke("omega:document", filePath),
 
-  /** Engine loop control — all resolve to the live loop state. */
-  engine: {
-    start: () => ipcRenderer.invoke("ava:engine:start"),
-    stop: () => ipcRenderer.invoke("ava:engine:stop"),
-    reset: () => ipcRenderer.invoke("ava:engine:reset"),
-    state: () => ipcRenderer.invoke("ava:engine:state"),
-    /** Ring resolution: a φ-graded ladder rung (honest restart at the new scale). */
-    setNodes: (n) => ipcRenderer.invoke("ava:engine:nodes", n),
-  },
+  /** Brain loop control — all resolve to the live HostSnapshot-shaped state. */
+  start: () => ipcRenderer.invoke("omega:start"),
+  stop: () => ipcRenderer.invoke("omega:stop"),
+  state: () => ipcRenderer.invoke("omega:state"),
 
   /**
-   * Sensory frames — raw measurements in, computed projections out.
+   * Sensory frames — raw measurements in, encoded into the brain's sensory plane.
    * audio: Float32Array waveform + its true sample rate.
    * video: Float32Array luminance grid + its dimensions.
    */
   sensorAudio: (samples, sampleRate) =>
-    ipcRenderer.invoke("ava:sensor:audio", samples, sampleRate),
+    ipcRenderer.invoke("omega:sensor:audio", samples, sampleRate),
   sensorVideo: (grid, width, height) =>
-    ipcRenderer.invoke("ava:sensor:video", grid, width, height)
-
+    ipcRenderer.invoke("omega:sensor:video", grid, width, height),
 });

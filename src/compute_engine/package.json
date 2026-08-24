@@ -1,19 +1,12 @@
 {
-  "name": "rhuft-compute-engine",
-  "version": "0.0.0",
+  "name": "metatron-omega-compute",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "RHUFT unified compute engine — verified multiscale core (engine/) + mind/cognition layer (brain v14/). Single strict tsconfig.base.json soundness core; single vitest gate.",
-  "workspaces": [
-    "engine",
-    "brain v14"
-  ],
+  "description": "METATRON Ω — certified toroidal RHUFT brain (omega/packages/trnn-core) + the Electron desktop shell (app/). Single vitest gate on the certified battery.",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "npm run typecheck:engine && npm run typecheck:mind",
-    "typecheck:engine": "tsc --noEmit -p engine/tsconfig.json",
-    "typecheck:mind": "tsc --noEmit -p \"brain v14/tsconfig.json\""
+    "typecheck": "tsc --noEmit -p omega/tsconfig.json"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

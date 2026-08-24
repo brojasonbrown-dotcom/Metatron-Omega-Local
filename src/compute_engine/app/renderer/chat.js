@@ -46,7 +46,7 @@ async function send() {
   sendBtn.disabled = true;
 
   try {
-    const r = await window.ava.send(text);
+    const r = await window.omega.send(text);
     typing.classList.remove("typing");
     if (r.ok) {
       typing.textContent = r.answer;
@@ -116,7 +116,7 @@ async function ingestFile(file) {
   addBubble(`📄 ${file.name}`, "user");
   const typing = addBubble("reading document", "ava typing");
   try {
-    const r = await window.ava.ingestDocument(p);
+    const r = await window.omega.ingestDocument(p);
     typing.classList.remove("typing");
     if (r.ok) {
       typing.textContent = r.answer;

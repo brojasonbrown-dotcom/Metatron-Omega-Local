@@ -31,7 +31,7 @@ const MicSensor = (() => {
     timer = setInterval(async () => {
       analyser.getFloatTimeDomainData(buf);
       try {
-        const r = await window.ava.sensorAudio(buf, ctx.sampleRate);
+        const r = await window.omega.sensorAudio(buf, ctx.sampleRate);
         if (r.ok) onLevel(r.energy, r.dominantBand);
       } catch { /* transient IPC loss — next frame retries */ }
     }, 100);
@@ -114,7 +114,7 @@ const CamSensor = (() => {
         grid[i] = (0.2126 * img[o] + 0.7152 * img[o + 1] + 0.0722 * img[o + 2]) / 255;
       }
       try {
-        const r = await window.ava.sensorVideo(grid, GRID_W, GRID_H);
+        const r = await window.omega.sensorVideo(grid, GRID_W, GRID_H);
         if (r.ok) onLevel(r.mean);
       } catch { /* transient IPC loss — next frame retries */ }
     }, 500);

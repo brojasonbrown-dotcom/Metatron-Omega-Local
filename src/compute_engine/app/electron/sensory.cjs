@@ -20,7 +20,7 @@
  */
 "use strict";
 
-const E = require("./engine-bundle.cjs");
+const E = require("./omega-bundle.cjs");
 
 const PHI = E.PHI;
 const PHI_INV = E.PHI_INV;

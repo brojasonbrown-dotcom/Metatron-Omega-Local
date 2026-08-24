@@ -1,16 +1,11 @@
-# AVA — electron-builder configuration (Windows .exe packaging)
-# Docs-aligned: electron-builder.yml is read automatically by electron-builder.
-appId: com.rhuft.ava
-productName: AVA
-copyright: RHUFT Project 2026
+# METATRON Ω — electron-builder configuration (Windows .exe packaging)
+appId: com.metatron.omega
+productName: METATRON-OMEGA
+copyright: METATRON Project 2026
 
-# Local portable/NSIS distribution only — NO auto-update server. Without this,
-# electron-builder's update-info builder infers a publish provider from the git
-# remote; when the remote isn't readable from the packaged subfolder it resolves
-# to null and computeChannelNames dereferences null.channel ("Cannot read
-# properties of null"), failing the dist step AFTER signing succeeds. Declaring
-# `publish: null` (the honest "no provider") skips update-info generation, so the
-# NSIS installer + portable exe build cleanly. [BUILD FIX 2026-08-17]
+# Local portable/NSIS distribution only — NO auto-update server (see prior note:
+# without publish:null, electron-builder infers a provider from the git remote and
+# fails the dist step after signing).
 publish: null
 
 directories:
@@ -20,15 +15,15 @@ directories:
 asar: true
 
 # Ship exactly what the app needs: main process, renderer, package manifest.
-# engine-bundle.cjs is prebuilt via `npm run bundle:engine` before packing.
+# omega-bundle.cjs is prebuilt via `npm run bundle:omega` before packing.
 files:
   - electron/**
   - renderer/**
   - package.json
 
 win:
-  executableName: AVA
-  artifactName: AVA-${version}-setup.${ext}
+  executableName: METATRON-OMEGA
+  artifactName: METATRON-OMEGA-${version}-setup.${ext}
   target:
     - target: nsis
       arch: [x64]
@@ -39,9 +34,9 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  shortcutName: AVA
+  shortcutName: METATRON-OMEGA
   deleteAppDataOnUninstall: false
-  artifactName: AVA-${version}-setup.${ext}
+  artifactName: METATRON-OMEGA-${version}-setup.${ext}
 
 portable:
-  artifactName: AVA-${version}-portable.${ext}
+  artifactName: METATRON-OMEGA-${version}-portable.${ext}
