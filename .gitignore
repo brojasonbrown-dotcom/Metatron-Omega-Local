@@ -42,6 +42,10 @@ src/compute_engine/app/.env
 # local mind memory state (journal + learned memory) — never commit
 .Omega/
 
+# MCP server config contains a live GitHub PAT — never commit the real one.
+# Share .mcp.example.json instead (placeholder token).
+.mcp.json
+
 # stale duplicate web export (vite/wrangler/bun build) — superseded by
 # src/compute_engine/omega/ (the certified trunk) and the Electron app
 src/compute_engine/Metatron Omega/
