@@ -1,7 +1,41 @@
-/* AVA chat — phosphor terminal ("matrix") theme. */
+/* ══════════════════════════════════════════════════════════════════════════
+   METATRON Ω — phosphor terminal ("matrix") theme, SPLIT-LAYOUT build.
+   Every rule below is LIVE — referenced by index.html, layout.js, chat.js,
+   fab.js or sensors.js TODAY. If you add markup, add its CSS in the matching
+   section; if you delete markup, delete its CSS here too.
+
+   Per-area checklists (what must stay in sync):
+
+   SPLIT LAYOUT  ← index.html: #app > #chat-col + #divider + #stab.
+                   layout.js drives --panel-w (px) on <html>; body.panel-open
+                   mirrors #stab visibility; body.resizing kills transitions
+                   during a drag. The FAB dock and camera preview shift with
+                   the panel via var(--panel-w).
+   CORE (chat)   ← #bar(.brand .dot h1 .tag .sub), #log,
+                   #composer(#prompt #input #send)
+   MESSAGES      ← chat.js addBubble(): "msg user" | "msg omega" |
+                   "msg omega typing" | "msg omega llm" (LLM instrument —
+                   visually distinct on purpose) | + "error"
+   FAB DOCK      ← index.html #fab button ×4; fab.js toggles .active / .error
+   Σ PANEL       ← fab.js renderState(): #stab-body > .deck-tabs/.deck-body,
+                   .stab-row .stab-bar .stab-sec .stab-dim,
+                   .eig-spec .eig-bar(.eig-hot)  ← inline style="height/width"
+                   attributes REQUIRE style-src 'unsafe-inline' in the CSP
+   LLM ROW       ← index.html #instrument (STATIC — outside #stab-body so the
+                   telemetry rebuild never clobbers the fields): #llm-square
+                   (.inst-square .on/.off/.error), #llm-provider (.inst-select),
+                   #llm-model (.inst-model), .inst-keywrap(#llm-key, #llm-save
+                   .inst-set). Wired in fab.js.
+   CAMERA        ← index.html #camprev(.hidden) #camvideo; fab.js toggles
+   DROP OVERLAY  ← index.html #drop(.on .drop-box .drop-glyph .drop-sub);
+                   chat.js drag handlers toggle .on
+   ══════════════════════════════════════════════════════════════════════════ */
+
 :root {
   --bg: #020604;
   --panel: rgba(3, 14, 8, 0.88);
+  --panel-solid: #04120a;   /* chat column — clean solid panel */
+  --panel-side: #020805;    /* telemetry column — clean solid panel */
   --edge: #0d2b1a;
   --edge-bright: #1a5c36;
   --green: #00e66b;
@@ -9,6 +43,7 @@
   --green-dim: #1d7a4a;
   --text: #b8f5d2;
   --dim: #4f8f6b;
+  --llm: #d4a94e;           /* LLM instrument accent */
   --glow: 0 0 8px rgba(0, 230, 107, 0.35);
   --mono: "Cascadia Code", "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
 }
@@ -25,22 +60,24 @@ html, body {
 
 ::selection { background: #0f3d24; color: #d9ffe9; }
 
-/* the rain sits behind everything */
-#rain {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  display: block;
-}
+/* ── SPLIT LAYOUT ────────────────────────────────────────────────────────
+   CHECK: index.html structure #app > (#chat-col | #divider | #stab).
+   layout.js owns --panel-w and the drag; fab.js owns body.panel-open. */
 
 #app {
   position: relative;
   z-index: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100vh;
-  max-width: 880px;
-  margin: 0 auto;
+}
+
+#chat-col {
+  flex: 1 1 auto;
+  min-width: 0; /* lets the column shrink without overflow */
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-solid);
   padding: 0 16px;
 }
 
@@ -58,6 +95,17 @@ html, body {
   );
   opacity: 0.5;
 }
+
+/* the drag divider — layout.js turns drags into --panel-w updates */
+#divider {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: var(--edge);
+  transition: background 0.15s;
+}
+#divider:hover, body.resizing #divider { background: var(--edge-bright); }
+
+/* ── CORE (chat column) ────────────────────────────────────────────────── */
 
 #bar {
   padding: 18px 4px 12px;
@@ -100,6 +148,14 @@ html, body {
   gap: 12px;
 }
 
+#log::-webkit-scrollbar { width: 8px; }
+#log::-webkit-scrollbar-thumb { background: var(--edge-bright); border-radius: 4px; }
+
+/* ── MESSAGES ────────────────────────────────────────────────────────────
+   CHECK: chat.js addBubble(text, kind) — kind is exactly one of
+   "user", "omega", "omega typing", "omega llm", "omega llm typing",
+   optionally + " error". */
+
 .msg {
   max-width: 84%;
   padding: 10px 14px;
@@ -107,7 +163,6 @@ html, body {
   white-space: pre-wrap;
   word-break: break-word;
   animation: rise 0.16s ease-out;
-  backdrop-filter: blur(2px);
 }
 @keyframes rise {
   from { opacity: 0; transform: translateY(6px); }
@@ -121,7 +176,7 @@ html, body {
   border-bottom-right-radius: 2px;
   color: #d6ffe6;
 }
-.msg.ava {
+.msg.omega {
   align-self: flex-start;
   background: var(--panel);
   border: 1px solid var(--edge);
@@ -131,7 +186,14 @@ html, body {
   font-size: 13.5px;
   text-shadow: 0 0 6px rgba(0, 230, 107, 0.14);
 }
-.msg.ava.error { border-color: #5c1f1f; border-left-color: #b03a3a; color: #f0a0a0; text-shadow: none; }
+/* LLM instrument answers — gold, so an external API answer can never be
+   mistaken for a live Ω brain computation. */
+.msg.omega.llm {
+  border-left-color: var(--llm);
+  color: #e8cf8f;
+  text-shadow: 0 0 6px rgba(212, 169, 78, 0.18);
+}
+.msg.omega.error { border-color: #5c1f1f; border-left-color: #b03a3a; color: #f0a0a0; text-shadow: none; }
 .msg.typing { color: var(--dim); font-style: italic; }
 
 /* blinking caret on the typing indicator */
@@ -142,11 +204,12 @@ html, body {
 }
 @keyframes blink { 50% { opacity: 0; } }
 
+/* composer (the input row) */
 #composer {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  padding: 12px 4px 18px;
+  padding: 12px 66px 18px 4px; /* right padding keeps #send clear of the FAB dock */
   border-top: 1px solid var(--edge);
 }
 #prompt {
@@ -165,7 +228,7 @@ html, body {
   padding: 11px 13px;
   font: inherit;
   outline: none;
-  max-height: 140px;
+  max-height: 140px; /* must match the 140 cap in chat.js autoresize() */
   caret-color: var(--green);
 }
 #input:focus { border-color: var(--edge-bright); box-shadow: 0 0 0 1px rgba(0, 230, 107, 0.18); }
@@ -184,10 +247,11 @@ html, body {
 #send:hover { border-color: var(--green); }
 #send:disabled { opacity: 0.35; cursor: default; }
 
-#log::-webkit-scrollbar { width: 8px; }
-#log::-webkit-scrollbar-thumb { background: var(--edge-bright); border-radius: 4px; }
+/* ── FAB DOCK ────────────────────────────────────────────────────────────
+   CHECK: index.html #fab with 4 buttons; fab.js toggles .active / .error
+   and writes box-shadow live for the mic/cam level glow. The dock shifts
+   with the panel width when body.panel-open is set. */
 
-/* ── floating action buttons + stability panel + camera preview ── */
 #fab {
   position: fixed;
   right: 18px;
@@ -198,9 +262,10 @@ html, body {
   gap: 10px;
   transition: right 0.2s;
 }
-/* when the stability panel is open, the dock slides left out of its way */
-#stab:not(.hidden) ~ #fab { right: 338px; }
+body.panel-open #fab { right: calc(var(--panel-w, 380px) + 18px); }
+body.resizing #fab { transition: none; }
 #fab button {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -222,29 +287,27 @@ html, body {
   border-color: #b03a3a;
   box-shadow: 0 0 10px rgba(176, 58, 58, 0.5);
 }
-#fab button .lvl {
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  pointer-events: none;
-}
-#fab button { position: relative; }
+
+/* ── Σ TELEMETRY COLUMN ──────────────────────────────────────────────────
+   CHECK: in-flow right column (not an overlay). Width = var(--panel-w) from
+   layout.js; .hidden collapses it (fab.js Σ button). fab.js renderState()
+   builds .deck-tabs/.deck-body > (.stab-row | .stab-bar | .stab-sec |
+   .eig-spec) inside #stab-body. Bars are sized by INLINE style attributes —
+   if the CSP in index.html ever drops 'unsafe-inline' from style-src, every
+   bar in this panel silently renders empty. */
 
 #stab {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 320px;
-  z-index: 9;
-  background: rgba(2, 8, 5, 0.96);
+  flex: 0 0 auto;
+  width: var(--panel-w, 380px);
+  min-width: 240px; /* layout.js clamps to [240, 640] — keep in sync */
+  background: var(--panel-side);
   border-left: 1px solid var(--edge-bright);
   padding: 18px 16px;
   font-size: 12.5px;
   overflow-y: auto;
-  backdrop-filter: blur(3px);
 }
 #stab.hidden, #camprev.hidden { display: none; }
+body.resizing #stab { transition: none; }
 #stab h2 {
   margin: 0 0 12px;
   font-size: 12px;
@@ -280,7 +343,7 @@ html, body {
   letter-spacing: 0.2em;
 }
 
-/* ── Telemetry deck tabs ── */
+/* telemetry deck tabs */
 .deck-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -308,8 +371,95 @@ html, body {
   border-color: var(--edge-bright);
   text-shadow: var(--glow);
 }
-.deck-body { animation: deckfade 0.18s ease; }
-@keyframes deckfade { from { opacity: 0.35; } to { opacity: 1; } }
+/* The deck body updates in place on every poll. No replaying entrance
+   animation here: re-triggering one on each 500 ms refresh is the visible
+   "flash" the live panel used to exhibit. */
+
+/* spectral signature / sensory occupancy bars (fab.js deckSpectral/deckSenses).
+   Heights are inline style attributes — see the CSP warning above. */
+.eig-spec { display: flex; align-items: flex-end; gap: 2px; height: 48px; padding: 4px 2px 2px; }
+.eig-bar { flex: 1; min-width: 2px; background: var(--green-dim); border-radius: 1px 1px 0 0; box-shadow: 0 0 4px rgba(0,230,107,0.18); align-self: flex-end; }
+.eig-bar.eig-hot { background: var(--green); box-shadow: 0 0 8px rgba(0,230,107,0.55); }
+
+/* ── LLM INSTRUMENT ROW ─────────────────────────────────────────────────
+   CHECK: index.html #instrument — STATIC, above #stab-body. fab.js toggles
+   .on/.off/.error on #llm-square and re-labels #llm-save; the fields are
+   never touched by the telemetry poll. */
+
+#instrument {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--edge);
+}
+.inst-select {
+  background: rgba(3, 14, 8, 0.92);
+  color: var(--green-soft);
+  border: 1px solid var(--edge-bright);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 4px;
+  outline: none;
+}
+.inst-select:focus { border-color: var(--green); }
+.inst-model {
+  background: rgba(3, 14, 8, 0.92);
+  color: var(--green-soft);
+  border: 1px solid var(--edge-bright);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 6px;
+  width: 150px;
+}
+.inst-model:focus { border-color: var(--green); outline: none; }
+.inst-model::placeholder { color: var(--dim); opacity: 0.65; }
+.inst-square {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  user-select: none;
+  line-height: 1.4;
+  border: 1px solid var(--edge-bright);
+  transition: color 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.inst-square.on {
+  color: var(--llm);
+  font-weight: 600;
+  border-color: var(--llm);
+  background: rgba(212, 169, 78, 0.07);
+  text-shadow: 0 0 8px rgba(212, 169, 78, 0.4);
+}
+.inst-square.off { color: var(--dim); opacity: 0.75; }
+.inst-square.off:hover { color: var(--llm); opacity: 1; border-color: var(--llm); }
+.inst-square.error { color: #f0a0a0; border-color: #b03a3a; box-shadow: 0 0 10px rgba(176, 58, 58, 0.5); }
+.inst-keywrap { display: inline-flex; align-items: center; gap: 4px; }
+.inst-keywrap input {
+  background: rgba(3, 14, 8, 0.92);
+  color: var(--green-soft);
+  border: 1px solid var(--edge-bright);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 6px;
+  width: 150px;
+}
+.inst-keywrap input:focus { border-color: var(--green); outline: none; box-shadow: 0 0 0 1px rgba(0, 230, 107, 0.18); }
+.inst-keywrap input:disabled { opacity: 0.5; cursor: wait; }
+.inst-keywrap input::placeholder { color: var(--dim); opacity: 0.65; }
+.inst-set { color: var(--green-dim); text-decoration: none; cursor: pointer; font-size: 11px; }
+.inst-set:hover { color: var(--green); text-decoration: underline; }
+
+/* ── CAMERA PREVIEW ──────────────────────────────────────────────────────
+   CHECK: index.html #camprev > #camvideo; fab.js cam button toggles .hidden.
+   Shifts with the panel width when body.panel-open is set. */
 
 #camprev {
   position: fixed;
@@ -323,103 +473,15 @@ html, body {
   box-shadow: 0 0 14px rgba(0, 230, 107, 0.2);
   transition: right 0.2s;
 }
-/* when the stability panel is open, the preview slides left out of its way */
-#stab:not(.hidden) ~ #camprev { right: 338px; }
+body.panel-open #camprev { right: calc(var(--panel-w, 380px) + 18px); }
+body.resizing #camprev { transition: none; }
 #camprev video { display: block; width: 100%; filter: saturate(0.6) hue-rotate(60deg) brightness(0.9); }
 
-/* ── mind (v14 cognition) bubbles ── */
-.msg.mind {
-  align-self: flex-start;
-  background: rgba(20, 16, 4, 0.9);
-  border: 1px solid #3a2f10;
-  border-left: 2px solid var(--gold, #d4a94e);
-  border-bottom-left-radius: 2px;
-  color: #e8cf8f;
-  font-size: 13.5px;
-  text-shadow: 0 0 6px rgba(212, 169, 78, 0.18);
-}
-.msg.mind.thought {
-  color: #9a885a;
-  font-size: 12px;
-  font-style: italic;
-  border-left-color: #6b5a2a;
-}
-.msg.sys {
-  align-self: center;
-  background: transparent;
-  border: none;
-  color: var(--dim);
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
-}
+/* ── DROP OVERLAY ────────────────────────────────────────────────────────
+   CHECK: index.html #drop > .drop-box > .drop-glyph + p + .drop-sub;
+   chat.js dragenter/dragleave/drop toggle the .on class (paired with the
+   dragDepth counter there — if one changes, check the other). */
 
-/* resolution switch in the Σ panel */
-.res-opt { color: var(--green-dim); text-decoration: none; cursor: pointer; }
-.res-opt:hover { color: var(--green); text-decoration: underline; }
-.res-cur { color: var(--green); font-weight: 600; text-shadow: var(--glow); }
-
-/* SUPER-RESOLUTION EIGENMODES — live DFT spectrum bars; dominant mode lit. */
-.eig-spec { display: flex; align-items: flex-end; gap: 2px; height: 48px; padding: 4px 2px 2px; }
-.eig-bar { flex: 1; min-width: 2px; background: var(--green-dim); border-radius: 1px 1px 0 0; box-shadow: 0 0 4px rgba(0,230,107,0.18); align-self: flex-end; }
-.eig-bar.eig-hot { background: var(--green); box-shadow: 0 0 8px rgba(0,230,107,0.55); }
-
-/* MESH NODES — live adaptive-mesh leaf scatter over the torus domain. */
-.mesh-map { display: block; margin: 4px auto; background: rgba(0,20,10,0.4); border: 1px solid var(--green-dim); border-radius: 4px; }
-/* SCALING (Phase 4) — the force-depth floor. Shares the res-* link look; adds
- * the FORCED/AUTO mode badges and the small honest note under the options. */
-.scale-forced { color: #ffb454; font-weight: 600; }
-.scale-auto-badge { color: var(--green); font-weight: 600; }
-.scale-auto { color: var(--green-dim); text-decoration: none; cursor: pointer; }
-.scale-auto:hover { color: var(--green); text-decoration: underline; }
-.stab-note { color: var(--dim); font-size: 10.5px; letter-spacing: 0.04em; padding: 2px 0 4px; }
-/* Two toggle squares — kimi (K3) and ollama. ON is lit (click to turn off);
- * OFF is dim but clickable (it is the off-switch, never dead). The active one
- * (currently answering) gets a brighter ring. Either or both can be on. */
-.inst-squares { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.inst-square {
-  display: inline-block; padding: 2px 10px; border-radius: 3px; cursor: pointer;
-  font-size: 11px; letter-spacing: 0.4px; user-select: none; line-height: 1.4;
-  border: 1px solid var(--edge-bright); transition: color 0.12s, border-color 0.12s, box-shadow 0.12s;
-}
-.inst-square.on { color: var(--green); font-weight: 600; text-shadow: var(--glow); border-color: var(--green); background: rgba(0, 230, 107, 0.06); }
-.inst-square.on.active { box-shadow: 0 0 0 1px rgba(0, 230, 107, 0.45), 0 0 10px rgba(0, 230, 107, 0.22); }
-.inst-square.off { color: var(--dim); opacity: 0.7; }
-.inst-square.off:hover { color: var(--green); opacity: 1; border-color: var(--green); }
-.inst-square.on:hover { text-decoration: underline; }
-/* Inline K3 key entry - always present in the squares row so the key can
-   be set the first time and updated later (never read back). */
-.inst-keywrap { display: inline-flex; align-items: center; gap: 4px; }
-.inst-keywrap input {
-  background: rgba(3, 14, 8, 0.92); color: var(--green-soft); border: 1px solid var(--edge-bright);
-  border-radius: 3px; font: inherit; font-size: 11px; padding: 1px 5px; width: 150px;
-}
-.inst-keywrap input:focus { border-color: var(--green); outline: none; box-shadow: 0 0 0 1px rgba(0, 230, 107, 0.18); }
-.inst-keywrap input:disabled { opacity: 0.5; cursor: wait; }
-.inst-keywrap input::placeholder { color: var(--dim); opacity: 0.65; }
-.inst-set { color: var(--green-dim); text-decoration: none; cursor: pointer; font-size: 11px; }
-.inst-set:hover { color: var(--green); text-decoration: underline; }
-.inst-select {
-  background: rgba(3, 14, 8, 0.92);
-  color: var(--green-soft);
-  border: 1px solid var(--edge-bright);
-  border-radius: 3px;
-  font: inherit;
-  font-size: 11px;
-  padding: 1px 4px;
-  max-width: 168px;
-  cursor: pointer;
-}
-.inst-select:focus { border-color: var(--green); outline: none; box-shadow: 0 0 0 1px rgba(0, 230, 107, 0.18); }
-.inst-select option { background: #04120a; color: var(--green-soft); }
-
-/* grounded mind+engine answers */
-.msg.ava.mind-answer {
-  border-left-color: var(--gold, #d4a94e);
-  color: #d9e8c9;
-}
-
-
-/* ── document drop overlay ─────────────────────────────────────────────── */
 #drop {
   position: fixed; inset: 0; z-index: 40;
   display: flex; align-items: center; justify-content: center;
@@ -436,21 +498,3 @@ html, body {
 #drop .drop-glyph { font-size: 42px; color: var(--green); text-shadow: var(--glow); display: block; }
 #drop .drop-box p { margin: 10px 0 0; letter-spacing: 0.06em; }
 #drop .drop-sub { color: var(--dim); font-size: 11.5px; }
-
-/* ── drift / burden health scan ────────────────────────────────────────── */
-/* the verdict row colour-codes by level; the alert row pulses when the field
- * is blowing up (drift past the certificate) so it can't be missed. */
-.stab-health { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.stab-health .lvl { font-weight: 700; letter-spacing: 0.08em; }
-.stab-health .lvl.nominal { color: var(--green); text-shadow: var(--glow); }
-.stab-health .lvl.drifting { color: #ffb454; text-shadow: 0 0 8px rgba(255,180,84,0.4); }
-.stab-health .lvl.open { color: #ffb454; }
-.stab-health .lvl.blowup { color: #ff6b6b; text-shadow: 0 0 10px rgba(255,107,107,0.5); }
-.stab-health .why { color: var(--dim); font-size: 10px; }
-.stab-alert {
-  margin-top: 6px; padding: 6px 9px; border-radius: 4px; font-size: 11px;
-  border: 1px solid #b03a3a; background: rgba(92, 31, 31, 0.35); color: #f0a0a0;
-  animation: alertPulse 1.1s ease-in-out infinite;
-}
-.stab-alert.calm { border-color: var(--edge); background: transparent; color: var(--dim); animation: none; }
-@keyframes alertPulse { 50% { box-shadow: 0 0 14px rgba(255, 80, 80, 0.55); } }

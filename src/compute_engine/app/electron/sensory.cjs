@@ -1,5 +1,5 @@
 /**
- * AVA — Sensory codec: raw measurements → engine fields.
+ * METATRON Ω — Sensory codec: raw measurements → engine fields.
  *
  * Ported from the v14 brain's signal_codec.ts (the reference implementation,
  * mined per CORE_VISION §C-16 — not imported, since the app is its own DAG).

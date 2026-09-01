@@ -1,5 +1,5 @@
 /**
- * AVA sensors — mic & camera capture (renderer side: measurement ONLY).
+ * METATRON Ω sensors — mic & camera capture (renderer side: measurement ONLY).
  * All projection/drive math happens in the main process (sensory.cjs);
  * this module is the ear and the eye, never the brain.
  *
@@ -134,4 +134,4 @@ const CamSensor = (() => {
   return { start, stop, get active() { return timer !== null; }, get deviceLabel() { return activeLabel; } };
 })();
 
-window.AvaSensors = { MicSensor, CamSensor };
+window.OmegaSensors = { MicSensor, CamSensor };

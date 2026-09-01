@@ -83,20 +83,41 @@ class OmegaLoop {
   }
 
   /**
+   * Advance the host synchronously by one frame. The responder calls this right
+   * after injecting a chat/answer text so the input is actually PROCESSED before
+   * its effect is read — otherwise every report is one tick stale and rapid
+   * prompts return identical numbers. No-op while asleep: the input then waits
+   * in the sensory plane and is consumed on the first tick after wake (the
+   * host's pump refuses to run when stopped).
+   */
+  step() {
+    if (!this.running) return 0;
+    const now = Date.now();
+    const done = this._host.pump(now, TICK_MS);
+    this._ticks += done;
+    this._lastNow = now;
+    return done;
+  }
+
+  /**
    * Feed a sensory channel. kind: "audio" (number[] pcm), "vision"
    * (number[] luminance grid + width/height), "text" (string).
+   * Returns the brain's EncodeReport ({ peak, energy, support, scale, … }) so the
+   * caller can see what the encoder actually did — a malformed frame returns
+   * { error } instead of throwing, never fatal to the loop.
    */
   injectSensor(kind, data, extra = {}) {
     try {
       if (kind === "audio") {
-        this._host.pushChannel("audio", data);
+        return this._host.pushChannel("audio", data);
       } else if (kind === "vision") {
-        this._host.pushChannel("vision", data, { width: extra.width, height: extra.height });
+        return this._host.pushChannel("vision", data, { width: extra.width, height: extra.height });
       } else if (kind === "text") {
-        this._host.pushChannel("text", String(data));
+        return this._host.pushChannel("text", String(data));
       }
-    } catch {
-      /* a malformed frame is dropped, never fatal to the loop */
+      return { error: `unknown sensor kind "${kind}"` };
+    } catch (err) {
+      return { error: String(err && err.message ? err.message : err) };
     }
   }
 
@@ -108,12 +129,20 @@ class OmegaLoop {
     // The deeper live views (additive; each is the host's own computed view,
     // read-only). Guarded: a host that has not ticked yet still returns a
     // coherent (if empty) shape, never a throw.
-    let describe = null, web = null, spectral = null, organ = null, learn = null;
+    let describe = null, web = null, spectral = null, organ = null, learn = null, scan = null;
     try { describe = this._host.describe(); } catch { /* not ready */ }
     try { web = this._host.web(); } catch { /* not ready */ }
     try { spectral = this._host.spectral(0); } catch { /* not ready */ }
     try { organ = this._host.organSnapshot(); } catch { /* not ready */ }
     try { learn = this._host.learnState(); } catch { /* no learn run yet */ }
+    // N1 — the six-section sensory scan of the base rung: per-node vibration
+    // spectrum, instantaneous frequency, energy state, superpositional flux,
+    // band capture. The deepest sensory-depth readout the engine computes.
+    try { scan = this._host.scan(0); } catch { /* not ready */ }
+    // Ω-P8 — the perceptual Mind's report: what the senses have learned
+    // (perceptual concepts, novelty/surprise, the sensory self-model).
+    let perception = null;
+    try { perception = this._host.perception(); } catch { /* no senses yet */ }
     return {
       running: this.running,
       ticks: this._ticks,
@@ -166,7 +195,12 @@ class OmegaLoop {
       // The live sensory report (per-channel fusion + bound check).
       sense: this._host.sense(),
       // The deeper structural views (additive, read-only).
-      describe, web, spectral, organ, learn,
+      // Ω-P8 — perceptual grounding headline.
+      perceptConcepts: s.perceptConcepts,
+      perceptNovelty: s.perceptNovelty,
+      perceptSurprise: s.perceptSurprise,
+      perception,
+      describe, web, spectral, organ, learn, scan,
     };
   }
 }

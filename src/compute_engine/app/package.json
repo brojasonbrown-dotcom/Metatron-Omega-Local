@@ -12,9 +12,11 @@
     "start": "npm run bundle:omega && electron .",
     "smoke": "npm run bundle:omega && node scripts/smoke.mjs",
     "smoke:gui": "npm run bundle:omega && electron . --ci",
-    "pack": "npm run bundle:omega && electron-builder --dir",
-    "dist": "npm run bundle:omega && electron-builder",
-    "verify:dist": "electron-builder --dir && release/win-unpacked/METATRON-OMEGA.exe --ci"
+    "prepack": "node scripts/pre-pack.mjs",
+    "pack": "npm run bundle:omega && node scripts/pre-pack.mjs && node scripts/build-driver.mjs --dir",
+    "predist": "node scripts/pre-pack.mjs",
+    "dist": "npm run bundle:omega && node scripts/pre-pack.mjs && node scripts/build-driver.mjs",
+    "verify:dist": "node scripts/pre-pack.mjs && node scripts/build-driver.mjs --dir && release/win-unpacked/METATRON-OMEGA.exe --ci"
   },
   "devDependencies": {
     "electron": "^33.0.0",

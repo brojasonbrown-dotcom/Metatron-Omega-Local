@@ -254,4 +254,14 @@ export class SensoryPlane {
   fusedPeak(): number {
     return maxNorm(this.fused);
   }
+
+  /**
+   * Read-only view of one channel's encoded field (the pre-fusion percept), or
+   * null when the channel is unknown or silent. Perception (Ω-P8) reads these;
+   * it never mutates them, so the determinism oracle is unaffected.
+   */
+  channelField(id: string): CField | null {
+    const ch = this.channels.get(id);
+    return ch && ch.live ? ch.field : null;
+  }
 }

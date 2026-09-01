@@ -78,6 +78,7 @@ export * from './sense/fusion';
 export * from './sense/plane';
 export * from './sense/nodeArray';
 export * from './sense/scan';
+export * from './sense/perception';
 export * from './memory/braid';
 export * from './memory/turingTape';
 

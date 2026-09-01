@@ -7,9 +7,6 @@
  */
 "use strict";
 
-const PHI = 1.618033988749895;
-const PHI_INV = 1 / PHI;
-
 /**
  * @param {import("./omegaLoop.cjs").OmegaLoop} loop
  * @param {string} text
@@ -111,13 +108,27 @@ function respond(loop, text) {
   }
 
   // Free text: feed it, let the brain advance, report what changed. The honest
-  // learning path — the input becomes part of the field.
+  // learning path — the input becomes part of the field. The brain is stepped
+  // synchronously after the injection so the reported state is AFTER the input
+  // landed (reading pre-tick state would return the previous frame's numbers,
+  // identical across rapid prompts — that was the "brain doesn't respond" defect).
+  const before = loop.state();
   loop.injectSensor("text", t);
+  const stepped = typeof loop.step === "function" ? loop.step() : 0;
   const after = loop.state();
+  if (!stepped && !after.running) {
+    return [
+      "Encoded into the sensory plane. The brain is asleep — wake it (⏻) and your words are read on its first tick.",
+      `profile ${after.profile} · ${after.rungs.length} rungs · ${after.totalNodes} nodes standing by · memory ${after.memoryLoad}/${after.memoryCapacity}.`,
+    ].join("\n");
+  }
+  const changed = String(after.digest) !== String(before.digest);
   return [
     `Encoded into the field. The brain is listening and learning.`,
     `coherence ${fmt(after.coherence)} · energy ${fmt(after.energy)} · novelty ${fmt(after.novelty)} · concepts ${after.concepts}`,
-    `digest ${String(after.digest).slice(0, 16)} — the field's state changed by what you said.`,
+    changed
+      ? `digest ${String(after.digest).slice(0, 16)} — the field's state changed by what you said.`
+      : `digest ${String(after.digest).slice(0, 16)} — one tick did not move the digest; the input is in the plane and lands on the next stride.`,
   ].join("\n");
 }
 

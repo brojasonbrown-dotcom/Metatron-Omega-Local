@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AVA icon generator — the brand-true glyph, computed, not downloaded.
+METATRON Ω icon generator — the brand-true glyph, computed, not downloaded.
 
 A phosphor-green torus ring on black (the engine's geometry: every stable
 scale IS a torus), with a soft glow falloff. Writes a multi-size Windows

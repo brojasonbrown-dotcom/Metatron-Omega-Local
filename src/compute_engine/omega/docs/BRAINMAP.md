@@ -107,6 +107,11 @@ Transcription tape: 13-dim spectral signature per tick, digest-chained.
 ### 2.7 Sensory → field
 Fold: c_k = Σ_{j≡k(13)} f_j·φ^(−⌊j/13⌋); phase-tag ĉ = c·e^{iθ_k(n)}; inject v = gain·rate(CI_low)·synth(ĉ)/|synth(ĉ)|, |v| ≤ φ.
 Fusion weights (1, φ⁻¹, φ⁻²) × softmax confidence gate. Natural rungs: vision/audio → 183, text → 197.
+Text codec (Ω-P9, 2026-08-31): two-channel code — (A) trigram identity hash (dropout-robust occurrence cue) +
+(B) gematria meaning channel: NFKD-normalised chars → φ-power alphabet v_k = φ^(k/2) (the GEMATRIA_ALPHABET-certified
+n=28 ladder: constant-ratio, exact in Z[φ], reversal-invariant), mean-removed, projected onto 13 golden DFT modes
+(A_k = φ^(−k/2), θ_k = 2πk·φ⁻¹/89), synthesised onto the ring as pure orthogonal modes so ring-DFT bin k recovers
+mode k verbatim; mixed A + φ⁻¹·B, unit-normalised per channel, bound ‖v‖∞ ≤ φ (L-S1, down-scale only, L2 deterministic).
 
 ### 2.8 Memory plane (six tiers) — merges with the existing Ω substrate
 Fast(EMA ring) · Working · Associative(graph) · LongTerm(prototypes) · Meta(contradictions) · Archive(replay),
@@ -192,6 +197,16 @@ G6 sensory + memory capacity ≥ 0.99 · G7 self-model + soak · G8 cognition ·
   Recorded deviations (not hidden): `1/PHI` and `PHI − 1` differ by exactly 1 ulp; the digest is
   FNV-1a/BigInt rather than blake2b — chain semantics identical, byte values differ from Python.
   Closed the §4 gap `core/indexing.ts`. No existing module was altered or deleted.
+- **Ω-P9 (2026-08-31):** Language returns to the certified trunk. `sense/encode.ts::encodeText` becomes a
+  two-channel code (identity trigrams + φ-power gematria mode channel) so text carries *structure*, not only
+  occurrence identity — the resurrection of the deleted `language_codec.ts` design, corrected to the
+  GEMATRIA_ALPHABET-certified φ-power alphabet. `sense/perception.ts` gains a CONTENT block (10 low-mode
+  log-power bins per channel, appended after FIELD): the perceptual Mind now observes the gematria spectrum of
+  an utterance directly, and per-channel width 32 makes the app-side observation dim 96, divisible by the PQ
+  subspace count (the 44-dim layout silently collapsed PQ to one subspace). Laws kept: L1 (all constants
+  φ-derived), L2 (no RNG/clock; dmath only), L-S1 (down-scale-only bound), observer law (perception writes
+  nothing). S0 oracle hashes untouched — no text is injected on the oracle path; G6 contract (determinism,
+  bound, order-sensitivity, braid recall ≥ 0.99 at rated capacity, 40%-dropout recovery) re-verified green.
 
 ---
 
@@ -493,7 +508,7 @@ the Ω-MAP atlas may not be trusted.
 **sense/ · memory/** — intake and the engine-side memory planes.
 | File | Purpose |
 |---|---|
-| `sense/encode.ts` | Sensory encoders (modality → field-compatible complex frame). |
+| `sense/encode.ts` | Sensory encoders (modality → field-compatible complex frame); text = Ω-P9 two-channel codec. |
 | `sense/fusion.ts` | Multi-modal fusion. |
 | `sense/plane.ts` | The sensory plane. |
 | `sense/nodeArray.ts` | N1 — the Sensory Node Array (SNA). |

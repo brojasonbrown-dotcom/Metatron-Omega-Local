@@ -1,5 +1,5 @@
 /**
- * AVA chat renderer — the classic, proven chat loop:
+ * METATRON Ω chat renderer — the classic, proven chat loop:
  * append user bubble → typing indicator → IPC to main (real engine compute)
  * → replace with answer. Vanilla DOM, no framework, nothing else needed.
  */
@@ -42,16 +42,29 @@ async function send() {
   autoresize();
 
   addBubble(text, "user");
-  const typing = addBubble("computing", "ava typing");
   sendBtn.disabled = true;
 
+  // Two instruments, one chat. The Ω brain (default) computes every answer
+  // live; the LLM instrument — only when toggled on in the Σ panel — answers
+  // externally WITH the brain's live state in view (and the brain hears both
+  // the question and the answer). Meta-questions ABOUT the brain are always
+  // answered by the brain itself. LLM answers get a visibly distinct bubble
+  // (msg.omega.llm) so an API answer can never pass for a brain computation.
+  const META = /^(help|status|state|how are you|what can you do|commands|ladder|rungs|scales|web|flux|ledger|spectral|signature|spectrum|modes|memory|memories|remember|recall|mind|cognition|think|concepts|learn|learning|train|battery|tier)\b/i;
+  let llmOn = false;
   try {
-    const r = await window.omega.send(text);
+    llmOn = !META.test(text) && (await window.omega.llmStatus()).active;
+  } catch { /* status unavailable → brain path */ }
+
+  const typing = addBubble(llmOn ? "llm is thinking" : "computing", llmOn ? "omega llm typing" : "omega typing");
+
+  try {
+    const r = llmOn ? await window.omega.llmAsk(text) : await window.omega.send(text);
     typing.classList.remove("typing");
     if (r.ok) {
       typing.textContent = r.answer;
     } else {
-      typing.textContent = `engine error: ${r.error}`;
+      typing.textContent = `${llmOn ? "llm" : "engine"} error: ${r.error}`;
       typing.classList.add("error");
     }
   } catch (err) {
@@ -107,14 +120,17 @@ window.addEventListener("drop", (e) => {
 });
 
 async function ingestFile(file) {
-  // The dropped File carries an absolute path in the packaged app; main reads it.
-  const p = file.path;
+  // File.path was removed in Electron 32 — the path comes from the preload's
+  // webUtils.getPathForFile. Main then reads the bytes; the sandboxed renderer
+  // never touches them.
+  let p = "";
+  try { p = window.omega.pathForFile(file); } catch { p = ""; }
   if (!p) {
-    addBubble(`can't read "${file.name}" — no filesystem path (drag a real file, not a browser blob).`, "ava error");
+    addBubble(`can't read "${file.name}" — no filesystem path (drag a real file, not a browser blob).`, "omega error");
     return;
   }
   addBubble(`📄 ${file.name}`, "user");
-  const typing = addBubble("reading document", "ava typing");
+  const typing = addBubble("reading document", "omega typing");
   try {
     const r = await window.omega.ingestDocument(p);
     typing.classList.remove("typing");
@@ -135,5 +151,5 @@ async function ingestFile(file) {
 
 addBubble(
   "METATRON Ω online · toroidal brain linked.\nEvery reply is computed live from the field. Type `help` for the command set.",
-  "ava",
+  "omega",
 );

@@ -46,6 +46,7 @@ __export(src_exports, {
   COHERENCE_DELAY_LADDER: () => COHERENCE_DELAY_LADDER,
   COHERENCE_GATE: () => COHERENCE_GATE,
   CONSOLIDATION_COS: () => CONSOLIDATION_COS,
+  CONTENT_DIM: () => CONTENT_DIM,
   CORRIDOR: () => CORRIDOR,
   COVERAGE_TARGET: () => COVERAGE_TARGET,
   CleanupMemory: () => CleanupMemory,
@@ -67,6 +68,7 @@ __export(src_exports, {
   ENV: () => ENV,
   EngineHost: () => EngineHost,
   FIB_SPINE: () => FIB_SPINE,
+  FIELD_PROJ: () => FIELD_PROJ,
   FILTER_RHO_MAX: () => FILTER_RHO_MAX,
   FLUX_CLOSURE_TOLERANCE: () => FLUX_CLOSURE_TOLERANCE,
   FLUX_SINK: () => FLUX_SINK,
@@ -143,6 +145,7 @@ __export(src_exports, {
   SHIP_MARGIN: () => SHIP_MARGIN,
   SHORT_GAP_SWEEPS: () => SHORT_GAP_SWEEPS,
   SIGNATURE_MODES: () => SIGNATURE_MODES,
+  SPACE_DIM: () => SPACE_DIM,
   SPECTRUM_VERSION: () => SPECTRUM_VERSION,
   STABLE_RESIDUES: () => STABLE_RESIDUES,
   STAT_FLOOR: () => STAT_FLOOR,
@@ -162,6 +165,7 @@ __export(src_exports, {
   TABLE: () => TABLE,
   TAPE_BOUND: () => TAPE_BOUND,
   TAPE_WRITE_WEIGHT: () => TAPE_WRITE_WEIGHT,
+  TEXT_MODES: () => TEXT_MODES,
   TenSweepProtocol: () => TenSweepProtocol,
   TorusBraid: () => TorusBraid,
   TranscriptionTape: () => TranscriptionTape,
@@ -340,7 +344,9 @@ __export(src_exports, {
   ouInnovation: () => ouInnovation,
   pair: () => pair,
   pearson: () => pearson,
+  perceive: () => perceive,
   percentile: () => percentile,
+  perceptionLayout: () => perceptionLayout,
   permutationTest: () => permutationTest,
   permute: () => permute,
   phaseClosureGamma: () => phaseClosureGamma,
@@ -4771,11 +4777,18 @@ function encodeScalars(values, out) {
   }
   return finishReport("scalar", out, boundField(out));
 }
+var TEXT_MODES = 13;
+var GOLDEN_PHASE_DENOM = 89;
+function alphabetIndex(codePoint) {
+  if (codePoint >= 97 && codePoint <= 122) return codePoint - 97;
+  if (codePoint === 32) return 26;
+  return 27;
+}
 function encodeText(text, out) {
   const n = out.n;
   out.re.fill(0);
   out.im.fill(0);
-  const cps = Array.from(text);
+  const cps = Array.from(text.normalize("NFKD").toLowerCase().replace(/\s+/g, " ").trim());
   if (cps.length === 0) return finishReport("text", out, { rawPeak: 0, peak: 0, scale: 1 });
   const combWeights = [1, PHI_INV, PHI_INV * PHI_INV];
   let prev1 = 0;
@@ -4793,8 +4806,57 @@ function encodeText(text, out) {
       out.im[idx] += combWeights[c] * dsin(th);
     }
   }
-  const k = 1 / Math.sqrt(cps.length);
-  scaleField(out, k);
+  const normA = Math.sqrt(energy(out));
+  if (normA > 0) scaleField(out, 1 / normA);
+  const L = cps.length;
+  const vals = new Float64Array(L);
+  let mean3 = 0;
+  for (let p = 0; p < L; p++) {
+    const v = dpow(PHI, alphabetIndex(cps[p].codePointAt(0) ?? 0) / 2);
+    vals[p] = v;
+    mean3 += v;
+  }
+  mean3 /= L;
+  const modeRe = new Float64Array(TEXT_MODES);
+  const modeIm = new Float64Array(TEXT_MODES);
+  for (let k = 0; k < TEXT_MODES; k++) {
+    const ak = dpow(PHI, -k / 2);
+    const thk = 2 * Math.PI * k * PHI_INV / GOLDEN_PHASE_DENOM;
+    let re = 0;
+    let im = 0;
+    for (let p = 0; p < L; p++) {
+      const dv = vals[p] - mean3;
+      if (dv === 0) continue;
+      const ph = 2 * Math.PI * k * p / L + thk;
+      re += dv * dcos(ph);
+      im += dv * dsin(ph);
+    }
+    modeRe[k] = ak * re;
+    modeIm[k] = ak * im;
+  }
+  const b = senseField(n);
+  for (let j = 0; j < n; j++) {
+    let re = 0;
+    let im = 0;
+    for (let k = 0; k < TEXT_MODES; k++) {
+      if (modeRe[k] === 0 && modeIm[k] === 0) continue;
+      const ph = 2 * Math.PI * k * j / n;
+      const c = dcos(ph);
+      const s = dsin(ph);
+      re += modeRe[k] * c - modeIm[k] * s;
+      im += modeRe[k] * s + modeIm[k] * c;
+    }
+    b.re[j] = re;
+    b.im[j] = im;
+  }
+  const normB = Math.sqrt(energy(b));
+  if (normB > 0) {
+    const w = PHI_INV / normB;
+    for (let j = 0; j < n; j++) {
+      out.re[j] += w * b.re[j];
+      out.im[j] += w * b.im[j];
+    }
+  }
   return finishReport("text", out, boundField(out));
 }
 function encodeGrid(data, width, height, out) {
@@ -5107,6 +5169,15 @@ var SensoryPlane = class {
   /** Peak of the fused (pre-transport) field — telemetry only. */
   fusedPeak() {
     return maxNorm(this.fused);
+  }
+  /**
+   * Read-only view of one channel's encoded field (the pre-fusion percept), or
+   * null when the channel is unknown or silent. Perception (Ω-P8) reads these;
+   * it never mutates them, so the determinism oracle is unaffected.
+   */
+  channelField(id) {
+    const ch = this.channels.get(id);
+    return ch && ch.live ? ch.field : null;
   }
 };
 
@@ -6247,6 +6318,122 @@ var Mind = class {
   }
 };
 
+// ../omega/packages/trnn-core/src/sense/perception.ts
+var TWO_PI5 = 2 * Math.PI;
+var FIELD_PROJ = 8;
+var SPACE_DIM = 4;
+var CONTENT_DIM = 10;
+function perceptionLayout(bands, channels) {
+  const perChannel = bands + SPACE_DIM + FIELD_PROJ + CONTENT_DIM;
+  return { bands, channels, perChannel, dim: perChannel * channels };
+}
+function foldChannel(out, off, array, fused, layout) {
+  const { bands } = layout;
+  const n = array ? array.n : fused?.n ?? 0;
+  const base = off;
+  const spaceAt = base + bands;
+  const fieldAt = spaceAt + SPACE_DIM;
+  const contentAt = fieldAt + FIELD_PROJ;
+  let bandNorm = 0;
+  if (array && array.report().windowsClosed > 0) {
+    for (let k = 0; k < bands; k++) {
+      let acc = 0;
+      for (let j = 0; j < array.n; j++) acc += array.bandAmp[j * bands + k];
+      out[base + k] = acc;
+      bandNorm += acc * acc;
+    }
+  }
+  if (bandNorm > 1e-300) {
+    const inv = 1 / Math.sqrt(bandNorm);
+    for (let k = 0; k < bands; k++) out[base + k] *= inv;
+  }
+  if (array && n > 0) {
+    let sr = 0;
+    let si = 0;
+    let total = 0;
+    let peak = 0;
+    let entropy = 0;
+    for (let j = 0; j < n; j++) {
+      const e = array.energy[j];
+      total += e;
+      if (e > peak) peak = e;
+      const th = TWO_PI5 * j / n;
+      sr += e * dcos(th);
+      si += e * dsin(th);
+    }
+    if (total > 1e-300) {
+      const R = dmag(sr, si);
+      const len = R / total;
+      const ang = datan2(si, sr) / TWO_PI5 + 0.5;
+      out[spaceAt + 0] = ang;
+      out[spaceAt + 1] = len;
+      out[spaceAt + 2] = peak / total;
+      for (let j = 0; j < n; j++) {
+        const s = array.energy[j] / total;
+        if (s > 0) entropy -= s * dlog(s);
+      }
+      out[spaceAt + 3] = entropy / dlog(n > 1 ? n : 2);
+    }
+  }
+  if (fused && fused.n > 0) {
+    const spec = fft(fused.re, fused.im);
+    const half = fused.n >> 1;
+    if (half > 0) {
+      const fp = FIELD_PROJ;
+      for (let m = 1; m <= half; m++) {
+        const p = spec.re[m] * spec.re[m] + spec.im[m] * spec.im[m];
+        if (p <= 0) continue;
+        const bin = Math.min(fp - 1, Math.floor((m - 1) * PHI_INV * fp % fp));
+        out[fieldAt + bin] += p;
+      }
+      let rawNorm = 0;
+      for (let b = 0; b < fp; b++) rawNorm += out[fieldAt + b] * out[fieldAt + b];
+      if (rawNorm > 1e-300) {
+        const rawInv = 1 / Math.sqrt(rawNorm);
+        let norm2 = 0;
+        for (let b = 0; b < fp; b++) {
+          const v = dlog1p(out[fieldAt + b] * rawInv);
+          out[fieldAt + b] = v;
+          norm2 += v * v;
+        }
+        if (norm2 > 1e-300) {
+          const inv = 1 / Math.sqrt(norm2);
+          for (let b = 0; b < fp; b++) out[fieldAt + b] *= inv;
+        }
+      }
+      const cTop = Math.min(CONTENT_DIM, half);
+      let cRawNorm = 0;
+      for (let m = 1; m <= cTop; m++) {
+        const p = spec.re[m] * spec.re[m] + spec.im[m] * spec.im[m];
+        out[contentAt + m - 1] = p;
+        cRawNorm += p * p;
+      }
+      if (cRawNorm > 1e-300) {
+        const rawInv = 1 / Math.sqrt(cRawNorm);
+        let cNorm = 0;
+        for (let m = 0; m < cTop; m++) {
+          const v = dlog1p(out[contentAt + m] * rawInv);
+          out[contentAt + m] = v;
+          cNorm += v * v;
+        }
+        if (cNorm > 1e-300) {
+          const inv = 1 / Math.sqrt(cNorm);
+          for (let m = 0; m < cTop; m++) out[contentAt + m] *= inv;
+        }
+      }
+    }
+  }
+}
+function perceive(out, array, fusedByChannel, layout) {
+  out.fill(0);
+  for (let c = 0; c < layout.channels; c++) {
+    foldChannel(out, c * layout.perChannel, array, fusedByChannel[c] ?? null, layout);
+  }
+  let norm2 = 0;
+  for (let i = 0; i < layout.dim; i++) norm2 += out[i] * out[i];
+  return norm2;
+}
+
 // ../omega/packages/trnn-core/src/learn/params.ts
 function algSigmoid(x) {
   if (!Number.isFinite(x)) return x > 0 ? 1 : -1;
@@ -7053,6 +7240,19 @@ var EngineHost = class {
   lastMindTick = -1;
   /** Folds skipped because the ladder had nothing to report. */
   quiescentFolds = 0;
+  // ---- Ω-P8 perception (sensory grounding) ----
+  /**
+   * A separate Mind for the senses: perceptual concepts live in a different
+   * dimensional space than ladder-telemetry concepts and must never collide with
+   * them. Same machinery, same novelty gate, own store + self-model.
+   */
+  sensoryMind = null;
+  perceptLayout = null;
+  perceptObs = null;
+  lastPercept = null;
+  lastPerceptTick = -1;
+  /** Perception folds skipped because every sense was silent. */
+  quiescentPercepts = 0;
   constructor(opts) {
     this.profile = typeof opts.profile === "string" ? profileById(opts.profile) : opts.profile;
     this.seed = opts.seed ?? "metatron-omega";
@@ -7119,6 +7319,7 @@ var EngineHost = class {
     this.ledger.mark(mark);
     this.foldMemory(rep.tick);
     this.foldMind(rep);
+    this.foldPerception(rep);
     return rep;
   }
   // ---- Ω-P6: sensory plane ----
@@ -7273,6 +7474,62 @@ var EngineHost = class {
   cognition() {
     return this.ensureMind().report();
   }
+  // ---- Ω-P8 perception ----
+  /**
+   * Lazily build the perceptual Mind once the sensory array's band plan is
+   * known. The layout is per-channel over every declared channel (sorted id, so
+   * the block index is stable), sized from the rung-0 array's band count.
+   */
+  ensureSensoryMind() {
+    if (!this.sensoryMind) {
+      const array = this.engine.engines[0]?.sensors ?? null;
+      if (!array) return null;
+      const channels = this.plane ? this.plane.channelIds() : [];
+      if (channels.length === 0) return null;
+      this.perceptLayout = perceptionLayout(array.bands, channels.length);
+      this.sensoryMind = new Mind({
+        dim: this.perceptLayout.dim,
+        capacity: 610,
+        seed: `${this.seed}-percept`
+      });
+      this.perceptObs = new Float64Array(this.perceptLayout.dim);
+    }
+    return this.sensoryMind;
+  }
+  /**
+   * One perceptual fold per MIND_STRIDE ticks, after the cognitive fold. The
+   * observation is the sensory meaning-vector (Ω-P8): per-channel φ-band
+   * profile, spatial energy moments, and the fused-field projection. A silent
+   * world carries no experience, so — exactly like the cognitive fold — a
+   * zero-norm observation is skipped rather than minting a degenerate concept.
+   *
+   * Pure observation: it reads the array and the plane's staged channel fields,
+   * never writes the dynamics, so the determinism oracle is untouched.
+   */
+  foldPerception(rep) {
+    if (rep.tick % MIND_STRIDE !== 0 || rep.tick === this.lastPerceptTick) return;
+    this.lastPerceptTick = rep.tick;
+    const mind = this.ensureSensoryMind();
+    if (!mind || !this.perceptLayout || !this.perceptObs) return;
+    const array = this.engine.engines[0]?.sensors ?? null;
+    const ids = this.plane ? this.plane.channelIds() : [];
+    const fused = ids.map((id) => this.plane.channelField(id));
+    const norm2 = perceive(this.perceptObs, array, fused, this.perceptLayout);
+    if (!(norm2 > 1e-18) || !Number.isFinite(norm2)) {
+      this.quiescentPercepts++;
+      return;
+    }
+    this.lastPercept = mind.observe(this.perceptObs, rep.tick, `p${rep.tick}`);
+  }
+  /** The perceptual Mind's report — what the senses have learned. */
+  perception() {
+    return this.sensoryMind ? this.sensoryMind.report() : null;
+  }
+  /** Nearest perceptual concepts to the live sensory observation. */
+  perceiveReflect(k = 5) {
+    if (!this.sensoryMind) return { hits: [], exactOps: 0, pqOps: 0, hops: 0 };
+    return this.sensoryMind.recall(this.perceptObs ?? new Float64Array(this.sensoryMind.dim), k);
+  }
   /** Nearest concepts to the live observation — the read side of the store. */
   reflect(k = 5) {
     const mind = this.ensureMind();
@@ -7403,6 +7660,10 @@ var EngineHost = class {
       selfModel: this.mind?.self.enabled ?? false,
       selfMargin: this.mind?.self.margin() ?? 0,
       quiescentFolds: this.quiescentFolds,
+      perceptConcepts: this.sensoryMind?.store.size ?? 0,
+      perceptNovelty: this.lastPercept?.novelty ?? 0,
+      perceptSurprise: this.lastPercept?.surprise ?? 0,
+      quiescentPercepts: this.quiescentPercepts,
       ...this.organSnapshot(),
       chords: this.engine.coupling.chords,
       tapeOccupancy: this.engine.tape?.occupied() ?? 0,
@@ -9243,7 +9504,7 @@ function blendWithResonance(prior, resonance) {
 }
 
 // ../omega/packages/trnn-core/src/substrate/vsa.ts
-var TWO_PI5 = 6.283185307179586;
+var TWO_PI6 = 6.283185307179586;
 var PI = 3.141592653589793;
 var CLEANUP_FAN_IN = 100;
 var CLEANUP_Z_FLOOR = 5;
@@ -9251,10 +9512,10 @@ function wrapPhase(p) {
   if (!Number.isFinite(p)) return NaN;
   let x = p;
   if (x >= PI || x < -PI) {
-    const k = Math.floor((x + PI) / TWO_PI5);
-    x -= k * TWO_PI5;
-    if (x >= PI) x -= TWO_PI5;
-    if (x < -PI) x += TWO_PI5;
+    const k = Math.floor((x + PI) / TWO_PI6);
+    x -= k * TWO_PI6;
+    if (x >= PI) x -= TWO_PI6;
+    if (x < -PI) x += TWO_PI6;
   }
   return x;
 }
@@ -14359,6 +14620,7 @@ function abstentionBattery() {
   COHERENCE_DELAY_LADDER,
   COHERENCE_GATE,
   CONSOLIDATION_COS,
+  CONTENT_DIM,
   CORRIDOR,
   COVERAGE_TARGET,
   CleanupMemory,
@@ -14380,6 +14642,7 @@ function abstentionBattery() {
   ENV,
   EngineHost,
   FIB_SPINE,
+  FIELD_PROJ,
   FILTER_RHO_MAX,
   FLUX_CLOSURE_TOLERANCE,
   FLUX_SINK,
@@ -14456,6 +14719,7 @@ function abstentionBattery() {
   SHIP_MARGIN,
   SHORT_GAP_SWEEPS,
   SIGNATURE_MODES,
+  SPACE_DIM,
   SPECTRUM_VERSION,
   STABLE_RESIDUES,
   STAT_FLOOR,
@@ -14475,6 +14739,7 @@ function abstentionBattery() {
   TABLE,
   TAPE_BOUND,
   TAPE_WRITE_WEIGHT,
+  TEXT_MODES,
   TenSweepProtocol,
   TorusBraid,
   TranscriptionTape,
@@ -14653,7 +14918,9 @@ function abstentionBattery() {
   ouInnovation,
   pair,
   pearson,
+  perceive,
   percentile,
+  perceptionLayout,
   permutationTest,
   permute,
   phaseClosureGamma,

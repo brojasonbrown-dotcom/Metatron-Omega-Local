@@ -17,9 +17,9 @@
  */
 
 import { PHI, PHI_INV } from '../core/constants';
-import { createField, maxNorm, scaleField, type CField } from '../core/complex';
+import { createField, energy, maxNorm, scaleField, type CField } from '../core/complex';
 import { SeedStream } from '../core/determinism';
-import { dcos, dsin } from '../core/dmath';
+import { dcos, dpow, dsin } from '../core/dmath';
 
 /** [DEFINED] hard injection bound on any sensory field (Law: |v| ≤ φ). */
 export const SENSE_BOUND = PHI;
@@ -137,30 +137,69 @@ export function encodeScalars(values: ArrayLike<number>, out: CField): EncodeRep
   return finishReport('scalar', out, boundField(out));
 }
 
+/** Ω-P9 — golden DFT mode count of the text meaning channel (Fibonacci). */
+export const TEXT_MODES = 13;
+
+/** Phase-offset denominator of the meaning channel's golden phase law (F₁₁). */
+const GOLDEN_PHASE_DENOM = 89;
+
+/** Alphabet size of the φ-power ladder (26 letters + space + one fold class). */
+const ALPHABET_SIZE = 28;
+
 /**
- * Text → field (distributed trigram code).
+ * Ω-P9 alphabet index: a–z → 0..25, space → 26, any other symbol → 27.
+ * Deterministic; digits and punctuation share the fold class rather than
+ * inventing values for them (a digit pattern is data — Track G law).
+ */
+function alphabetIndex(codePoint: number): number {
+  if (codePoint >= 0x61 && codePoint <= 0x7a) return codePoint - 0x61;
+  if (codePoint === 0x20) return 26;
+  return 27;
+}
+
+/**
+ * Text → field (Ω-P9 two-channel code: identity + meaning).
  *
+ * Channel A — the certified rolling-trigram identity hash (unchanged math).
  * A one-node-per-character code is far too sparse to survive dropout: a short
  * string touches a handful of nodes and losing a few of them erases identity.
  * So each position contributes a *rolling trigram* token — the previous two
  * codepoints folded with the current one — spread over three nodes with
- * weights (1, φ⁻¹, φ⁻²).
+ * weights (1, φ⁻¹, φ⁻²). Support grows to ≈3·len nodes, so 40% node dropout
+ * still leaves a cue whose cosine against its own pattern dominates every
+ * neighbour, and the trigram makes the code order sensitive at the sub-word
+ * level. This is the channel the braid's G6.5 contract rides on.
  *
- * Two consequences, both wanted:
- *   • support grows to ≈3·len nodes, so 40% node dropout still leaves a cue
- *     whose cosine against its own pattern dominates every neighbour;
- *   • the trigram makes the code order sensitive at the sub-word level, so
- *     "ab" and "ba" separate while a shared prefix still reinforces.
+ * Channel B — the gematria meaning channel (the language codec, re-derived to
+ * the letter of the GEMATRIA_ALPHABET certification):
+ *   1. normalise (NFKD, lowercase, collapse whitespace);
+ *   2. char → alphabet index k → value v_k = φ^(k/2) — the φ-power ladder the
+ *      alphabet battery certified best (constant-ratio, exact in Z[φ],
+ *      reversal-invariant, best cross-token discrimination);
+ *   3. remove the mean (without it mode 0 dominates and all texts resonate);
+ *   4. project onto TEXT_MODES golden DFT modes with amplitude φ^(−k/2) and
+ *      phase offset θ_k = 2πk·φ⁻¹/89;
+ *   5. synthesise onto the ring as *pure orthogonal modes* (no per-node golden
+ *      phase), so the ring-DFT bin k of the encoded field recovers mode k
+ *      verbatim — that is what lets perception's CONTENT block read the
+ *      gematria spectrum of the utterance directly.
  *
- * The φ-comb weights are the same ladder the rest of the engine uses, so a
- * partially-corrupted token degrades smoothly rather than flipping.
+ * The channels are unit-normalised independently and mixed A + φ⁻¹·B: identity
+ * dominates (discrimination is load-bearing), meaning rides at the golden
+ * ratio. ‖A + φ⁻¹·B‖₂ ≤ 1 + φ⁻¹ = φ, so the L-S1 bound is structural; the
+ * final boundField is defence in depth and scales down only. A degenerate
+ * text (all one symbol class) has B = 0 and degrades gracefully to the pure
+ * identity code. Determinism (L2): no RNG, no clock; every transcendental
+ * routes through dmath.
  */
 export function encodeText(text: string, out: CField): EncodeReport {
   const n = out.n;
   out.re.fill(0);
   out.im.fill(0);
-  const cps = Array.from(text);
+  const cps = Array.from(text.normalize('NFKD').toLowerCase().replace(/\s+/g, ' ').trim());
   if (cps.length === 0) return finishReport('text', out, { rawPeak: 0, peak: 0, scale: 1 });
+
+  // ---- channel A: trigram identity hash (bit-exact the pre-Ω-P9 code) ------
   const combWeights = [1, PHI_INV, PHI_INV * PHI_INV];
   let prev1 = 0;
   let prev2 = 0;
@@ -178,8 +217,59 @@ export function encodeText(text: string, out: CField): EncodeReport {
       out.im[idx] += combWeights[c] * dsin(th);
     }
   }
-  const k = 1 / Math.sqrt(cps.length);
-  scaleField(out, k);
+  const normA = Math.sqrt(energy(out));
+  if (normA > 0) scaleField(out, 1 / normA);
+
+  // ---- channel B: φ-power gematria → golden DFT modes → ring modes --------
+  const L = cps.length;
+  const vals = new Float64Array(L);
+  let mean = 0;
+  for (let p = 0; p < L; p++) {
+    const v = dpow(PHI, alphabetIndex(cps[p].codePointAt(0) ?? 0) / 2);
+    vals[p] = v;
+    mean += v;
+  }
+  mean /= L;
+  const modeRe = new Float64Array(TEXT_MODES);
+  const modeIm = new Float64Array(TEXT_MODES);
+  for (let k = 0; k < TEXT_MODES; k++) {
+    const ak = dpow(PHI, -k / 2);
+    const thk = (2 * Math.PI * k * PHI_INV) / GOLDEN_PHASE_DENOM;
+    let re = 0;
+    let im = 0;
+    for (let p = 0; p < L; p++) {
+      const dv = vals[p] - mean;
+      if (dv === 0) continue;
+      const ph = (2 * Math.PI * k * p) / L + thk;
+      re += dv * dcos(ph);
+      im += dv * dsin(ph);
+    }
+    modeRe[k] = ak * re;
+    modeIm[k] = ak * im;
+  }
+  const b = senseField(n);
+  for (let j = 0; j < n; j++) {
+    let re = 0;
+    let im = 0;
+    for (let k = 0; k < TEXT_MODES; k++) {
+      if (modeRe[k] === 0 && modeIm[k] === 0) continue;
+      const ph = (2 * Math.PI * k * j) / n;
+      const c = dcos(ph);
+      const s = dsin(ph);
+      re += modeRe[k] * c - modeIm[k] * s;
+      im += modeRe[k] * s + modeIm[k] * c;
+    }
+    b.re[j] = re;
+    b.im[j] = im;
+  }
+  const normB = Math.sqrt(energy(b));
+  if (normB > 0) {
+    const w = PHI_INV / normB; // meaning rides at the golden ratio of identity
+    for (let j = 0; j < n; j++) {
+      out.re[j] += w * b.re[j];
+      out.im[j] += w * b.im[j];
+    }
+  }
   return finishReport('text', out, boundField(out));
 }
 

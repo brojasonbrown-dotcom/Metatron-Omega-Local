@@ -1,9 +1,23 @@
 /**
- * METATRON Ω — FAB dock: ⏻ brain wake/sleep   Σ telemetry   🎙 mic   📷 camera
+ * METATRON Ω — FAB dock: ⏻ brain wake/sleep   Σ collapse/expand telemetry
+ * column   🎙 mic   📷 camera
  * Every state shown comes from the main process (omega.state() → HostSnapshot +
- * the host's structural views). Six decks: BRAIN · LADDER · WEB · SPECTRAL ·
- * MEMORY · MIND. The buttons never fake activity — a failed toggle flashes the
+ * the host's structural views). Seven decks: BRAIN · LADDER · WEB · SPECTRAL ·
+ * SENSES · MEMORY · MIND (DECKS below is the source of truth — keep this list
+ * in sync). The buttons never fake activity — a failed toggle flashes the
  * error style. Nothing here is canned; every number is computed live.
+ *
+ * Layout: the Σ panel is a permanent RIGHT column (split layout, drag divider
+ * in layout.js); the Σ button collapses/expands it. The LLM instrument row at
+ * the top of the panel is STATIC HTML (index.html #instrument) — it is wired
+ * here but never re-rendered, so the key/provider/model fields survive the
+ * telemetry poll.
+ *
+ * Rendering law (no flashing): the deck tab strip is written ONCE; only the
+ * deck body is updated per poll, and only when its HTML actually changed. The
+ * old build rebuilt the whole panel (tabs + body) every 500 ms and replayed a
+ * fade animation each time — the visible flash. Now a stable field costs no
+ * DOM writes at all.
  */
 "use strict";
 
@@ -19,8 +33,10 @@
 
   let stabTimer = null;
   let deck = "brain";
+  /** Last rendered deck-body HTML — polls skip the DOM write when unchanged. */
+  let lastBodyHtml = "";
 
-  const DECKS = ["brain", "ladder", "web", "spectral", "memory", "mind"];
+  const DECKS = ["brain", "ladder", "web", "spectral", "senses", "memory", "mind"];
 
   const flashError = (btn, reason) => {
     btn.classList.add("error");
@@ -182,16 +198,77 @@
     ].join("");
   }
 
-  const RENDER = { brain: deckBrain, ladder: deckLadder, web: deckWeb, spectral: deckSpectral, memory: deckMemory, mind: deckMind };
+  function deckSenses(s) {
+    const sc = s.scan;
+    if (!sc) return row("senses", "no sensory scan yet — wake the brain");
+    const st = (x) => (x === "PASS" ? "✓" : x === "DEFECT" ? "✗" : "·");
+    const sp = sc.spectral ?? {};
+    const occ = sp.occupancy ?? [];
+    const maxOcc = Math.max(...occ.map((v) => Math.abs(v)), 1e-12);
+    return [
+      row("rung", `n=${sc.n} · rank ${sc.rank} · tick ${sc.tick}`),
+      row("verdict", `${sc.verdict?.pass ? "PASS" : "DEFECT"}${(sc.verdict?.defects ?? []).length ? " · " + sc.verdict.defects[0] : ""}`),
+      sec("S1 CENSUS — the lattice grid"),
+      row("nodes", `${sc.census?.nodes ?? "—"} · ${sc.census?.latticeKind ?? "—"} ${st(sc.census?.status)}`),
+      row("separation ratio", `${sci(sc.census?.separationRatio)} (≈1 = ideal golden grid)`),
+      row("incident lines", String(sc.census?.incidentLines ?? "—")),
+      sec("S2 ORGANS — per-node structural readout"),
+      row("clean fraction", sci(sc.organs?.cleanFraction)),
+      sec("S3 SPECTRAL — vibration depth (φ-bands)"),
+      row("bands / depth", `${sp.bands ?? "—"} / ${sp.depth ?? "—"} ${st(sp.status)}`),
+      row("mean / min capture", `${sci(sp.meanCapture)} / ${sci(sp.minCapture)}`),
+      row("silent nodes", String(sp.silentNodes ?? "—")),
+      row("max band drift", sci(sp.maxDrift)),
+      `<div class="eig-spec">${occ
+        .map((v) => {
+          const h = Math.max(2, Math.round((Math.abs(v) / maxOcc) * 44));
+          return `<div class="eig-bar" style="height:${h}px" title="${sci(v)}"></div>`;
+        })
+        .join("")}</div>`,
+      sec("S4 ENERGY — where the motion is"),
+      row("total / peak share", `${sci(sc.energy?.total)} / ${sci(sc.energy?.peakShare)}`),
+      row("entropy", sci(sc.energy?.entropy)),
+      row("mean frequency", `${sci(sc.energy?.meanFrequency)} cycles/tick`),
+      sec("S5 FLUX — superpositional current"),
+      row("circulation", sci(sc.flux?.circulation)),
+      row("closure defect", `${sci(sc.flux?.closureDefect)} ${st(sc.flux?.status)}`),
+      sec("P8 PERCEPTION — what the senses have learned"),
+      ...(s.perception
+        ? [
+            row("perceptual concepts", String(s.perceptConcepts ?? s.perception.thoughts ?? "—")),
+            row("novelty / surprise", `${sci(s.perceptNovelty)} / ${sci(s.perceptSurprise)}`),
+            row("mean novelty", sci(s.perception.meanNovelty)),
+            row("self-model", `${s.perception.selfModel?.enabled ? "ahead" : "behind"} baseline (${sci(s.perception.selfModel?.margin)})`),
+            ...(Array.isArray(s.perception.top) && s.perception.top.length
+              ? s.perception.top.slice(0, 5).map((x) => row(`concept ${String(x.key ?? x.id).slice(0, 12)}`, `hits ${x.hits ?? "—"}`))
+              : [row("concepts", "none consolidated yet — the senses are listening")]),
+          ]
+        : [row("perception", "no perceptual fold yet — drive a sense")]),
+    ].join("");
+  }
+
+  const RENDER = { brain: deckBrain, ladder: deckLadder, web: deckWeb, spectral: deckSpectral, senses: deckSenses, memory: deckMemory, mind: deckMind };
+
+  function renderTabs() {
+    return `<div class="deck-tabs">${DECKS.map(
+      (d) => `<a href="#" class="deck-tab${d === deck ? " active" : ""}" data-deck="${d}">${d.toUpperCase()}</a>`,
+    ).join("")}</div>`;
+  }
 
   function renderState(s) {
     btnEngine.classList.toggle("active", s.running);
     if (panel.classList.contains("hidden")) return;
-    panelBody.innerHTML = `
-      <div class="deck-tabs">${DECKS.map(
-        (d) => `<a href="#" class="deck-tab${d === deck ? " active" : ""}" data-deck="${d}">${d.toUpperCase()}</a>`,
-      ).join("")}</div>
-      <div class="deck-body">${RENDER[deck](s)}</div>`;
+    // Build the tab strip + body container once; only the body changes after.
+    if (!panelBody.querySelector(".deck-tabs")) {
+      panelBody.innerHTML = `${renderTabs()}<div class="deck-body"></div>`;
+      lastBodyHtml = "";
+    }
+    const body = panelBody.querySelector(".deck-body");
+    const html = body ? RENDER[deck](s) : "";
+    if (html !== lastBodyHtml) {
+      if (body) body.innerHTML = html;
+      lastBodyHtml = html;
+    }
   }
 
   panelBody.addEventListener("click", (e) => {
@@ -199,6 +276,12 @@
     if (!tab) return;
     e.preventDefault();
     deck = tab.dataset.deck;
+    // Move the active class without rebuilding the tab strip, then render the
+    // new deck's body exactly once (cache is invalidated for the deck switch).
+    for (const t of panelBody.querySelectorAll(".deck-tab")) {
+      t.classList.toggle("active", t === tab);
+    }
+    lastBodyHtml = "";
     void refreshState();
   });
 
@@ -218,10 +301,10 @@
   });
 
   btnStab.addEventListener("click", () => {
-    const opening = panel.classList.contains("hidden");
-    panel.classList.toggle("hidden");
-    btnStab.classList.toggle("active", opening);
-    if (opening) {
+    const collapsed = panel.classList.toggle("hidden"); // true when now hidden
+    document.body.classList.toggle("panel-open", !collapsed);
+    btnStab.classList.toggle("active", !collapsed);
+    if (!collapsed) {
       void refreshState();
       stabTimer = setInterval(refreshState, 500);
     } else if (stabTimer) {
@@ -230,8 +313,101 @@
     }
   });
 
+  // ── LLM instrument row — static HTML (index.html #instrument), wired once
+  // here. The telemetry poll only touches #stab-body, so the key/provider/model
+  // fields are never clobbered mid-typing. State lives in main (llmClient), so
+  // this row and the chat loop always agree on who answers.
+  const llmSquare = document.getElementById("llm-square");
+  const llmProvider = document.getElementById("llm-provider");
+  const llmModel = document.getElementById("llm-model");
+  const llmKey = document.getElementById("llm-key");
+  const llmSave = document.getElementById("llm-save");
+
+  function paintLlm(st) {
+    llmSquare.classList.toggle("on", !!st.active);
+    llmSquare.classList.toggle("off", !st.active);
+    const keyName = st.provider === "deepseek" ? "DEEPSEEK_API_KEY" : "OPENROUTER_API_KEY";
+    llmSquare.title = st.active
+      ? `LLM on (${st.provider}/${st.model}) — chat is answered externally; click to switch back to the Ω brain`
+      : st.hasKey
+        ? "click to activate the LLM instrument (external API answers)"
+        : `no ${keyName} — paste one to enable`;
+    // Only reflect main's truth into the fields when the user isn't editing them.
+    if (document.activeElement !== llmProvider) llmProvider.value = st.provider || "openrouter";
+    if (document.activeElement !== llmModel) llmModel.value = "";
+    llmModel.placeholder = st.provider === "deepseek" ? "deepseek-chat" : "deepseek/deepseek-chat";
+    llmKey.placeholder = st.hasKey ? "update API key" : "paste API key";
+    llmSave.textContent = st.hasKey ? "update" : "set";
+  }
+
+  async function syncLlm() {
+    try {
+      paintLlm(await window.omega.llmStatus());
+    } catch { /* main busy — nothing faked */ }
+  }
+
+  llmSquare.addEventListener("click", async () => {
+    try {
+      const st = await window.omega.llmStatus();
+      const r = await window.omega.llmToggle(!st.active);
+      if (!r.ok) {
+        llmSquare.classList.add("error");
+        llmSquare.title = r.error;
+        setTimeout(() => { llmSquare.classList.remove("error"); void syncLlm(); }, 2600);
+        return;
+      }
+      await syncLlm();
+    } catch (err) {
+      llmSquare.classList.add("error");
+      llmSquare.title = `llm toggle failed: ${err && err.message ? err.message : err}`;
+      setTimeout(() => { llmSquare.classList.remove("error"); void syncLlm(); }, 2600);
+    }
+  });
+
+  llmProvider.addEventListener("change", async () => {
+    try {
+      const r = await window.omega.llmSetProvider(llmProvider.value);
+      if (r.ok) llmSquare.title = `provider ${r.provider} · model ${r.model}`;
+      else llmSquare.title = r.error;
+    } catch (err) {
+      llmSquare.title = `provider change failed: ${err && err.message ? err.message : err}`;
+    }
+    void syncLlm();
+  });
+
+  llmModel.addEventListener("change", async () => {
+    const v = llmModel.value.trim();
+    if (!v) return;
+    try {
+      const r = await window.omega.llmSetModel(v);
+      if (!r.ok) llmSquare.title = r.error;
+    } catch (err) {
+      llmSquare.title = `model change failed: ${err && err.message ? err.message : err}`;
+    }
+    void syncLlm();
+  });
+
+  llmSave.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const key = llmKey.value.trim();
+    if (!key) return;
+    llmKey.disabled = true;
+    try {
+      const r = await window.omega.llmSetKey(key);
+      if (r.ok) {
+        llmKey.value = ""; // never keep the token sitting in the field
+        await syncLlm();
+      } else {
+        llmSave.textContent = "failed";
+        setTimeout(() => void syncLlm(), 2000);
+      }
+    } finally {
+      llmKey.disabled = false;
+    }
+  });
+
   btnMic.addEventListener("click", async () => {
-    const mic = window.AvaSensors.MicSensor;
+    const mic = window.OmegaSensors.MicSensor;
     try {
       if (mic.active) {
         await mic.stop();
@@ -250,7 +426,7 @@
   });
 
   btnCam.addEventListener("click", async () => {
-    const cam = window.AvaSensors.CamSensor;
+    const cam = window.OmegaSensors.CamSensor;
     try {
       if (cam.active) {
         await cam.stop(camvideo);
@@ -276,6 +452,9 @@
     }
   });
 
-  // sync the buttons with the true states at load
+  // sync the buttons with the true states at load; the telemetry column starts
+  // OPEN (permanent right column), so the 500 ms poll starts immediately.
   void refreshState();
+  stabTimer = setInterval(refreshState, 500);
+  void syncLlm();
 })();

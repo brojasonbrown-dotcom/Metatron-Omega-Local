@@ -17,6 +17,7 @@ const { respond } = require("./omegaResponder.cjs");
 const { OmegaLoop } = require("./omegaLoop.cjs");
 const { ingestDocument } = require("./documentIngest.cjs");
 const sensory = require("./sensory.cjs");
+const llm = require("./llmClient.cjs");
 
 let omega = new OmegaLoop();
 
@@ -52,8 +53,8 @@ let mainWindow = null;
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 980,
-    height: 740,
+    width: 1180, // two-column split: chat + permanent telemetry panel
+    height: 760,
     useContentSize: true,
     show: false, // revealed on ready-to-show — no unpainted flash
     autoHideMenuBar: true,
@@ -119,22 +120,77 @@ ipcMain.handle("omega:document", async (_event, filePath) => {
   }
 });
 
+// LLM instrument IPC: the OPTIONAL external answerer (OpenRouter / DeepSeek).
+// State (provider/model/key, on/off) lives here in main so the chat loop and
+// the Σ panel always agree.
+ipcMain.handle("omega:llm:status", () => llm.status());
+ipcMain.handle("omega:llm:set", (_event, key) => llm.setKey(key));
+ipcMain.handle("omega:llm:provider", (_event, provider) => llm.setProvider(provider));
+ipcMain.handle("omega:llm:model", (_event, model) => llm.setModel(model));
+ipcMain.handle("omega:llm:toggle", (_event, on) => llm.setActive(!!on));
+
+/**
+ * Compact live-state digest handed to the LLM instrument, so it answers WITH
+ * knowledge of the field — rungs, coherence, memory, cognition — not in a
+ * vacuum. Every number is the host's own snapshot reading.
+ */
+function brainContext(s) {
+  const f = (x) => (typeof x === "number" && Number.isFinite(x) ? x.toPrecision(4) : "—");
+  const top = (s.cognition?.top ?? [])
+    .slice(0, 3)
+    .map((x) => `${String(x.key ?? x.id).slice(0, 12)}(${x.hits ?? 0} hits)`)
+    .join(", ") || "none consolidated yet";
+  return [
+    `LIVE BRAIN STATE (METATRON Ω, read this tick):`,
+    `profile ${s.profile} · ${s.rungs?.length ?? 0} stable rungs · ${s.totalNodes} nodes · ${s.running ? `AWAKE, tick ${s.ticks} at ${f(s.tickRate)} Hz` : "ASLEEP (field idle until woken)"}`,
+    `coherence ${f(s.coherence)} (warm rungs ${s.warmRungs}) · energy ${f(s.energy)} · flux moved ${f(s.fluxMoved)} · digest ${String(s.digest).slice(0, 16)}`,
+    `braid memory ${s.memoryLoad}/${s.memoryCapacity} (${s.memoryStage}) · familiarity ${f(s.familiarity)}`,
+    `cognition: ${s.concepts} concepts · novelty ${f(s.novelty)} · surprise ${f(s.surprise)} · top: ${top}`,
+    `self-model ${s.selfModel ? "ahead of" : "behind"} baseline (margin ${f(s.selfMargin)})`,
+  ].join("\n");
+}
+
+ipcMain.handle("omega:llm:ask", async (_event, text) => {
+  if (typeof text !== "string" || text.trim().length === 0) {
+    return { ok: false, error: "empty message" };
+  }
+  // Brain-in-the-loop: the brain HEARS the question first (encoded + stepped
+  // synchronously, so the context below is the field AFTER the prompt landed),
+  // the instrument answers with that live state in view, and the answer is fed
+  // back — the exchange becomes the brain's memory, whichever instrument spoke.
+  omega.injectSensor("text", text);
+  omega.step();
+  const r = await llm.ask(text, brainContext(omega.state()));
+  if (r.ok) {
+    omega.injectSensor("text", `LLM answered: ${r.answer}`);
+    omega.step();
+  }
+  return r;
+});
+
 // Brain loop IPC: start/stop/state — the live simulation service.
 ipcMain.handle("omega:start", () => omega.start());
 ipcMain.handle("omega:stop", () => omega.stop());
 ipcMain.handle("omega:state", () => omega.state());
 
-// Sensory IPC: raw measurements arrive; encoded + injected HERE (main = trusted).
+// Sensory IPC: raw measurements arrive; the BRAIN's certified encoders transform
+// them exactly once (host.pushChannel → encodeAudio/encodeGrid). The app codec
+// (sensory.cjs) is NOT on the live injection path — that was the double-encode
+// defect (a 14-mode field re-interpreted as PCM). It now only computes the
+// telemetry the FAB displays (energy / dominant band), from the SAME raw signal.
 ipcMain.handle("omega:sensor:audio", async (_event, samples, sampleRate) => {
   try {
-    const field = sensory.fieldFromWaveform(Float64Array.from(samples), sampleRate);
-    const energy = sensory.waveformEnergy(samples);
-    omega.injectSensor("audio", Array.from(field));
+    const pcm = Float64Array.from(samples);
+    // Telemetry for the level meter — computed, never injected.
+    const energy = sensory.waveformEnergy(pcm);
+    const field = sensory.fieldFromWaveform(pcm, sampleRate);
     let dom = 0, best = -1;
     for (let k = 0; k < sensory.NUM_MODES; k++) {
       const m = field[2 * k] ** 2 + field[2 * k + 1] ** 2;
       if (m > best) { best = m; dom = k; }
     }
+    // The real path: raw PCM → the brain's own encodeAudio (single transform).
+    omega.injectSensor("audio", pcm);
     return { ok: true, energy, dominantBand: dom };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
@@ -144,8 +200,10 @@ ipcMain.handle("omega:sensor:audio", async (_event, samples, sampleRate) => {
 ipcMain.handle("omega:sensor:video", async (_event, grid, width, height) => {
   try {
     const g = Float64Array.from(grid);
+    // Telemetry for the level meter — computed, never injected.
     const mean = sensory.gridMean(g);
-    omega.injectSensor("vision", Array.from(g), { width, height });
+    // The real path: raw luminance grid → the brain's own encodeGrid (single transform).
+    omega.injectSensor("vision", g, { width, height });
     return { ok: true, mean };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
@@ -153,6 +211,7 @@ ipcMain.handle("omega:sensor:video", async (_event, grid, width, height) => {
 });
 
 app.whenReady().then(() => {
+  if (!gotLock) return; // second instance — quitting; never build a window
   mainWindow = createWindow();
 
   if (CI_MODE) {
@@ -194,7 +253,9 @@ app.whenReady().then(() => {
       try {
         await mainWindow.webContents.executeJavaScript(`(async () => {
           await window.omega.start();
-          document.getElementById("fab-stab")?.click();
+          // The telemetry column is open by default; only expand it if collapsed.
+          const stab = document.getElementById("stab");
+          if (stab && stab.classList.contains("hidden")) document.getElementById("fab-stab")?.click();
         })()`);
         await new Promise((r) => setTimeout(r, 8000));
         const img = await mainWindow.webContents.capturePage();

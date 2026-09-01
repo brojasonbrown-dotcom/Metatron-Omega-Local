@@ -2,44 +2,69 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'" />
+    <!-- CSP: everything local. 'unsafe-inline' on style-src ONLY: the telemetry
+         decks (fab.js) size their bars via style="width:…%" attributes inside
+         innerHTML — style-src 'self' alone silently strips those, and every bar
+         in the Σ panel renders empty. Scripts stay strict: no inline JS. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>METATRON Ω — Toroidal Brain Interface</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
-    <canvas id="rain" aria-hidden="true"></canvas>
-
+  <body class="panel-open">
+    <!-- Split layout: chat column left, telemetry column right, drag divider
+         between them (layout.js). body.panel-open mirrors #stab visibility —
+         the FAB dock and camera preview shift with it. -->
     <main id="app">
-      <header id="bar">
-        <div class="brand">
-          <span class="dot"></span>
-          <h1>METATRON</h1>
-          <span class="tag">OMEGA&nbsp;BRAIN</span>
+      <section id="chat-col">
+        <header id="bar">
+          <div class="brand">
+            <span class="dot"></span>
+            <h1>METATRON</h1>
+            <span class="tag">OMEGA&nbsp;BRAIN</span>
+          </div>
+          <p class="sub">18-rung dense core · certified toroidal engine · every answer computed live · nothing canned</p>
+        </header>
+
+        <section id="log" aria-live="polite"></section>
+
+        <form id="composer" autocomplete="off">
+          <span id="prompt">&gt;</span>
+          <textarea
+            id="input"
+            rows="1"
+            placeholder="talk to the brain…  (help · status · ladder · memory · mind)"
+            autofocus
+          ></textarea>
+          <button id="send" type="submit" aria-label="send">➤</button>
+        </form>
+      </section>
+
+      <div id="divider" role="separator" aria-orientation="vertical" title="drag to resize"></div>
+
+      <aside id="stab" aria-label="brain telemetry">
+        <h2>BRAIN TELEMETRY</h2>
+        <!-- LLM instrument — STATIC, outside #stab-body, so the telemetry
+             re-render never clobbers the fields mid-typing. Wired in fab.js.
+             Provider: openrouter (universal key — DeepSeek + general models)
+             or deepseek (native API). -->
+        <div id="instrument">
+          <span id="llm-square" class="inst-square off" title="no API key — paste one to enable">LLM</span>
+          <select id="llm-provider" class="inst-select" title="API provider" aria-label="API provider">
+            <option value="openrouter">openrouter</option>
+            <option value="deepseek">deepseek</option>
+          </select>
+          <input id="llm-model" class="inst-model" type="text" autocomplete="off" placeholder="model" title="model id (auto when empty)" />
+          <span class="inst-keywrap">
+            <input id="llm-key" type="password" autocomplete="off" placeholder="paste API key" />
+            <a href="#" id="llm-save" class="inst-set">set</a>
+          </span>
         </div>
-        <p class="sub">18-rung dense core · certified toroidal engine · every answer computed live · nothing canned</p>
-      </header>
-
-      <section id="log" aria-live="polite"></section>
-
-      <form id="composer" autocomplete="off">
-        <span id="prompt">&gt;</span>
-        <textarea
-          id="input"
-          rows="1"
-          placeholder="talk to the brain…  (help · status · ladder · memory · mind)"
-          autofocus
-        ></textarea>
-        <button id="send" type="submit" aria-label="send">➤</button>
-      </form>
+        <div id="stab-body">
+          <p class="stab-dim">brain idle — press ⏻ to wake it</p>
+        </div>
+      </aside>
     </main>
-
-    <aside id="stab" class="hidden" aria-label="brain telemetry">
-      <h2>BRAIN TELEMETRY</h2>
-      <div id="stab-body">
-        <p class="stab-dim">brain idle — press ⏻ to wake it</p>
-      </div>
-    </aside>
 
     <div id="camprev" class="hidden">
       <video id="camvideo" autoplay muted playsinline></video>
@@ -55,12 +80,12 @@
 
     <nav id="fab" aria-label="controls">
       <button id="fab-engine" title="engine start / stop">⏻</button>
-      <button id="fab-stab" title="brain telemetry">Σ</button>
+      <button id="fab-stab" class="active" title="collapse / expand telemetry panel">Σ</button>
       <button id="fab-mic" title="microphone">🎙</button>
       <button id="fab-cam" title="camera">📷</button>
     </nav>
 
-    <script src="rain.js"></script>
+    <script src="layout.js"></script>
     <script src="chat.js"></script>
     <script src="sensors.js"></script>
     <script src="fab.js"></script>

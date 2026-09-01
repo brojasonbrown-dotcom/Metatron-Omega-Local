@@ -83,5 +83,14 @@
     "**/.git": true,
     "**/build": true,
     "**/dist": true
+  },
+
+  // Watchers: never watch the Electron packaging output. The watcher holds a
+  // Windows delete-share lock on release/win-unpacked*/resources/*.asar and
+  // EBUSY-kills electron-builder mid-pack (ADR-011). Note: takes effect on
+  // window reload; builds also stage outside the tree via build-driver.mjs.
+  "files.watcherExclude": {
+    "**/src/compute_engine/app/release/**": true,
+    "**/src/compute_engine/app/node_modules/**": true
   }
 }

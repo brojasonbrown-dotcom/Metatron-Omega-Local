@@ -101,6 +101,37 @@ describe('G6.1 — encoders', () => {
     boundField(f);
     expect(maxNorm(f)).toBe(before);
   });
+
+  it('Ω-P9: shared structure resonates above unrelated text', () => {
+    // the meaning channel: a string and its extension must out-resonate an
+    // unrelated string of the same length — identity alone cannot do this.
+    const cosine = (x: { re: Float64Array; im: Float64Array }, y: { re: Float64Array; im: Float64Array }) => {
+      let dot = 0, ex = 0, ey = 0;
+      for (let i = 0; i < x.re.length; i++) {
+        dot += x.re[i] * y.re[i] + x.im[i] * y.im[i];
+        ex += x.re[i] * x.re[i] + x.im[i] * x.im[i];
+        ey += y.re[i] * y.re[i] + y.im[i] * y.im[i];
+      }
+      return dot / Math.sqrt(ex * ey);
+    };
+    const a = senseField(N), b = senseField(N), c = senseField(N);
+    encodeText('metatron', a);
+    encodeText('metatronic', b);
+    encodeText('zyxqwvulsp', c); // same length as 'metatronic', no shared structure
+    const near = cosine(a, b);
+    const far = cosine(a, c);
+    expect(near).toBeGreaterThan(far + 0.1);
+  });
+
+  it('Ω-P9: a degenerate text degrades to the identity code, never an error', () => {
+    const f = senseField(N);
+    const rep = encodeText('aaaaaaaaaaaaaaaa', f);
+    expect(rep.peak).toBeGreaterThan(0);
+    expect(rep.peak).toBeLessThanOrEqual(SENSE_BOUND + 1e-12);
+    const g = senseField(N);
+    encodeText('aaaaaaaaaaaaaaaa', g);
+    expect(Array.from(f.re)).toEqual(Array.from(g.re));
+  });
 });
 
 describe('G6.2 — fusion', () => {

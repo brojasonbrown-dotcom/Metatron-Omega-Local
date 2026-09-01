@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM ══════════════════════════════════════════════════════════════════════════
 REM  METATRON Ω — FULL BUILD PIPELINE  (double-click)
 REM  bundle brain → smoke test → pack → dist (NSIS installer + portable exe)
@@ -19,7 +20,7 @@ if not exist node_modules\electron\dist\electron.exe (
   echo        electron missing - running npm install…
   call npm install --no-audit --no-fund || goto :fail
 )
-if not exist node_modules\electron-builder\out\cli.js (
+if not exist node_modules\electron-builder\cli.js (
   echo        electron-builder missing - running npm install…
   call npm install --no-audit --no-fund || goto :fail
 )
@@ -31,7 +32,11 @@ echo  [2/4] smoke tests (chat + sensory codec + brain loop)…
 call node scripts\smoke.mjs || goto :fail
 
 echo  [3/4] pack (unpacked verification build)…
-call npx electron-builder --dir || goto :fail
+REM pre-pack reconciles stale in-tree release\ staging; build-driver stages the
+REM real output OUTSIDE the watched tree (an IDE watcher locking win-unpacked.tmp
+REM is what EBUSY-kills a direct npx electron-builder run — ADR-011).
+call node scripts\pre-pack.mjs
+call node scripts\build-driver.mjs --dir || goto :fail
 
 echo  [3b/4] verifying packaged exe (--ci roundtrip)…
 call "release\win-unpacked\METATRON-OMEGA.exe" --ci
@@ -40,7 +45,7 @@ findstr /C:"PASS" "%TEMP%\omega-ci-report.txt" >nul || goto :fail
 del "%TEMP%\omega-ci-report.txt" >nul 2>&1
 
 echo  [4/4] dist (NSIS installer + portable)…
-call npx electron-builder || goto :fail
+call node scripts\build-driver.mjs || goto :fail
 
 echo  ═══ BUILD COMPLETE ═══
 dir /b release\*.exe

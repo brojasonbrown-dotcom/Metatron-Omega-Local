@@ -32,6 +32,11 @@ import {
 } from '../sense/encode';
 import { TorusBraid, ratedCapacity, type BraidPattern, type Recall } from '../memory/braid';
 import { Mind, type MindReport, type Thought } from '../cognition/mind';
+import {
+  perceive,
+  perceptionLayout,
+  type PerceptionLayout,
+} from '../sense/perception';
 import { createField, type CField } from '../core/complex';
 import { runBattery, sampleTrajectory, type BatteryReport } from '../learn/battery';
 import type { LearnableCell } from '../learn/cell';
@@ -210,6 +215,14 @@ export interface HostSnapshot {
   readonly selfMargin: number;
   /** Cognitive folds skipped because the ladder was quiescent. */
   readonly quiescentFolds: number;
+  /** Ω-P8 — perceptual concepts held by the sensory Mind. */
+  readonly perceptConcepts: number;
+  /** Ω-P8 — novelty of the last perceptual fold. */
+  readonly perceptNovelty: number;
+  /** Ω-P8 — surprise of the last perceptual fold. */
+  readonly perceptSurprise: number;
+  /** Ω-P8 — perception folds skipped because every sense was silent. */
+  readonly quiescentPercepts: number;
   /** N0 — nodes carrying a full organ record (0 when organs are off). */
   readonly organNodes: number;
   /** N0 — mean per-node eigenmode residual across the ladder. */
@@ -296,6 +309,20 @@ export class EngineHost {
   /** Folds skipped because the ladder had nothing to report. */
   private quiescentFolds = 0;
 
+  // ---- Ω-P8 perception (sensory grounding) ----
+  /**
+   * A separate Mind for the senses: perceptual concepts live in a different
+   * dimensional space than ladder-telemetry concepts and must never collide with
+   * them. Same machinery, same novelty gate, own store + self-model.
+   */
+  private sensoryMind: Mind | null = null;
+  private perceptLayout: PerceptionLayout | null = null;
+  private perceptObs: Float64Array | null = null;
+  private lastPercept: Thought | null = null;
+  private lastPerceptTick = -1;
+  /** Perception folds skipped because every sense was silent. */
+  private quiescentPercepts = 0;
+
 
   constructor(opts: HostOptions) {
     this.profile = typeof opts.profile === 'string' ? profileById(opts.profile) : opts.profile;
@@ -375,6 +402,7 @@ export class EngineHost {
     this.ledger.mark(mark);
     this.foldMemory(rep.tick);
     this.foldMind(rep);
+    this.foldPerception(rep);
     return rep;
   }
 
@@ -553,6 +581,67 @@ export class EngineHost {
     return this.ensureMind().report();
   }
 
+  // ---- Ω-P8 perception ----
+
+  /**
+   * Lazily build the perceptual Mind once the sensory array's band plan is
+   * known. The layout is per-channel over every declared channel (sorted id, so
+   * the block index is stable), sized from the rung-0 array's band count.
+   */
+  private ensureSensoryMind(): Mind | null {
+    if (!this.sensoryMind) {
+      const array = this.engine.engines[0]?.sensors ?? null;
+      if (!array) return null; // built without sensors: there is nothing to perceive
+      const channels = this.plane ? this.plane.channelIds() : [];
+      if (channels.length === 0) return null; // no senses declared yet — fold later
+      this.perceptLayout = perceptionLayout(array.bands, channels.length);
+      this.sensoryMind = new Mind({
+        dim: this.perceptLayout.dim,
+        capacity: 610,
+        seed: `${this.seed}-percept`,
+      });
+      this.perceptObs = new Float64Array(this.perceptLayout.dim);
+    }
+    return this.sensoryMind;
+  }
+
+  /**
+   * One perceptual fold per MIND_STRIDE ticks, after the cognitive fold. The
+   * observation is the sensory meaning-vector (Ω-P8): per-channel φ-band
+   * profile, spatial energy moments, and the fused-field projection. A silent
+   * world carries no experience, so — exactly like the cognitive fold — a
+   * zero-norm observation is skipped rather than minting a degenerate concept.
+   *
+   * Pure observation: it reads the array and the plane's staged channel fields,
+   * never writes the dynamics, so the determinism oracle is untouched.
+   */
+  private foldPerception(rep: WebTickReport): void {
+    if (rep.tick % MIND_STRIDE !== 0 || rep.tick === this.lastPerceptTick) return;
+    this.lastPerceptTick = rep.tick;
+    const mind = this.ensureSensoryMind();
+    if (!mind || !this.perceptLayout || !this.perceptObs) return;
+    const array = this.engine.engines[0]?.sensors ?? null;
+    const ids = this.plane ? this.plane.channelIds() : [];
+    const fused = ids.map((id) => this.plane!.channelField(id));
+    const norm = perceive(this.perceptObs, array, fused, this.perceptLayout);
+    if (!(norm > 1e-18) || !Number.isFinite(norm)) {
+      this.quiescentPercepts++;
+      return;
+    }
+    this.lastPercept = mind.observe(this.perceptObs, rep.tick, `p${rep.tick}`);
+  }
+
+  /** The perceptual Mind's report — what the senses have learned. */
+  perception(): MindReport | null {
+    return this.sensoryMind ? this.sensoryMind.report() : null;
+  }
+
+  /** Nearest perceptual concepts to the live sensory observation. */
+  perceiveReflect(k = 5) {
+    if (!this.sensoryMind) return { hits: [], exactOps: 0, pqOps: 0, hops: 0 };
+    return this.sensoryMind.recall(this.perceptObs ?? new Float64Array(this.sensoryMind.dim), k);
+  }
+
   /** Nearest concepts to the live observation — the read side of the store. */
   reflect(k = 5) {
     const mind = this.ensureMind();
@@ -700,6 +789,10 @@ export class EngineHost {
       selfModel: this.mind?.self.enabled ?? false,
       selfMargin: this.mind?.self.margin() ?? 0,
       quiescentFolds: this.quiescentFolds,
+      perceptConcepts: this.sensoryMind?.store.size ?? 0,
+      perceptNovelty: this.lastPercept?.novelty ?? 0,
+      perceptSurprise: this.lastPercept?.surprise ?? 0,
+      quiescentPercepts: this.quiescentPercepts,
       ...this.organSnapshot(),
       chords: this.engine.coupling.chords,
       tapeOccupancy: this.engine.tape?.occupied() ?? 0,

@@ -1,5 +1,5 @@
 /**
- * AVA — document ingest. A dropped file is read HERE, in the trusted main
+ * METATRON Ω — document ingest. A dropped file is read HERE, in the trusted main
  * process — never in the sandboxed renderer (which only ever sends a path).
  *
  * Validity rules (the "stable structure" half of the brief):
@@ -20,8 +20,9 @@ const path = require("node:path");
 // A dropped document is capped at 8 MB on disk — far past any real note/spec,
 // small enough that readFile can't stall the main process.
 const MAX_BYTES = 8 * 1024 * 1024;
-// The text we keep for the engine is capped too (the responder slices to 4000
-// anyway; we keep a generous window so the mind's grounded path has context).
+// The text we keep for the engine is capped too (the chat IPC slices free-text
+// messages to 8000 chars; we keep a more generous window so a dropped document
+// lands with real context).
 const MAX_TEXT = 12000;
 
 /** Sniff the real content type from magic bytes; fall back to "text". */
