@@ -17,20 +17,21 @@
       ]
     },
     "obsidian": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "C:/Users/user-pc/Desktop/Workflow/.devcontainer"
-      ]
+      "command": "uvx",
+      "args": ["mcp-obsidian"],
+      "env": {
+        "OBSIDIAN_API_KEY": "PASTE_OBSIDIAN_REST_API_KEY",
+        "OBSIDIAN_HOST": "127.0.0.1",
+        "OBSIDIAN_PORT": "27124"
+      }
     },
     "memory": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"]
     },
     "fetch": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-fetch"]
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
     }
   }
 }
