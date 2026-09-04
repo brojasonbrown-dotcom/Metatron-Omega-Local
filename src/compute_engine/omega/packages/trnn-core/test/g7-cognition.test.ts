@@ -243,6 +243,29 @@ describe('G7 · self-model', () => {
     expect(r.spectralRadius).toBeLessThan(LAMBDA_MAX);
   });
 
+  it('starts at the RLS baseline and matches it on a biased stream', () => {
+    // init parity: SSM and RLS both predict exact persistence
+    const ssm = new DiagonalSSM(4);
+    const rls = new DiagonalRLS(4);
+    const x0 = Float64Array.from([0.3, 0.7, 1.2, 0.5]);
+    const os = new Float64Array(4);
+    const or = new Float64Array(4);
+    ssm.predict(x0, os);
+    rls.predict(x0, or);
+    expect(Array.from(os)).toEqual(Array.from(or));
+
+    // biased AR(1): the SSM's affine part IS the RLS, so it cannot fall behind
+    const sm = new SelfModel(4, 144);
+    const x = new Float64Array(4);
+    for (let t = 0; t < 1500; t++) {
+      for (let i = 0; i < 4; i++) x[i] = 0.6 * x[i] + 0.8 + 0.05 * Math.sin((t + i * 13) / 7);
+      sm.observe(x, t);
+    }
+    const r = sm.report();
+    expect(r.rlsMse).toBeGreaterThan(0);
+    expect(r.ssmMse).toBeLessThanOrEqual(1.5 * r.rlsMse);
+  });
+
   it('is deterministic across identical streams', () => {
     const run = () => {
       const sm = new SelfModel(5, 55);
@@ -328,5 +351,23 @@ describe('G7 · mind', () => {
     for (let i = 0; i < DIM; i += 3) probe[i] = 0; // knock out a third of the support
     const hit = mind.recall(probe, 3).hits[0];
     expect(hit.key).toBe('p21');
+  });
+
+  it('recalls similar words with their processes via refined similarity', () => {
+    const mind = new Mind({ dim: 8, capacity: 128, seed: 'g7-recall-sim' });
+    mind.lexicon.observe('car');
+    mind.lexicon.observe('cat');
+    mind.lexicon.observe('dog');
+    mind.relations.relate('car', 'inheritance', 'vehicle');
+
+    const hits = mind.recallSimilar('car', 3);
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits[0].key).toBe('car'); // exact self-match
+    expect(hits[0].similarityPct).toBeCloseTo(1, 10);
+    expect(hits[0].processes.map((p) => p.target)).toContain('vehicle');
+    // sorted descending by refined %
+    for (let i = 1; i < hits.length; i++) {
+      expect(hits[i - 1].similarityPct).toBeGreaterThanOrEqual(hits[i].similarityPct);
+    }
   });
 });

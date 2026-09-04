@@ -21,6 +21,9 @@
 import { phiPow } from '../core/constants';
 import { ConceptStore, type ConceptRecord, type ConceptStats } from './concepts';
 import { SelfModel, type SelfModelReport } from './selfModel';
+import { Lexicon } from './lexicon';
+import { RelationGraph, resonantRecall, type ResonantHit } from './relations';
+import { gematriaAtom } from '../sense/encode';
 
 /** [DEFINED] cosine distance above which an observation earns a new concept. */
 export const NOVELTY_THRESHOLD = phiPow(-3);
@@ -66,11 +69,15 @@ export interface MindOptions {
   readonly centroids?: number;
   readonly window?: number;
   readonly noveltyThreshold?: number;
+  /** Hypervector dimension of the word lexicon (default 512). */
+  readonly lexiconDim?: number;
 }
 
 export class Mind {
   readonly store: ConceptStore;
   readonly self: SelfModel;
+  readonly lexicon: Lexicon;
+  readonly relations: RelationGraph;
   readonly dim: number;
   readonly noveltyThreshold: number;
 
@@ -95,6 +102,8 @@ export class Mind {
       centroids: opts.centroids ?? 16,
     });
     this.self = new SelfModel(this.dim, opts.window ?? 144);
+    this.lexicon = new Lexicon(opts.lexiconDim ?? 512);
+    this.relations = new RelationGraph();
     this.predicted = new Float64Array(this.dim);
     this.obs = new Float64Array(this.dim);
   }
@@ -172,6 +181,17 @@ export class Mind {
   /** Nearest concepts to an arbitrary probe — the read side of semantic memory. */
   recall(vec: ArrayLike<number>, k = 5) {
     return this.store.search(vec, k);
+  }
+
+  /**
+   * Refined-similarity recall over the word catalogue + relation graph: encode
+   * `text` through the φ-power gematria, then return the most similar observed
+   * words with their refined % and their attached processes. Observe-only —
+   * reads the lexicon/relations, never writes the engine.
+   */
+  recallSimilar(text: string, k = 5): ResonantHit[] {
+    const probe = gematriaAtom(text, this.lexicon.dim);
+    return resonantRecall(probe, this.lexicon.atomsMap(), this.relations, { k });
   }
 
   report(): MindReport {

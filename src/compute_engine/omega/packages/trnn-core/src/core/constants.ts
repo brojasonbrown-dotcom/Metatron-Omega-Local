@@ -37,6 +37,9 @@ export const PHI_INV_7 = 0.03444185374863302665962884675329553;
 /** [MATH] closure coupling kappa = 1/(phi*pi); kappa*phi*pi = 1 exactly (Wolfram cert C6). */
 export const KAPPA = 1 / (PHI * Math.PI);
 
+/** [MATH] self-reflection coupling kappa_r = 1/(phi^2 * pi); |kappa_r| < phi^-3. */
+export const REFLECT_GAIN = KAPPA / PHI;
+
 /** [MATH] memory kernel lambda = phi^-2; roots exactly {1, -phi^-2}. */
 export const LAMBDA_MEMORY = phiPow(-2);
 
@@ -57,6 +60,7 @@ export const CELL = {
   eta: phiPow(-5), // external input U
   mu: phiPow(-5), // web / cross-rung V
   xi: phiPow(-5), // sensory S
+  rho: REFLECT_GAIN, // self-reflection Rf
 } as const;
 
 /**

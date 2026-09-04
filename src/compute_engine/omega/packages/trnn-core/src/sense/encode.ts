@@ -19,7 +19,7 @@
 import { PHI, PHI_INV } from '../core/constants';
 import { createField, energy, maxNorm, scaleField, type CField } from '../core/complex';
 import { SeedStream } from '../core/determinism';
-import { dcos, dpow, dsin } from '../core/dmath';
+import { dcos, datan2, dpow, dsin } from '../core/dmath';
 
 /** [DEFINED] hard injection bound on any sensory field (Law: |v| ≤ φ). */
 export const SENSE_BOUND = PHI;
@@ -271,6 +271,67 @@ export function encodeText(text: string, out: CField): EncodeReport {
     }
   }
   return finishReport('text', out, boundField(out));
+}
+
+/**
+ * Ω-P9 — the gematria atom: the certified φ-power ladder folded into a
+ * hypervector of `dim` phases.
+ *
+ * This is the same math as `encodeText`'s Channel B (the language codec) —
+ * letters → φ^(k/2), mean removed, 13 golden-DFT modes with amplitude φ^(−k/2)
+ * — but it returns the *phase* hypervector directly instead of a field, so the
+ * word catalogue can store φ-structured atoms rather than orthogonal random
+ * vectors. Words that share letters share structure, so their atoms sit nearer
+ * than unrelated words. A degenerate text (empty, or all one symbol class)
+ * yields an all-zero atom, which the caller may fall back on.
+ */
+export function gematriaAtom(text: string, dim: number): Float64Array {
+  const atom = new Float64Array(dim);
+  const cps = Array.from(text.normalize('NFKD').toLowerCase().replace(/\s+/g, ' ').trim());
+  const L = cps.length;
+  if (L === 0) return atom;
+
+  const vals = new Float64Array(L);
+  let mean = 0;
+  for (let p = 0; p < L; p++) {
+    const v = dpow(PHI, alphabetIndex(cps[p].codePointAt(0) ?? 0) / 2);
+    vals[p] = v;
+    mean += v;
+  }
+  mean /= L;
+
+  const modeRe = new Float64Array(TEXT_MODES);
+  const modeIm = new Float64Array(TEXT_MODES);
+  for (let k = 0; k < TEXT_MODES; k++) {
+    const ak = dpow(PHI, -k / 2);
+    const thk = (2 * Math.PI * k * PHI_INV) / GOLDEN_PHASE_DENOM;
+    let re = 0;
+    let im = 0;
+    for (let p = 0; p < L; p++) {
+      const dv = vals[p] - mean;
+      if (dv === 0) continue;
+      const ph = (2 * Math.PI * k * p) / L + thk;
+      re += dv * dcos(ph);
+      im += dv * dsin(ph);
+    }
+    modeRe[k] = ak * re;
+    modeIm[k] = ak * im;
+  }
+
+  for (let j = 0; j < dim; j++) {
+    let re = 0;
+    let im = 0;
+    for (let k = 0; k < TEXT_MODES; k++) {
+      if (modeRe[k] === 0 && modeIm[k] === 0) continue;
+      const ph = (2 * Math.PI * k * j) / dim;
+      const c = dcos(ph);
+      const s = dsin(ph);
+      re += modeRe[k] * c - modeIm[k] * s;
+      im += modeRe[k] * s + modeIm[k] * c;
+    }
+    atom[j] = datan2(im, re);
+  }
+  return atom;
 }
 
 /**

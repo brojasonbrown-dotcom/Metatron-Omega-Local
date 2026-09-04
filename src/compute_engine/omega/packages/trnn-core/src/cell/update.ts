@@ -32,6 +32,8 @@ export interface CellTerms {
   readonly V?: CField | null;
   /** S — sensory injection. */
   readonly S?: CField | null;
+  /** Rf — self-reflection (qualia-modulated self, κ_r·⟨Q⟩·z). */
+  readonly Rf?: CField | null;
 }
 
 export interface CellStepReport {
@@ -116,6 +118,7 @@ export function cellStep(z: CField, out: CField, terms: CellTerms): CellStepRepo
   drive += addTerm(re, im, CELL.eta, terms.U, n);
   drive += addTerm(re, im, CELL.mu, terms.V, n);
   drive += addTerm(re, im, CELL.xi, terms.S, n);
+  drive += addTerm(re, im, CELL.rho, terms.Rf, n);
 
   const clamped = clampField(out, CLAMP_MAX);
 

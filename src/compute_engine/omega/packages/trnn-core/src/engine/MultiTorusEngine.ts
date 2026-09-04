@@ -57,6 +57,12 @@ export interface MultiTorusOptions {
    */
   readonly drive?: number;
   /**
+   * Ω-REAL Q3 — self-reflection gain κ_r, handed to every rung (see
+   * SingleTorusEngine). 0 (default) is oracle-exact; > 0 folds each rung's own
+   * previous-tick coherence back as a contraction-bounded self-term.
+   */
+  readonly reflect?: number;
+  /**
    * N0 — per-node organ bank options handed to every rung. Absent means no
    * rung carries organs (pre-N0 behaviour, oracle exact).
    */
@@ -169,6 +175,7 @@ export class MultiTorusEngine {
         lambda: w ? w.lambda : undefined,
         modePhase: w ? w.magneticPhase : undefined,
         drive: opts.drive,
+        reflect: opts.reflect,
         organs: opts.organs,
         sensors: opts.sensors,
       });

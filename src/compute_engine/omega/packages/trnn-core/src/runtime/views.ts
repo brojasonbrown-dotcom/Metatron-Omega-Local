@@ -11,6 +11,7 @@
 import type { MultiTorusEngine } from '../engine/MultiTorusEngine';
 import { couplingWeight, emittedMass } from '../web/coupling';
 import { FLUX_SINK, type FluxEntry } from '../web/fluxLedger';
+import { checkMorphism, type MorphismReport } from '../web/morphism';
 import { SpectralSite, type PlaneReport } from '../spectral/site';
 import { largestFibonacciAtMost } from '../core/fibonacci';
 import { datan2 } from '../core/dmath';
@@ -249,6 +250,14 @@ export function rungScan(engine: MultiTorusEngine, rank: number): RungScanReport
   const e = engine.engines[rank];
   if (!e) return null;
   return scanRung(e, rank);
+}
+
+/** Structure-preserving probe of one octave-transport edge (read-only). */
+export function morphismView(engine: MultiTorusEngine, sourceRank: number, targetRank: number): MorphismReport | null {
+  const src = engine.engines[sourceRank];
+  const tgt = engine.engines[targetRank];
+  if (!src || !tgt) return null;
+  return checkMorphism(src.snapshot().z, tgt.nodes);
 }
 
 export type { RungScanReport } from '../sense/scan';

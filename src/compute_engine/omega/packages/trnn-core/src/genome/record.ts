@@ -104,6 +104,14 @@ export interface AppendInput {
   provenance: Provenance;
 }
 
+/** Cross-session state of a genome ledger (the sealed records only — keys are seed-derived). */
+export interface GenomeState {
+  readonly logId: string;
+  readonly records: readonly { header: RecordHeader; sealed: string }[];
+  readonly shredded: readonly string[];
+  readonly successor: Readonly<Record<string, string>>;
+}
+
 export class GenomeLedger {
   private readonly log = new MerkleLog();
   private readonly records = new Map<string, SealedRecord>();
@@ -330,6 +338,46 @@ export class GenomeLedger {
     }
     if (!verifyTreeHead(this.head(timestamp), this.signer.publicKey)) failures.push('signed head failed to verify');
     return { ok: failures.length === 0, checked: this.order.length, failures };
+  }
+
+  /** Snapshot every sealed record for cross-session persistence (canonical-safe). */
+  serialize(): GenomeState {
+    return {
+      logId: this.logId,
+      records: this.order.map((id) => {
+        const r = this.records.get(id) as SealedRecord;
+        return { header: r.header, sealed: r.sealed };
+      }),
+      shredded: [...this.shredded].sort(),
+      successor: Object.fromEntries(this.successor),
+    };
+  }
+
+  /**
+   * Rebuild a ledger from a saved state. Each sealed record is replayed into a
+   * fresh Merkle log by recomputing its leaf bytes, so the reconstructed root is
+   * byte-identical to the saved one — `audit()` then verifies it end to end.
+   */
+  static restore(s: GenomeState, master: Uint8Array, signer: LogKeyPair): GenomeLedger {
+    const g = new GenomeLedger(s.logId, master, signer);
+    for (const r of s.records) g.restoreRecord(r.header, r.sealed);
+    for (const id of s.shredded) g.shredded.add(id);
+    for (const [k, v] of Object.entries(s.successor)) g.successor.set(k, v);
+    return g;
+  }
+
+  private restoreRecord(header: RecordHeader, sealed: string): void {
+    const leafIndex = this.log.append(leafBytes(header, sealed));
+    const key = deriveKey(this.master, header.id);
+    const rec: SealedRecord = {
+      header,
+      sealed,
+      leafIndex,
+      leafHex: toHex(this.log.leafHash(leafIndex) as Hash),
+    };
+    this.records.set(header.id, rec);
+    this.keys.set(header.id, key);
+    this.order.push(header.id);
   }
 }
 

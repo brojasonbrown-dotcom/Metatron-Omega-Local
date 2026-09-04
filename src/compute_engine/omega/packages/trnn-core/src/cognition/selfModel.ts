@@ -25,6 +25,7 @@
 
 import { PHI, phiPow } from '../core/constants';
 import { datanh, dtanh } from '../core/dmath';
+import { STAT_FLOOR } from '../substrate/correlation';
 
 /** [DEFINED] spectral cap on the self-model's recurrence: |λ| ≤ φ⁻¹. */
 export const LAMBDA_MAX = phiPow(-1);
@@ -104,42 +105,50 @@ export class DiagonalRLS implements Predictor {
   }
 }
 
-/** λ-SSM with a stability-safe parametrisation. */
+/**
+ * λ-SSM as a strict superset of the RLS baseline.
+ *
+ *   ŷ = (a·x + b) + cOut·h_next,   h ← λ·h + x
+ *
+ * The affine part (a, b) is the SAME exact recursive least squares as
+ * `DiagonalRLS` — trained by the identical update, so it can never fall behind
+ * the baseline. The recurrence is a SEPARATE correction whose gain `cOut`
+ * starts at 0: at initialisation the SSM is byte-identical to the RLS baseline,
+ * and learning can only engage the recurrence in the direction the error
+ * gradient pays for. λ keeps the stability-safe parametrisation
+ * λ = λ_max·tanh(θ), so |λ| ≤ φ⁻¹ for every θ.
+ */
 export class DiagonalSSM implements Predictor {
   readonly name = 'ssm';
-  private readonly theta: Float64Array;
-  private readonly bIn: Float64Array;
+  private readonly rls: DiagonalRLS;
   private readonly cOut: Float64Array;
-  private readonly dSkip: Float64Array;
+  private readonly theta: Float64Array;
   private readonly h: Float64Array;
-  /** ∂h/∂θ carried forward (truncated to one step of recurrence). */
-  private readonly dh: Float64Array;
   private readonly lam: Float64Array;
-  private readonly hPrev: Float64Array;
+  private readonly lr: number;
+  private readonly bufRls: Float64Array;
+  private readonly bufH: Float64Array;
+  private readonly bufRes: Float64Array;
 
-  constructor(
-    readonly dim: number,
-    private readonly lr = phiPow(-1),
-  ) {
+  constructor(readonly dim: number, lr = phiPow(-1)) {
+    this.rls = new DiagonalRLS(dim);
+    this.cOut = new Float64Array(dim); // 0 → recurrence off
     this.theta = new Float64Array(dim).fill(datanh(phiPow(-2) / LAMBDA_MAX));
-    this.bIn = new Float64Array(dim).fill(1 - phiPow(-2));
-    // Initialised *at the baseline*: h starts at zero and d = 1, so the first
-    // prediction is exactly ŷ = x — persistence. Learning can then only move it
-    // away from persistence in the direction the error gradient pays for —
-    // the model never starts out worse than doing nothing.
-    this.cOut = new Float64Array(dim).fill(phiPow(-4));
-    this.dSkip = new Float64Array(dim).fill(1);
     this.h = new Float64Array(dim);
-    this.hPrev = new Float64Array(dim);
-    this.dh = new Float64Array(dim);
     this.lam = new Float64Array(dim);
+    this.lr = lr;
+    this.bufRls = new Float64Array(dim);
+    this.bufH = new Float64Array(dim);
+    this.bufRes = new Float64Array(dim);
     this.refreshLambda();
   }
 
   reset(): void {
+    this.rls.reset();
+    this.cOut.fill(0);
+    this.theta.fill(datanh(phiPow(-2) / LAMBDA_MAX));
     this.h.fill(0);
-    this.hPrev.fill(0);
-    this.dh.fill(0);
+    this.refreshLambda();
   }
 
   lambdas(): Float64Array {
@@ -163,48 +172,45 @@ export class DiagonalSSM implements Predictor {
    * it was *read* is not a model of anything.
    */
   predict(x: Float64Array, out: Float64Array): Float64Array {
+    this.rls.predict(x, this.bufRls); // affine a·x + b
     for (let i = 0; i < this.dim; i++) {
-      const hNext = this.lam[i] * this.h[i] + this.bIn[i] * x[i];
-      out[i] = this.cOut[i] * hNext + this.dSkip[i] * x[i];
+      const hNext = this.lam[i] * this.h[i] + x[i];
+      out[i] = this.bufRls[i] + this.cOut[i] * hNext;
     }
     return out;
   }
 
-  /** Advance the state on x and take one gradient step against target y. */
+  /** Advance the state and take one online step against target y. */
   update(x: Float64Array, y: Float64Array): void {
-    for (let i = 0; i < this.dim; i++) {
-      const hPrev = this.h[i];
-      const lam = this.lam[i];
-      const hNext = lam * hPrev + this.bIn[i] * x[i];
-      const yhat = this.cOut[i] * hNext + this.dSkip[i] * x[i];
-      const e = yhat - y[i];
-      if (!Number.isFinite(e)) continue;
+    // current affine prediction and next state (before any update)
+    this.rls.predict(x, this.bufRls);
+    for (let i = 0; i < this.dim; i++) this.bufH[i] = this.lam[i] * this.h[i] + x[i];
 
-      // dh/dθ = λ'·h_prev + λ·(dh/dθ)_prev, λ' = λ_max·sech²(θ)
+    // affine part (exact RLS) learns the residual the recurrence left behind
+    for (let i = 0; i < this.dim; i++) this.bufRes[i] = y[i] - this.cOut[i] * this.bufH[i];
+    this.rls.update(x, this.bufRes);
+
+    // recurrence correction: per-parameter normalised gradient, engaged only
+    // while it reduces error. Each parameter is normalised by its OWN feature
+    // energy (h² for cOut, (cOut·h)² for λ), so no single scale couples them.
+    for (let i = 0; i < this.dim; i++) {
+      const hNext = this.bufH[i];
+      const hPrev = this.h[i];
+      const e = this.bufRls[i] + this.cOut[i] * hNext - y[i];
+      if (!Number.isFinite(e)) {
+        this.h[i] = Number.isFinite(hNext) ? clamp(hNext, -phiPow(6), phiPow(6)) : 0;
+        continue;
+      }
+      // ∂L/∂cOut = e·hNext
+      const energyC = 1e-9 + hNext * hNext;
+      this.cOut[i] = clamp(this.cOut[i] - (this.lr * e * hNext) / energyC, -PHI, PHI);
+      // ∂L/∂θ = e·cOut·hPrev·dλ/dθ, dλ/dθ = λ_max·sech²(θ)
       const t = dtanh(this.theta[i]);
       const dLam = LAMBDA_MAX * (1 - t * t);
-      const dhNext = dLam * hPrev + lam * this.dh[i];
+      const gLam = e * this.cOut[i] * hPrev * dLam;
+      const energyL = 1e-9 + (this.cOut[i] * hPrev) * (this.cOut[i] * hPrev);
+      this.theta[i] = clamp(this.theta[i] - (this.lr * gLam) / energyL, -8, 8);
 
-      // Normalised step (NLMS): the raw gradient is scaled by the energy of
-      // the features it multiplies, so one learning rate works across
-      // observation scales instead of being a per-stream tuning knob.
-      const dhNextAbs = dhNext * this.cOut[i];
-      const energy =
-        1e-9 + x[i] * x[i] + hNext * hNext + dhNextAbs * dhNextAbs + 1;
-      const g = (this.lr * e) / energy;
-      this.theta[i] -= g * this.cOut[i] * dhNext;
-      this.bIn[i] -= g * this.cOut[i] * x[i];
-      this.cOut[i] -= g * hNext;
-      this.dSkip[i] -= g * x[i];
-
-      // keep every parameter finite and bounded; θ is free, the rest are capped
-      this.bIn[i] = clamp(this.bIn[i], -PHI, PHI);
-      this.cOut[i] = clamp(this.cOut[i], -PHI, PHI);
-      this.dSkip[i] = clamp(this.dSkip[i], -PHI, PHI);
-      this.theta[i] = clamp(this.theta[i], -8, 8);
-
-      this.dh[i] = dhNext;
-      this.hPrev[i] = hPrev;
       this.h[i] = Number.isFinite(hNext) ? clamp(hNext, -phiPow(6), phiPow(6)) : 0;
     }
     this.refreshLambda();
@@ -241,6 +247,10 @@ export interface SelfModelReport {
   readonly lambdaMax: number;
   readonly window: number;
   readonly recent: readonly PredictionEntry[];
+  /** Mean lag-1 residual autocorrelation, or null while the audit warms. */
+  readonly residualAuto: number | null;
+  /** Max |cross-correlation| between residual dims, or null while warming. */
+  readonly residualCross: number | null;
 }
 
 /**
@@ -258,6 +268,10 @@ export class SelfModel {
   private readonly ssmWin: Float64Array;
   private readonly rlsWin: Float64Array;
   private readonly perWin: Float64Array;
+  /** window × dim ring of SSM residual vectors, for the residual-dependence audit. */
+  private readonly resid: Float64Array;
+  private residHead = 0;
+  private residCount = 0;
   private w = 0;
   private filled = 0;
   private samples = 0;
@@ -285,6 +299,7 @@ export class SelfModel {
     this.ssmWin = new Float64Array(window);
     this.rlsWin = new Float64Array(window);
     this.perWin = new Float64Array(window);
+    this.resid = new Float64Array(window * dim);
   }
 
   /** True while the measured margin says the self-model is the better read. */
@@ -304,14 +319,18 @@ export class SelfModel {
       let eS = 0;
       let eR = 0;
       let eP = 0;
+      const residBase = this.residHead * this.dim;
       for (let i = 0; i < this.dim; i++) {
         const dS = this.bufSsm[i] - x[i];
         const dR = this.bufRls[i] - x[i];
         const dP = this.prev[i] - x[i];
+        this.resid[residBase + i] = dS;
         eS += dS * dS;
         eR += dR * dR;
         eP += dP * dP;
       }
+      this.residHead = (this.residHead + 1) % this.window;
+      this.residCount = Math.min(this.window, this.residCount + 1);
       this.seen++;
       if (Number.isFinite(eS) && Number.isFinite(eR) && this.seen > this.coldStart) {
         this.ssmWin[this.w] = eS;
@@ -353,6 +372,72 @@ export class SelfModel {
     return s / this.filled;
   }
 
+  /** Row-major chronological access into the residual ring (t oldest-first). */
+  private residualAt(t: number, i: number): number {
+    const row = ((this.residHead - this.residCount + t) % this.window + this.window) % this.window;
+    return this.resid[row * this.dim + i];
+  }
+
+  /**
+   * Residual-dependence audit. A diagonal model cannot see cross-dimension
+   * structure; this measures what it leaves behind, so "does the model
+   * understand correlates" is a number, not an opinion.
+   */
+  private residualDependence(): { auto: number | null; cross: number | null } {
+    const n = this.residCount;
+    if (n < 2) return { auto: null, cross: null };
+
+    // mean lag-1 autocorrelation of the residual, averaged over dimensions
+    let autoSum = 0;
+    let autoN = 0;
+    for (let i = 0; i < this.dim; i++) {
+      let m = 0;
+      for (let t = 0; t < n; t++) m += this.residualAt(t, i);
+      m /= n;
+      let sxy = 0, sxx = 0, syy = 0;
+      for (let t = 1; t < n; t++) {
+        const a = this.residualAt(t, i) - m;
+        const b = this.residualAt(t - 1, i) - m;
+        sxy += a * b;
+        sxx += a * a;
+        syy += b * b;
+      }
+      if (sxx > 0 && syy > 0) { autoSum += sxy / Math.sqrt(sxx * syy); autoN++; }
+    }
+    const auto = autoN > 0 ? autoSum / autoN : null;
+
+    // max |cross-correlation| between residual dimensions (needs STAT_FLOOR)
+    let cross: number | null = null;
+    if (n >= STAT_FLOOR) {
+      let best = 0;
+      for (let i = 0; i < this.dim; i++) {
+        for (let j = i + 1; j < this.dim; j++) {
+          let mi = 0, mj = 0;
+          for (let t = 0; t < n; t++) {
+            mi += this.residualAt(t, i);
+            mj += this.residualAt(t, j);
+          }
+          mi /= n;
+          mj /= n;
+          let sxy = 0, sxx = 0, syy = 0;
+          for (let t = 0; t < n; t++) {
+            const a = this.residualAt(t, i) - mi;
+            const b = this.residualAt(t, j) - mj;
+            sxy += a * b;
+            sxx += a * a;
+            syy += b * b;
+          }
+          if (sxx > 0 && syy > 0) {
+            const r = Math.abs(sxy / Math.sqrt(sxx * syy));
+            if (r > best) best = r;
+          }
+        }
+      }
+      cross = best;
+    }
+    return { auto, cross };
+  }
+
   margin(): number {
     const r = this.mean(this.rlsWin);
     const s = this.mean(this.ssmWin);
@@ -365,6 +450,7 @@ export class SelfModel {
     const rlsMse = this.mean(this.rlsWin);
     const perMse = this.mean(this.perWin);
     const inForce = this.enabled ? ssmMse : rlsMse;
+    const dep = this.residualDependence();
     return {
       dim: this.dim,
       samples: this.samples,
@@ -378,6 +464,8 @@ export class SelfModel {
       lambdaMax: LAMBDA_MAX,
       window: this.filled,
       recent: this.log.slice(-13),
+      residualAuto: dep.auto,
+      residualCross: dep.cross,
     };
   }
 

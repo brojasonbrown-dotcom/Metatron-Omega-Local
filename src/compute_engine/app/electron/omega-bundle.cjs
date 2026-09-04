@@ -26,6 +26,7 @@ __export(src_exports, {
   ACI_GAMMA: () => ACI_GAMMA,
   ACI_WINDOW: () => ACI_WINDOW,
   AdaptiveConformal: () => AdaptiveConformal,
+  AnalysisService: () => AnalysisService,
   BIAS_TOTAL: () => BIAS_TOTAL,
   BLADES: () => BLADES,
   BLADE_NAMES: () => BLADE_NAMES,
@@ -59,21 +60,28 @@ __export(src_exports, {
   DEFAULT_HEADROOM: () => DEFAULT_HEADROOM,
   DENSE_CORE: () => DENSE_CORE,
   DENSE_CORE_COUNT: () => DENSE_CORE_COUNT,
+  DMD_WINDOW: () => DMD_WINDOW,
   DRIVE_SLOTS: () => DRIVE_SLOTS,
   DiagonalRLS: () => DiagonalRLS,
   DiagonalSSM: () => DiagonalSSM,
   Digest: () => Digest,
   DigestChain: () => DigestChain,
+  EMD_IMF_TOL: () => EMD_IMF_TOL,
+  EMD_MAX_SIFTS: () => EMD_MAX_SIFTS,
+  EMD_MIN_SAMPLES: () => EMD_MIN_SAMPLES,
   EMPIRICAL_CONSTANTS: () => EMPIRICAL_CONSTANTS,
   ENV: () => ENV,
   EngineHost: () => EngineHost,
+  EvidenceLedger: () => EvidenceLedger,
   FIB_SPINE: () => FIB_SPINE,
   FIELD_PROJ: () => FIELD_PROJ,
   FILTER_RHO_MAX: () => FILTER_RHO_MAX,
+  FINGERPRINT_CHANNELS: () => FINGERPRINT_CHANNELS,
   FLUX_CLOSURE_TOLERANCE: () => FLUX_CLOSURE_TOLERANCE,
   FLUX_SINK: () => FLUX_SINK,
   FLUX_WINDOW_HI: () => FLUX_WINDOW_HI,
   FLUX_WINDOW_LO: () => FLUX_WINDOW_LO,
+  FieldSelfModel: () => FieldSelfModel,
   FluxLedger: () => FluxLedger,
   FractalPool: () => FractalPool,
   GENOME_VERSION: () => GENOME_VERSION,
@@ -86,6 +94,7 @@ __export(src_exports, {
   ISS_GAIN: () => ISS_GAIN,
   ISS_INPUT_SUM: () => ISS_INPUT_SUM,
   ISS_SLACK: () => ISS_SLACK,
+  IgnitionConsolidator: () => IgnitionConsolidator,
   InputGain: () => InputGain,
   JURY_GAIN: () => JURY_GAIN,
   JURY_GAIN_REFERENCE: () => JURY_GAIN_REFERENCE,
@@ -101,6 +110,7 @@ __export(src_exports, {
   LONG_GAP_SWEEPS: () => LONG_GAP_SWEEPS,
   LUCAS_MOD13_PERIOD: () => LUCAS_MOD13_PERIOD,
   LearnableCell: () => LearnableCell,
+  Lexicon: () => Lexicon,
   MAX_DEPTH: () => MAX_DEPTH,
   MAX_HZ: () => MAX_HZ,
   MAX_LOOP_GAIN: () => MAX_LOOP_GAIN,
@@ -135,11 +145,18 @@ __export(src_exports, {
   PSI: () => PSI,
   PhiCoherenceKernel: () => PhiCoherenceKernel,
   QUADRATIC_CAP: () => QUADRATIC_CAP,
+  QUALIA_GOLDEN_DELAY: () => QUALIA_GOLDEN_DELAY,
+  QUALIA_IGNITION_WINDOW: () => QUALIA_IGNITION_WINDOW,
+  QualiaTracker: () => QualiaTracker,
   RADIAL_GAIN_MAX: () => RADIAL_GAIN_MAX,
   RECOVERY_BUDGET: () => RECOVERY_BUDGET,
+  REFLECT_GAIN: () => REFLECT_GAIN,
+  RELATION_WEIGHTS: () => RELATION_WEIGHTS,
   RESIDUAL_FACTOR: () => RESIDUAL_FACTOR,
   RESONANCE_FLOOR: () => RESONANCE_FLOOR,
+  RING_DEPTH: () => RING_DEPTH,
   RegressionForest: () => RegressionForest,
+  RelationGraph: () => RelationGraph,
   RunLedger: () => RunLedger,
   SENSE_BOUND: () => SENSE_BOUND2,
   SHIP_MARGIN: () => SHIP_MARGIN,
@@ -153,6 +170,7 @@ __export(src_exports, {
   SUSTAIN_TICKS: () => SUSTAIN_TICKS,
   SWEEP_NAMES: () => SWEEP_NAMES,
   SeedStream: () => SeedStream,
+  SelfMeasureTracker: () => SelfMeasureTracker,
   SelfModel: () => SelfModel,
   SensoryNodeArray: () => SensoryNodeArray,
   SensoryPlane: () => SensoryPlane,
@@ -165,11 +183,16 @@ __export(src_exports, {
   TABLE: () => TABLE,
   TAPE_BOUND: () => TAPE_BOUND,
   TAPE_WRITE_WEIGHT: () => TAPE_WRITE_WEIGHT,
+  TEXT_FINGERPRINT_BINS: () => TEXT_FINGERPRINT_BINS,
   TEXT_MODES: () => TEXT_MODES,
   TenSweepProtocol: () => TenSweepProtocol,
   TorusBraid: () => TorusBraid,
   TranscriptionTape: () => TranscriptionTape,
   TuringTape: () => TuringTape,
+  WAVELET_DB4_MIN: () => WAVELET_DB4_MIN,
+  WAVELET_HAAR_MIN: () => WAVELET_HAAR_MIN,
+  XCORR_BAND: () => XCORR_BAND,
+  XCORR_FS: () => XCORR_FS,
   abstentionBattery: () => abstentionBattery,
   abstentionGate: () => abstentionGate,
   algSigmoid: () => algSigmoid,
@@ -234,6 +257,7 @@ __export(src_exports, {
   createLattice: () => createLattice,
   createMultiVectorField: () => createMultiVectorField,
   crossCorrelate: () => crossCorrelate,
+  crossScaleDrift: () => crossScaleDrift,
   decimate: () => decimate,
   decodePosition: () => decodePosition,
   decodeRole: () => decodeRole,
@@ -246,6 +270,7 @@ __export(src_exports, {
   distance: () => distance,
   distanceCorrelation: () => distanceCorrelation,
   dmlPartialLinear: () => dmlPartialLinear,
+  emd: () => emd,
   emittedMass: () => emittedMass,
   emptyRoot: () => emptyRoot,
   encodeAudio: () => encodeAudio,
@@ -266,8 +291,11 @@ __export(src_exports, {
   fibBig: () => fibBig,
   fibonacciShell: () => fibonacciShell,
   fibonacciStrides: () => fibonacciStrides,
+  fieldFingerprint: () => fieldFingerprint,
   fieldFrame: () => fieldFrame,
+  fingerprintDistance: () => fingerprintDistance,
   fitDmd: () => fitDmd,
+  floquet: () => floquet,
   fluxFirstInWindow: () => fluxFirstInWindow,
   fromHex: () => fromHex,
   fromUtf8: () => fromUtf8,
@@ -275,6 +303,7 @@ __export(src_exports, {
   fuseResonance: () => fuseResonance,
   gaussianMI: () => gaussianMI,
   gccPhat: () => gccPhat,
+  gematriaAtom: () => gematriaAtom,
   generalEigenvalues: () => generalEigenvalues,
   geometricProduct: () => geometricProduct,
   get: () => get,
@@ -292,9 +321,12 @@ __export(src_exports, {
   heartbeatSchedule: () => heartbeatSchedule,
   hessenberg: () => hessenberg,
   hilbertAnalytic: () => hilbertAnalytic,
+  hilbertHuang: () => hilbertHuang,
   hsic: () => hsic,
   identityHv: () => identityHv,
+  informationDensity: () => informationDensity,
   inner: () => inner,
+  instantaneousQualia: () => instantaneousQualia,
   invNormalCdf: () => invNormalCdf,
   isFibonacci: () => isFibonacci,
   isFiniteField: () => isFiniteField,
@@ -307,6 +339,7 @@ __export(src_exports, {
   kendallTauB: () => kendallTauB,
   kernelRoots: () => kernelRoots,
   keyPairFromSeed: () => keyPairFromSeed,
+  ladderDmd: () => ladderDmd,
   lanczosEigenpairs: () => lanczosEigenpairs,
   largestFibonacciAtMost: () => largestFibonacciAtMost,
   latencyGate: () => latencyGate,
@@ -320,6 +353,7 @@ __export(src_exports, {
   magneticPhase: () => magneticPhase,
   magnitude: () => magnitude,
   maxNorm: () => maxNorm,
+  meanInstantaneousFrequency: () => meanInstantaneousFrequency,
   measureFootprint: () => measureFootprint,
   measureLatency: () => measureLatency,
   measureSpectrum: () => measureSpectrum,
@@ -332,6 +366,8 @@ __export(src_exports, {
   metatronSpectrum: () => metatronSpectrum,
   minSeparation: () => minSeparation,
   modeLadder: () => modeLadder,
+  monodromy: () => monodromy,
+  morphismView: () => morphismView,
   newField: () => newField,
   nodesForRank: () => nodesForRank,
   normalCdf: () => normalCdf,
@@ -340,6 +376,7 @@ __export(src_exports, {
   octaveTransport: () => octaveTransport,
   ojaStep: () => ojaStep,
   olsFit: () => olsFit,
+  oneSidedJacobi: () => oneSidedJacobi,
   organBytes: () => organBytes,
   ouInnovation: () => ouInnovation,
   pair: () => pair,
@@ -364,6 +401,7 @@ __export(src_exports, {
   profileNodes: () => profileNodes,
   project: () => project,
   prolong: () => prolong,
+  pseudospectrum: () => pseudospectrum,
   qrfAttenuation: () => qrfAttenuation,
   qualifies: () => qualifies,
   radialAnalyze: () => radialAnalyze,
@@ -378,9 +416,12 @@ __export(src_exports, {
   rawVector: () => rawVector,
   readState: () => readState,
   realSH: () => realSH,
+  recallNearest: () => recallNearest,
   recoveryAfterShift: () => recoveryAfterShift,
   regIncBeta: () => regIncBeta,
   residualEnergy: () => residualEnergy,
+  resonantRecall: () => resonantRecall,
+  restoreBrain: () => restoreBrain,
   restrict: () => restrict,
   reverse: () => reverse,
   rotorFromPlane: () => rotorFromPlane,
@@ -391,18 +432,23 @@ __export(src_exports, {
   safeLog: () => safeLog,
   sampleTrajectory: () => sampleTrajectory,
   sangerStep: () => sangerStep,
+  scaleEntropy: () => scaleEntropy,
   scaleField: () => scaleField,
+  scaleSignature: () => scaleSignature,
   scanRung: () => scanRung,
   scoreAbstention: () => scoreAbstention,
   selectProfile: () => selectProfile,
   senseField: () => senseField,
   sensoryNodeBytes: () => sensoryNodeBytes,
+  serializeBrain: () => serializeBrain,
   setRawVector: () => setRawVector,
   shtAnalyze: () => shtAnalyze,
   shtSynthesize: () => shtSynthesize,
+  sigmaMinAt: () => sigmaMinAt,
   signTreeHead: () => signTreeHead,
   signature: () => signature,
   similarity: () => similarity,
+  similarityPct: () => similarityPct,
   sns: () => sns,
   sosFilt: () => sosFilt,
   sosFiltFilt: () => sosFiltFilt,
@@ -414,6 +460,7 @@ __export(src_exports, {
   strideSet: () => strideSet,
   substrateParity: () => substrateParity,
   substrateParityHolds: () => substrateParityHolds,
+  summarize: () => summarize,
   sweep10Reflection: () => sweep10Reflection,
   sweep1IntakeReplay: () => sweep1IntakeReplay,
   sweep2HdcBinding: () => sweep2HdcBinding,
@@ -426,6 +473,8 @@ __export(src_exports, {
   sweep9GovernorCompression: () => sweep9GovernorCompression,
   sweepSchedule: () => sweepSchedule,
   synthesize: () => synthesize,
+  textFingerprint: () => textFingerprint,
+  textToField: () => textToField,
   thermalLambda: () => thermalLambda,
   tickWorkUnits: () => tickWorkUnits,
   tier0: () => tier0,
@@ -439,15 +488,18 @@ __export(src_exports, {
   verifyFootprint: () => verifyFootprint,
   verifyInclusion: () => verifyInclusion,
   verifyTreeHead: () => verifyTreeHead,
+  waveletDwt: () => waveletDwt,
   webView: () => webView,
   welchMSC: () => welchMSC,
   windowByTopNodes: () => windowByTopNodes,
   windowWork: () => windowWork,
   wrapAt: () => wrapAt,
   wrapPhase: () => wrapPhase,
+  xcorrStack: () => xcorrStack,
   zeckendorf: () => zeckendorf,
   zeckendorfOrder: () => zeckendorfOrder,
-  zeroField: () => zeroField
+  zeroField: () => zeroField,
+  zeroQualia: () => zeroQualia
 });
 module.exports = __toCommonJS(src_exports);
 
@@ -650,8 +702,8 @@ function datan(x) {
   }
   let flip = offset !== 0 ? -1 : 1;
   if (t > 0.2679491924311227) {
-    const SQ3 = 1.7320508075688772;
-    const t2 = (t * SQ3 - 1) / (t + SQ3);
+    const SQ32 = 1.7320508075688772;
+    const t2 = (t * SQ32 - 1) / (t + SQ32);
     const core = atanCore(t2) + 0.5235987755982988;
     return sign * (offset + flip * core);
   }
@@ -695,6 +747,7 @@ function phiPow(n) {
 }
 var PHI_INV_7 = 0.034441853748633025;
 var KAPPA = 1 / (PHI * Math.PI);
+var REFLECT_GAIN = KAPPA / PHI;
 var LAMBDA_MEMORY = phiPow(-2);
 var CLAMP_MAX = phiPow(4);
 var CELL = {
@@ -714,8 +767,10 @@ var CELL = {
   // external input U
   mu: phiPow(-5),
   // web / cross-rung V
-  xi: phiPow(-5)
+  xi: phiPow(-5),
   // sensory S
+  rho: REFLECT_GAIN
+  // self-reflection Rf
 };
 var JURY_GAIN = Math.abs(CELL.alpha) + Math.abs(CELL.beta) + 2 * Math.abs(CELL.epsilon) + Math.abs(CELL.zeta);
 var JURY_GAIN_REFERENCE = 0.7507764050037855;
@@ -1197,6 +1252,7 @@ function cellStep(z, out, terms) {
   drive += addTerm(re, im, CELL.eta, terms.U, n);
   drive += addTerm(re, im, CELL.mu, terms.V, n);
   drive += addTerm(re, im, CELL.xi, terms.S, n);
+  drive += addTerm(re, im, CELL.rho, terms.Rf, n);
   const clamped = clampField(out, CLAMP_MAX);
   let d = 0;
   let peak = 0;
@@ -1903,8 +1959,685 @@ var TranscriptionTape = class {
   }
 };
 
-// ../omega/packages/trnn-core/src/spectral/sphere.ts
+// ../omega/packages/trnn-core/src/web/octave.ts
+function energyOf(f) {
+  let s = 0;
+  for (let i = 0; i < f.n; i++) s += f.re[i] * f.re[i] + f.im[i] * f.im[i];
+  return s;
+}
+function octaveTransport(src, dst) {
+  const N = src.n;
+  const M = dst.n;
+  const se = energyOf(src);
+  if (N === M) {
+    dst.re.set(src.re);
+    dst.im.set(src.im);
+    return { sourceEnergy: se, targetEnergy: se, energyRatio: 1, identity: true };
+  }
+  if (M < N) {
+    const step = N / M;
+    for (let k = 0; k < M; k++) {
+      const a = k * step;
+      const b = a + step;
+      let ar = 0;
+      let ai = 0;
+      let wsum = 0;
+      const i0 = Math.floor(a);
+      const i1 = Math.ceil(b);
+      for (let i = i0; i < i1; i++) {
+        const lo = Math.max(a, i);
+        const hi = Math.min(b, i + 1);
+        const wgt = hi - lo;
+        if (wgt <= 0) continue;
+        const idx = (i % N + N) % N;
+        ar += wgt * src.re[idx];
+        ai += wgt * src.im[idx];
+        wsum += wgt;
+      }
+      dst.re[k] = wsum > 0 ? ar / wsum : 0;
+      dst.im[k] = wsum > 0 ? ai / wsum : 0;
+    }
+  } else {
+    const step = N / M;
+    for (let k = 0; k < M; k++) {
+      const x = k * step;
+      const i0 = Math.floor(x);
+      const t = x - i0;
+      const a = (i0 % N + N) % N;
+      const b = (a + 1) % N;
+      dst.re[k] = src.re[a] * (1 - t) + src.re[b] * t;
+      dst.im[k] = src.im[a] * (1 - t) + src.im[b] * t;
+    }
+  }
+  const te = energyOf(dst);
+  return { sourceEnergy: se, targetEnergy: te, energyRatio: se > 0 ? te / se : 1, identity: false };
+}
+var OctaveScratch = class {
+  pool = /* @__PURE__ */ new Map();
+  get(n) {
+    let f = this.pool.get(n);
+    if (!f) {
+      f = createField(n);
+      this.pool.set(n, f);
+    }
+    return f;
+  }
+  sizes() {
+    return [...this.pool.keys()].sort((a, b) => a - b);
+  }
+};
+
+// ../omega/packages/trnn-core/src/web/morphism.ts
+function mean(f) {
+  let r = 0;
+  let i = 0;
+  for (let k = 0; k < f.n; k++) {
+    r += f.re[k];
+    i += f.im[k];
+  }
+  return f.n > 0 ? { re: r / f.n, im: i / f.n } : { re: 0, im: 0 };
+}
+function rotate(src, dst, theta) {
+  const c = dcos(theta);
+  const s = dsin(theta);
+  for (let i = 0; i < src.n; i++) {
+    dst.re[i] = src.re[i] * c - src.im[i] * s;
+    dst.im[i] = src.re[i] * s + src.im[i] * c;
+  }
+}
+function checkMorphism(z, targetNodes, theta = 1.0471975511965976) {
+  const t1 = createField(targetNodes);
+  const t2 = createField(targetNodes);
+  const rotSrc = createField(z.n);
+  const rotT1 = createField(targetNodes);
+  octaveTransport(z, t1);
+  rotate(t1, rotT1, theta);
+  rotate(z, rotSrc, theta);
+  octaveTransport(rotSrc, t2);
+  let d = 0;
+  for (let i = 0; i < targetNodes; i++) {
+    const dr = rotT1.re[i] - t2.re[i];
+    const di = rotT1.im[i] - t2.im[i];
+    const a = Math.sqrt(dr * dr + di * di);
+    if (a > d) d = a;
+  }
+  const ms = mean(z);
+  const mt = mean(t1);
+  const mr = mt.re - ms.re;
+  const mi = mt.im - ms.im;
+  return {
+    phaseCommutationDefect: d,
+    meanDefect: Math.sqrt(mr * mr + mi * mi)
+  };
+}
+
+// ../omega/packages/trnn-core/src/measure/scaleSignature.ts
+function scaleSignature(engine) {
+  const snaps = engine.engines.map((e) => e.snapshot());
+  const rungs = snaps.map((snap, r) => {
+    const e = engine.engines[r];
+    const rung = engine.rungs[r];
+    const st = readState(snap.z);
+    return {
+      rank: r,
+      n: rung.n,
+      logRadius: rung.logRadius,
+      logTau: rung.logTau,
+      nodes: e.nodes,
+      energy: st.energy,
+      peak: st.peak,
+      meanMagnitude: st.meanMagnitude,
+      signature: Float64Array.from(snap.signature)
+    };
+  });
+  const octaves = [];
+  for (let r = 0; r + 1 < snaps.length; r++) {
+    const m = checkMorphism(snaps[r].z, engine.engines[r + 1].nodes);
+    octaves.push({
+      from: r,
+      to: r + 1,
+      phaseCommutationDefect: m.phaseCommutationDefect,
+      meanDefect: m.meanDefect
+    });
+  }
+  return { rungs, octaves };
+}
+
+// ../omega/packages/trnn-core/src/measure/fieldFingerprint.ts
+var LOG_FLOOR = 1e-15;
+var FINGERPRINT_CHANNELS = 3;
+function fieldFingerprint(engine) {
+  const sig = scaleSignature(engine);
+  const n = sig.rungs.length;
+  const CH = FINGERPRINT_CHANNELS;
+  const v = new Float64Array(n * CH);
+  for (let r = 0; r < n; r++) {
+    const f = sig.rungs[r];
+    v[r] = dlog(Math.max(f.energy, LOG_FLOOR));
+    v[n + r] = dlog(Math.max(f.peak, LOG_FLOOR));
+    v[2 * n + r] = dlog(Math.max(f.meanMagnitude, LOG_FLOOR));
+  }
+  let s2 = 0;
+  for (let i = 0; i < v.length; i++) s2 += v[i] * v[i];
+  const magnitude2 = Math.sqrt(s2);
+  const unit = new Float64Array(v.length);
+  if (magnitude2 > 0) {
+    for (let i = 0; i < v.length; i++) unit[i] = v[i] / magnitude2;
+  }
+  return { rungs: n, channels: CH, vector: unit, magnitude: magnitude2 };
+}
+function fingerprintDistance(a, b) {
+  let s2 = 0;
+  for (let i = 0; i < a.length; i++) {
+    const d = a[i] - b[i];
+    s2 += d * d;
+  }
+  return Math.sqrt(s2);
+}
+
+// ../omega/packages/trnn-core/src/measure/qualia.ts
+var QUALIA_GOLDEN_DELAY = 13;
+var QUALIA_IGNITION_WINDOW = 233;
+var ZERO = {
+  C: 0,
+  N: 0,
+  S: 0,
+  V: 0,
+  I: 0,
+  Cphi: 0,
+  ignited: false,
+  ignitions: 0,
+  ignitionRate: 0
+};
+function zeroQualia() {
+  return ZERO;
+}
+function instantaneousQualia(psi, closureGamma) {
+  const M = psi.length;
+  if (M === 0) return { S: 0, V: 0, I: 0 };
+  let normSq = 0;
+  for (let i = 0; i < M; i++) normSq += psi[i] * psi[i];
+  let gradSq = 0;
+  for (let i = 1; i < M; i++) {
+    const d = psi[i] - psi[i - 1];
+    gradSq += d * d;
+  }
+  const S = normSq > 0 ? Math.sqrt(gradSq / normSq) : 0;
+  const V = 2 * closureGamma - 1;
+  let H = 0;
+  if (normSq > 0) {
+    const inv = 1 / normSq;
+    for (let i = 0; i < M; i++) {
+      const p = psi[i] * psi[i] * inv;
+      if (p > 0) H -= p * dlog(p);
+    }
+  }
+  const I = normSq > 0 ? Math.max(0, dlog(M) - H) : 0;
+  return { S, V, I };
+}
+var DEFAULT_WINDOW = 16;
+var QualiaTracker = class {
+  window = null;
+  windowSize;
+  ring = [];
+  ringHead = 0;
+  ringFill = 0;
+  ringWidth = 0;
+  prevIgnited = false;
+  ignitionMarks = [];
+  tickIndex = 0;
+  constructor(windowSize = DEFAULT_WINDOW) {
+    this.windowSize = Math.max(2, Math.floor(windowSize));
+  }
+  reset() {
+    this.window = null;
+    this.ring = [];
+    this.ringHead = 0;
+    this.ringFill = 0;
+    this.ringWidth = 0;
+    this.prevIgnited = false;
+    this.ignitionMarks = [];
+    this.tickIndex = 0;
+  }
+  /** One per-rung observation. Returns the full qualia vector. */
+  observe(psi, coherence, closureGamma) {
+    const M = psi.length;
+    if (M === 0) return ZERO;
+    const C = Math.max(0, Math.min(1, coherence));
+    if (!this.window || this.window.length !== M) {
+      this.window = new Float64Array(M);
+    }
+    const decay = 1 - 1 / this.windowSize;
+    let normPsi = 0;
+    let normMean = 0;
+    let dot2 = 0;
+    for (let i = 0; i < M; i++) {
+      const a = Math.abs(psi[i]);
+      this.window[i] = decay * this.window[i] + (1 - decay) * a;
+      dot2 += a * this.window[i];
+      normPsi += a * a;
+      normMean += this.window[i] * this.window[i];
+    }
+    const cosSq = normPsi > 0 && normMean > 0 ? dot2 * dot2 / (normPsi * normMean) : 0;
+    const N = Math.max(0, Math.min(1, 1 - cosSq));
+    const { S, V, I } = instantaneousQualia(psi, closureGamma);
+    const Cphi = this.goldenDelayOverlap(psi, normPsi);
+    const ignited = Cphi >= IGNITION_THRESHOLD;
+    this.tickIndex++;
+    if (ignited && !this.prevIgnited) this.ignitionMarks.push(this.tickIndex);
+    this.prevIgnited = ignited;
+    const cutoff = this.tickIndex - QUALIA_IGNITION_WINDOW;
+    while (this.ignitionMarks.length > 0 && this.ignitionMarks[0] < cutoff) this.ignitionMarks.shift();
+    const span = Math.min(this.tickIndex, QUALIA_IGNITION_WINDOW);
+    const ignitions = this.ignitionMarks.length;
+    return {
+      C,
+      N,
+      S,
+      V,
+      I,
+      Cphi,
+      ignited,
+      ignitions,
+      ignitionRate: span > 0 ? ignitions / span : 0
+    };
+  }
+  /**
+   * |⟨ψ(t)|ψ(t−τ)⟩|² / (‖ψ(t)‖²‖ψ(t−τ)‖²) against the state τ = 13 ticks ago.
+   * Returns 0 until the ring has filled — an unfilled ring must not fake
+   * coherence, and a false ignition is worse than a missing one.
+   */
+  goldenDelayOverlap(psi, normPsi) {
+    const M = psi.length;
+    if (this.ringWidth !== M) {
+      this.ringWidth = M;
+      this.ring = Array.from({ length: QUALIA_GOLDEN_DELAY }, () => new Float64Array(M));
+      this.ringHead = 0;
+      this.ringFill = 0;
+    }
+    const past = this.ring[this.ringHead];
+    let overlap = 0;
+    if (this.ringFill >= QUALIA_GOLDEN_DELAY && normPsi > 0) {
+      let d = 0;
+      let np = 0;
+      for (let i = 0; i < M; i++) {
+        d += psi[i] * past[i];
+        np += past[i] * past[i];
+      }
+      if (np > 0) overlap = d * d / (normPsi * np);
+    }
+    past.set(psi);
+    this.ringHead = (this.ringHead + 1) % QUALIA_GOLDEN_DELAY;
+    if (this.ringFill < QUALIA_GOLDEN_DELAY) this.ringFill++;
+    return Math.max(0, Math.min(1, overlap));
+  }
+};
+
+// ../omega/packages/field-kernel-core/src/measurement.ts
+function nAcc() {
+  return { s: 0, c: 0 };
+}
+function nAdd(a, x) {
+  if (!Number.isFinite(x)) return;
+  const s = a.s;
+  const t = s + x;
+  a.c += Math.abs(s) >= Math.abs(x) ? s - t + x : x - t + s;
+  a.s = t;
+}
+function nVal(a) {
+  return a.s + a.c;
+}
+function measureDrift(state) {
+  const psi = state.psi, hat = state.psiHat;
+  if (psi.length !== hat.length) return NaN;
+  const acc = nAcc();
+  for (let i = 0; i < psi.length; i++) {
+    const d = psi[i] - hat[i];
+    nAdd(acc, d * d);
+  }
+  return nVal(acc);
+}
+function measureTemporalCoherence(psi, prev) {
+  if (psi.length !== prev.length) return NaN;
+  const num = nAcc();
+  const den = nAcc();
+  for (let i = 0; i < psi.length; i++) {
+    nAdd(num, psi[i] * prev[i]);
+    nAdd(den, prev[i] * prev[i]);
+  }
+  const d = nVal(den);
+  if (d === 0) return NaN;
+  return nVal(num) / d;
+}
+function measureInertia(curr, prev) {
+  const a = curr.psi, b = prev.psi;
+  if (a.length !== b.length) return NaN;
+  const acc = nAcc();
+  for (let i = 0; i < a.length; i++) {
+    const d = a[i] - b[i];
+    nAdd(acc, d * d);
+  }
+  return Math.sqrt(nVal(acc));
+}
+
+// ../omega/packages/field-kernel-core/src/portFlags.ts
+var import_meta = {};
+var DEFAULTS = {
+  FLAG_MEMRISTIVE_L1: false,
+  // Wave 1 is non-behavioural (constants only) — safe to default ON.
+  FLAG_WOLFRAM_CONSTANTS_V10: true,
+  FLAG_LADDER_CLOSURE_5AXIS: false,
+  FLAG_DRIVERBANK_LIVE: false,
+  FLAG_BIO_REBUILD_LIVE: false,
+  FLAG_PINEAL_MACRO_LIVE: false,
+  FLAG_SELF_VALIDATION_LIVE: false,
+  FLAG_LANCZOS_TOPK_LIVE: false,
+  FLAG_IDENTITY_LAYER_LIVE: false,
+  FLAG_AI_SURFACE_LIVE: false,
+  FLAG_PORT_PANELS_LIVE: false,
+  FLAG_F2_WAVE2_PRECISION: false,
+  FLAG_WAVE2_PRECISION: false,
+  FLAG_HARDWARE_FULL_BOOT: false,
+  // Phase 16 · Step 5 — framework orchestrator default-ON. The F1..F9
+  // chain runs in a dedicated worker, fire-and-forget off the engine's hot
+  // path (250 ms watchdog). Set VITE_FLAG_FRAMEWORKS_LIVE=0 to restore the
+  // pre-Phase-16 silent path.
+  FLAG_FRAMEWORKS_LIVE: true,
+  FLAG_SIMD_KERNEL: false,
+  FLAG_CARRIER_STACK: false,
+  FLAG_GOLDEN_SHARD: false,
+  FLAG_TILED_KERNEL: false,
+  FLAG_LANCZOS_TOPK: false,
+  FLAG_F4_CONST_BANK: false,
+  FLAG_F4_SILVER: false,
+  FLAG_F4_EXTENDED_SOLIDS: false,
+  FLAG_F4_SPECTRUM: false,
+  FLAG_F4_PHI2K: false,
+  // ── Phase 16 — Multi-Scale Ladder Activation (n = 0..8) ──────────────
+  // Pre-flip baseline sealed in vendor/archive/phase16/step1/.
+  //
+  // Step 2 — observation substrate. The tape mirrors ψ per scale; the
+  // metric bank derives drift / temporal coherence / closure / information
+  // density / burden / inertia / Lyapunov energy. Neither writes into the
+  // physics buffers, so this pair is read-only by construction.
+  FLAG_RHUFTF_STATE_TUPLE: true,
+  FLAG_RHUFTF_METRICS: true,
+  // Step 3 — nine measurement operators O_n. LEGACY_FRAMEWORK_n stay ON so
+  // the legacy scalar chain and the RHUFT-F ladder run side-by-side and any
+  // divergence is visible rather than silent.
+  FLAG_LEGACY_FRAMEWORK_0: true,
+  FLAG_RHUFTF_FRAMEWORK_0: true,
+  FLAG_LEGACY_FRAMEWORK_1: true,
+  FLAG_RHUFTF_FRAMEWORK_1: true,
+  FLAG_LEGACY_FRAMEWORK_2: true,
+  FLAG_RHUFTF_FRAMEWORK_2: true,
+  FLAG_LEGACY_FRAMEWORK_3: true,
+  FLAG_RHUFTF_FRAMEWORK_3: true,
+  FLAG_LEGACY_FRAMEWORK_4: true,
+  FLAG_RHUFTF_FRAMEWORK_4: true,
+  FLAG_LEGACY_FRAMEWORK_5: true,
+  FLAG_RHUFTF_FRAMEWORK_5: true,
+  FLAG_LEGACY_FRAMEWORK_6: true,
+  FLAG_RHUFTF_FRAMEWORK_6: true,
+  FLAG_LEGACY_FRAMEWORK_7: true,
+  FLAG_RHUFTF_FRAMEWORK_7: true,
+  FLAG_LEGACY_FRAMEWORK_8: true,
+  FLAG_RHUFTF_FRAMEWORK_8: true,
+  // Step 4 — nine local-update kernels U_n. Gated by the canonical-vs-master
+  // ULP suite, the delegate-invariant suite, and cross-runtime parity.
+  // Note: MasterUpdateController force-registers U_0..U_8 for its own
+  // delegate path, so these flags govern the *public* registry consumed by
+  // CanonicalUpdateBank instances outside the controller (daemon ticker,
+  // freeze harnesses, panel bootstraps).
+  FLAG_RHUFTF_LOCAL_UPDATE_0: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_1: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_2: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_3: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_4: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_5: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_6: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_7: true,
+  FLAG_RHUFTF_LOCAL_UPDATE_8: true,
+  // Phase 8 — default-ON cutover for the RHUFT-F canonical bank stack.
+  // Pre-flip baseline sealed in vendor/archive/phase8/step1/. The flip
+  // changes WHICH code path runs, not the physics that path produces
+  // (proven by phase8Step3DefaultOnFreeze.ts). Set to `0` via env to
+  // restore the pre-Phase-8 behaviour byte-identically (proven by
+  // phase8Step4ReversibilityFreeze.ts).
+  FLAG_RHUFTF_CANONICAL_UPDATE: true,
+  FLAG_RHUFTF_CONTROLLER_DELEGATE: true,
+  FLAG_RHUFTF_DAEMON_BANK: true
+};
+function parseBool(raw) {
+  if (raw === void 0) return void 0;
+  return raw === "1" || raw === "true";
+}
+function readEnv(k) {
+  const key = `VITE_${k}`;
+  try {
+    const env = import_meta.env;
+    const v = parseBool(env?.[key]);
+    if (v !== void 0) return v;
+  } catch {
+  }
+  try {
+    if (typeof process !== "undefined" && process?.env) {
+      const v = parseBool(process.env[key]);
+      if (v !== void 0) return v;
+    }
+  } catch {
+  }
+  return void 0;
+}
+var OVERRIDES = /* @__PURE__ */ new Map();
+function portFlag(k) {
+  const ov = OVERRIDES.get(k);
+  if (ov !== void 0) return ov;
+  const env = readEnv(k);
+  return env ?? DEFAULTS[k];
+}
+var PORT_FLAGS = Object.fromEntries(
+  Object.keys(DEFAULTS).map((k) => [k, portFlag(k)])
+);
+
+// ../omega/packages/field-kernel-core/src/kernel.ts
+var PHI2 = 1.618033988749895;
+var PHI_INV2 = 1 / PHI2;
+var LN_PHI2 = Math.log(PHI2);
+var KAPPA2 = 1 / (PHI2 * Math.PI);
+var KAPPA_REFLECT = 1 / (PHI2 * PHI2 * Math.PI);
+var USE_SIMD_KERNEL = portFlag("FLAG_SIMD_KERNEL");
+var _ampPool = new Float64Array(0);
+var _omegaPool = new Float64Array(0);
+var _psiCPool = new Float64Array(0);
 var TWO_PI2 = 2 * Math.PI;
+var PHI_INV_SQ = PHI_INV2 * PHI_INV2;
+
+// ../omega/packages/field-kernel-core/src/lyapunov.ts
+var DEFAULT_LYAPUNOV_WEIGHTS = Object.freeze({
+  a: 1,
+  b: PHI2,
+  c: KAPPA2,
+  d: PHI_INV2
+});
+function nAcc2() {
+  return { s: 0, c: 0 };
+}
+function nAdd2(a, x) {
+  if (!Number.isFinite(x)) return;
+  const s = a.s;
+  const t = s + x;
+  a.c += Math.abs(s) >= Math.abs(x) ? s - t + x : x - t + s;
+  a.s = t;
+}
+function nVal2(a) {
+  return a.s + a.c;
+}
+function psiNorm2(s) {
+  const acc = nAcc2();
+  const p = s.psi;
+  for (let i = 0; i < p.length; i++) nAdd2(acc, p[i] * p[i]);
+  return nVal2(acc);
+}
+function driftNorm2(s) {
+  const acc = nAcc2();
+  const p = s.psi, h = s.psiHat;
+  const n = Math.min(p.length, h.length);
+  for (let i = 0; i < n; i++) {
+    const d = p[i] - h[i];
+    nAdd2(acc, d * d);
+  }
+  return nVal2(acc);
+}
+function phiGraph(state, graph) {
+  if (!graph) return 0;
+  const { edgeI, edgeJ, edgeW } = graph;
+  const psi = state.psi;
+  const n = psi.length;
+  const acc = nAcc2();
+  const m = Math.min(edgeI.length, edgeJ.length, edgeW.length);
+  for (let k = 0; k < m; k++) {
+    const i = edgeI[k], j = edgeJ[k];
+    if (i < 0 || j < 0 || i >= n || j >= n) continue;
+    const d = psi[i] - psi[j];
+    nAdd2(acc, edgeW[k] * d * d);
+  }
+  return nVal2(acc);
+}
+function phiScale(a, b) {
+  if (!b) return 0;
+  const pa = a.psi, pb = b.psi;
+  const n = Math.min(pa.length, pb.length);
+  const acc = nAcc2();
+  for (let i = 0; i < n; i++) {
+    const d = pa[i] - pb[i];
+    nAdd2(acc, d * d);
+  }
+  return nVal2(acc);
+}
+function lyapunovEnergy(states, graphs, weights) {
+  const acc = nAcc2();
+  for (let n = 0; n < states.length; n++) {
+    const s = states[n];
+    const w = Array.isArray(weights) ? weights[n] ?? DEFAULT_LYAPUNOV_WEIGHTS : weights ?? DEFAULT_LYAPUNOV_WEIGHTS;
+    const g2 = graphs ? graphs[n] ?? null : null;
+    const next = states[n + 1];
+    nAdd2(acc, w.a * psiNorm2(s));
+    nAdd2(acc, w.b * driftNorm2(s));
+    nAdd2(acc, w.c * phiGraph(s, g2));
+    nAdd2(acc, w.d * phiScale(s, next));
+  }
+  return nVal2(acc);
+}
+
+// ../omega/packages/field-kernel-core/src/state.ts
+function createFieldStateN(scale, nodes) {
+  const n = Math.max(0, nodes | 0);
+  return {
+    scale: scale | 0,
+    psi: new Float64Array(n),
+    psiHat: new Float64Array(n),
+    m: new Float64Array(n),
+    u: new Float64Array(n),
+    y: new Float64Array(n),
+    gamma: new Float64Array(n)
+  };
+}
+
+// ../omega/packages/trnn-core/src/measure/selfMeasure.ts
+var LOG2 = dlog(2);
+function informationDensity(psi) {
+  let normSq = 0;
+  for (let i = 0; i < psi.length; i++) normSq += psi[i] * psi[i];
+  if (!(normSq > 0)) return NaN;
+  const inv = 1 / normSq;
+  let H = 0;
+  for (let i = 0; i < psi.length; i++) {
+    const p = psi[i] * psi[i] * inv;
+    if (p > 0) H -= p * (dlog(p) / LOG2);
+  }
+  return H;
+}
+function scaleEntropy(energies) {
+  let total = 0;
+  for (const e of energies) if (Number.isFinite(e) && e > 0) total += e;
+  if (!(total > 0)) return NaN;
+  const inv = 1 / total;
+  let H = 0;
+  for (const e of energies) {
+    if (e > 0) {
+      const p = e * inv;
+      H -= p * (dlog(p) / LOG2);
+    }
+  }
+  return H;
+}
+function crossScaleDrift(signatures) {
+  let s = 0;
+  for (let i = 0; i + 1 < signatures.length; i++) {
+    const a = signatures[i];
+    const b = signatures[i + 1];
+    const n = Math.min(a.length, b.length);
+    for (let k = 0; k < n; k++) {
+      const d = a[k] - b[k];
+      s += d * d;
+    }
+  }
+  return s;
+}
+var SelfMeasureTracker = class {
+  prev = null;
+  reset() {
+    this.prev = null;
+  }
+  /**
+   * One full-field observation per tick. `signatures` are the per-rung 13-mode
+   * signatures; `gammas` the per-rung closure γ; `energies` the per-rung
+   * energies; `ns` the per-rung ladder indices.
+   */
+  observe(signatures, gammas, energies, ns) {
+    const K = signatures.length;
+    const states = [];
+    const rungs = [];
+    for (let i = 0; i < K; i++) {
+      const sig = signatures[i];
+      const prev = this.prev ? this.prev[i] : null;
+      const state = createFieldStateN(ns[i], sig.length);
+      state.psi.set(sig);
+      state.psiHat.set(prev ?? sig);
+      const drift = prev ? measureDrift(state) : 0;
+      const temporalCoherence = prev ? measureTemporalCoherence(sig, prev) : 0;
+      let inertia = 0;
+      if (prev) {
+        const prevState = createFieldStateN(ns[i], sig.length);
+        prevState.psi.set(prev);
+        inertia = measureInertia(state, prevState);
+      }
+      rungs.push({
+        rank: i,
+        n: ns[i],
+        energy: energies[i],
+        closure: gammas[i],
+        drift,
+        temporalCoherence,
+        informationDensity: informationDensity(sig),
+        inertia
+      });
+      states.push(state);
+    }
+    const lyapunov = lyapunovEnergy(states, void 0, void 0);
+    this.prev = signatures.map((s) => Float64Array.from(s));
+    return {
+      rungs,
+      lyapunov,
+      scaleEntropy: scaleEntropy(energies),
+      scaleDrift: crossScaleDrift(signatures)
+    };
+  }
+};
+
+// ../omega/packages/trnn-core/src/spectral/sphere.ts
+var TWO_PI3 = 2 * Math.PI;
 function fibonacciShell(n) {
   if (n <= 0 || !Number.isInteger(n)) throw new RangeError(`fibonacciShell: n must be a positive integer, got ${n}`);
   const theta = new Float64Array(n);
@@ -1917,7 +2650,7 @@ function fibonacciShell(n) {
   for (let j = 0; j < n; j++) {
     const zc = 1 - (2 * j + 1) / n;
     const r = Math.sqrt(Math.max(0, 1 - zc * zc));
-    const az = TWO_PI2 * j * PHI_INV % TWO_PI2;
+    const az = TWO_PI3 * j * PHI_INV % TWO_PI3;
     theta[j] = dacos(Math.min(1, Math.max(-1, zc)));
     phi[j] = az;
     x[j] = r * dcos(az);
@@ -2360,7 +3093,7 @@ function measureSpectrum(nodes, modes, opts = {}) {
 }
 
 // ../omega/packages/trnn-core/src/spectral/fft.ts
-var TWO_PI3 = 2 * Math.PI;
+var TWO_PI4 = 2 * Math.PI;
 function dft(re, im, inverse = false) {
   const n = re.length;
   const outRe = new Float64Array(n);
@@ -2371,7 +3104,7 @@ function dft(re, im, inverse = false) {
     let si = 0;
     for (let j = 0; j < n; j++) {
       const idx = k * j % n;
-      const ang = sign * TWO_PI3 * idx / n;
+      const ang = sign * TWO_PI4 * idx / n;
       const c = dcos(ang);
       const s = dsin(ang);
       sr += re[j] * c - im[j] * s;
@@ -2406,7 +3139,7 @@ function fftPow2(re, im, inverse) {
     const half = len >> 1;
     for (let i = 0; i < n; i += len) {
       for (let k = 0; k < half; k++) {
-        const ang = sign * TWO_PI3 * k / len;
+        const ang = sign * TWO_PI4 * k / len;
         const wr = dcos(ang);
         const wi = dsin(ang);
         const ur = re[i + k];
@@ -2500,6 +3233,75 @@ function crossCorrelate(a, b) {
     out.im[i] /= n;
   }
   return out;
+}
+
+// ../omega/packages/trnn-core/src/spectral/wavelet.ts
+var WAVELET_HAAR_MIN = 2;
+var WAVELET_DB4_MIN = 4;
+var INV_SQRT2 = 1 / Math.sqrt(2);
+function haarLevel(a) {
+  const m = a.length >> 1;
+  const approx = new Float64Array(m);
+  const detail = new Float64Array(m);
+  for (let i = 0; i < m; i++) {
+    const x0 = a[2 * i];
+    const x1 = a[2 * i + 1];
+    approx[i] = (x0 + x1) * INV_SQRT2;
+    detail[i] = (x0 - x1) * INV_SQRT2;
+  }
+  return { approx, detail };
+}
+var SQ3 = Math.sqrt(3);
+var K4 = 1 / (4 * Math.sqrt(2));
+var H0 = (1 + SQ3) * K4;
+var H1 = (3 + SQ3) * K4;
+var H2 = (3 - SQ3) * K4;
+var H3 = (1 - SQ3) * K4;
+var G0 = H3;
+var G1 = -H2;
+var G2 = H1;
+var G3 = -H0;
+function db4Level(a) {
+  const n = a.length;
+  const m = n >> 1;
+  const approx = new Float64Array(m);
+  const detail = new Float64Array(m);
+  for (let k = 0; k < m; k++) {
+    const i0 = 2 * k % n;
+    const i1 = (2 * k + 1) % n;
+    const i2 = (2 * k + 2) % n;
+    const i3 = (2 * k + 3) % n;
+    approx[k] = H0 * a[i0] + H1 * a[i1] + H2 * a[i2] + H3 * a[i3];
+    detail[k] = G0 * a[i0] + G1 * a[i1] + G2 * a[i2] + G3 * a[i3];
+  }
+  return { approx, detail };
+}
+function waveletDwt(x, opts = {}) {
+  const kind = opts.kind ?? "haar";
+  const min = kind === "haar" ? WAVELET_HAAR_MIN : WAVELET_DB4_MIN;
+  const n = x.length;
+  if (n < min) {
+    return { kind, length: n, levels: [], abstained: true, reason: `need ${min} samples, have ${n}` };
+  }
+  if (n % 2 !== 0) {
+    return { kind, length: n, levels: [], abstained: true, reason: `odd length ${n} \u2014 a DWT level needs an even window` };
+  }
+  for (let i = 0; i < n; i++) {
+    if (!Number.isFinite(x[i])) {
+      return { kind, length: n, levels: [], abstained: true, reason: "non-finite sample" };
+    }
+  }
+  const maxLevels = opts.levels ?? Infinity;
+  const levels = [];
+  let cur = Float64Array.from(x);
+  let level = 1;
+  while (level <= maxLevels && cur.length >= min && cur.length % 2 === 0) {
+    const lv = kind === "haar" ? haarLevel(cur) : db4Level(cur);
+    levels.push({ level, approx: lv.approx, detail: lv.detail });
+    cur = lv.approx;
+    level++;
+  }
+  return { kind, length: n, levels, abstained: false };
 }
 
 // ../omega/packages/trnn-core/src/fractal/nest.ts
@@ -2789,7 +3591,7 @@ function applyBladeGain(a, gain) {
 }
 
 // ../omega/packages/trnn-core/src/sense/nodeArray.ts
-var TWO_PI4 = 2 * Math.PI;
+var TWO_PI5 = 2 * Math.PI;
 var DEFAULT_BANDS = 8;
 var DEFAULT_DEPTH = 89;
 var SensoryNodeArray = class {
@@ -2936,7 +3738,7 @@ var SensoryNodeArray = class {
     const D = this.depth;
     const t = this.windowPhase;
     for (let k = 0; k < B; k++) {
-      const th = -TWO_PI4 * this.plan[k].bin * t / D;
+      const th = -TWO_PI5 * this.plan[k].bin * t / D;
       this.rotRe[k] = dcos(th);
       this.rotIm[k] = dsin(th);
     }
@@ -2958,9 +3760,9 @@ var SensoryNodeArray = class {
       const ph = datan2(zi, zr);
       if (this.primed) {
         let d = ph - this.prevPhase[j];
-        while (d > Math.PI) d -= TWO_PI4;
-        while (d <= -Math.PI) d += TWO_PI4;
-        const f = d / TWO_PI4;
+        while (d > Math.PI) d -= TWO_PI5;
+        while (d <= -Math.PI) d += TWO_PI5;
+        const f = d / TWO_PI5;
         this.frequency[j] = f;
         freqSum += f < 0 ? -f : f;
       } else {
@@ -3219,6 +4021,12 @@ var SingleTorusEngine = class {
   senseBuffer = null;
   /** Vacuum-drive staging buffer (allocated only when the drive is armed). */
   driveBuffer = null;
+  /** Q3 self-reflection gain (0 = off / oracle-exact). */
+  reflectGain;
+  /** Q3 self-reflection staging buffer (allocated only when armed). */
+  reflectBuffer = null;
+  /** Previous tick's coherence — the delayed self-measurement the reflection reads. */
+  lastCoherence = 0;
   constructor(opts) {
     this.nodes = opts.nodes;
     this.rung = opts.rung ?? 1;
@@ -3239,6 +4047,11 @@ var SingleTorusEngine = class {
     this.lambda = lambda;
     this.modePhase = modePhase;
     this.drive = drive;
+    const reflect = opts.reflect ?? 0;
+    if (!Number.isFinite(reflect) || reflect < 0) {
+      throw new RangeError(`SingleTorusEngine: reflect gain must be \u2265 0, got ${reflect}`);
+    }
+    this.reflectGain = reflect;
     const th = 2 * Math.PI * PHI_INV + modePhase;
     this.cth = dcos(th);
     this.sth = dsin(th);
@@ -3334,6 +4147,19 @@ var SingleTorusEngine = class {
    * Deterministic (tick + node index only), allocation-free after the first
    * armed tick, and bounded by φ so Law L-S1 and the ISS certificate hold.
    */
+  /** Q3 — the Ψ-of-Ψ self-reflection: κ_r·⟨C_prev⟩·z, or null when disarmed. */
+  resolveReflect() {
+    if (this.reflectGain <= 0) return null;
+    if (!this.reflectBuffer) this.reflectBuffer = createField(this.nodes);
+    const c = this.lastCoherence;
+    const rb = this.reflectBuffer;
+    const z = this.z;
+    for (let i = 0; i < this.nodes; i++) {
+      rb.re[i] = c * z.re[i];
+      rb.im[i] = c * z.im[i];
+    }
+    return rb;
+  }
   resolveInput() {
     if (this.drive <= 0) return this.inputBuffer;
     let peak = 0;
@@ -3389,11 +4215,12 @@ var SingleTorusEngine = class {
       zhat: this.zhat,
       U: this.resolveInput(),
       V: this.webBuffer,
-      S: this.senseBuffer
+      S: this.senseBuffer,
+      Rf: this.resolveReflect()
     };
     const cell = cellStep(this.z, this.zNext, terms);
-    const finite2 = isFiniteField(this.zNext);
-    if (!finite2) {
+    const finite3 = isFiniteField(this.zNext);
+    if (!finite3) {
       const cp = this.lastCheckpoint;
       if (cp) this.restore(cp);
       return {
@@ -3422,6 +4249,7 @@ var SingleTorusEngine = class {
     copyField(this.z, this.zNext);
     memoryStep(this.m, this.z, this.lambda);
     const coh = this.meter.push(this.z);
+    this.lastCoherence = coh.c;
     const st = readState(this.z);
     const gate = this.gate.read(closure.defect);
     analyze(this.basis, this.z, this.coeffs);
@@ -3601,74 +4429,6 @@ function emittedMass(m, from) {
   return s;
 }
 
-// ../omega/packages/trnn-core/src/web/octave.ts
-function energyOf(f) {
-  let s = 0;
-  for (let i = 0; i < f.n; i++) s += f.re[i] * f.re[i] + f.im[i] * f.im[i];
-  return s;
-}
-function octaveTransport(src, dst) {
-  const N = src.n;
-  const M = dst.n;
-  const se = energyOf(src);
-  if (N === M) {
-    dst.re.set(src.re);
-    dst.im.set(src.im);
-    return { sourceEnergy: se, targetEnergy: se, energyRatio: 1, identity: true };
-  }
-  if (M < N) {
-    const step = N / M;
-    for (let k = 0; k < M; k++) {
-      const a = k * step;
-      const b = a + step;
-      let ar = 0;
-      let ai = 0;
-      let wsum = 0;
-      const i0 = Math.floor(a);
-      const i1 = Math.ceil(b);
-      for (let i = i0; i < i1; i++) {
-        const lo = Math.max(a, i);
-        const hi = Math.min(b, i + 1);
-        const wgt = hi - lo;
-        if (wgt <= 0) continue;
-        const idx = (i % N + N) % N;
-        ar += wgt * src.re[idx];
-        ai += wgt * src.im[idx];
-        wsum += wgt;
-      }
-      dst.re[k] = wsum > 0 ? ar / wsum : 0;
-      dst.im[k] = wsum > 0 ? ai / wsum : 0;
-    }
-  } else {
-    const step = N / M;
-    for (let k = 0; k < M; k++) {
-      const x = k * step;
-      const i0 = Math.floor(x);
-      const t = x - i0;
-      const a = (i0 % N + N) % N;
-      const b = (a + 1) % N;
-      dst.re[k] = src.re[a] * (1 - t) + src.re[b] * t;
-      dst.im[k] = src.im[a] * (1 - t) + src.im[b] * t;
-    }
-  }
-  const te = energyOf(dst);
-  return { sourceEnergy: se, targetEnergy: te, energyRatio: se > 0 ? te / se : 1, identity: false };
-}
-var OctaveScratch = class {
-  pool = /* @__PURE__ */ new Map();
-  get(n) {
-    let f = this.pool.get(n);
-    if (!f) {
-      f = createField(n);
-      this.pool.set(n, f);
-    }
-    return f;
-  }
-  sizes() {
-    return [...this.pool.keys()].sort((a, b) => a - b);
-  }
-};
-
 // ../omega/packages/trnn-core/src/web/fluxLedger.ts
 var FLUX_SINK = -1;
 var Neumaier = class {
@@ -3811,50 +4571,6 @@ function fibonacciStrides(size, mode = "uniform") {
     b = c;
   }
   return s;
-}
-
-// ../omega/packages/trnn-core/src/web/morphism.ts
-function mean(f) {
-  let r = 0;
-  let i = 0;
-  for (let k = 0; k < f.n; k++) {
-    r += f.re[k];
-    i += f.im[k];
-  }
-  return f.n > 0 ? { re: r / f.n, im: i / f.n } : { re: 0, im: 0 };
-}
-function rotate(src, dst, theta) {
-  const c = dcos(theta);
-  const s = dsin(theta);
-  for (let i = 0; i < src.n; i++) {
-    dst.re[i] = src.re[i] * c - src.im[i] * s;
-    dst.im[i] = src.re[i] * s + src.im[i] * c;
-  }
-}
-function checkMorphism(z, targetNodes, theta = 1.0471975511965976) {
-  const t1 = createField(targetNodes);
-  const t2 = createField(targetNodes);
-  const rotSrc = createField(z.n);
-  const rotT1 = createField(targetNodes);
-  octaveTransport(z, t1);
-  rotate(t1, rotT1, theta);
-  rotate(z, rotSrc, theta);
-  octaveTransport(rotSrc, t2);
-  let d = 0;
-  for (let i = 0; i < targetNodes; i++) {
-    const dr = rotT1.re[i] - t2.re[i];
-    const di = rotT1.im[i] - t2.im[i];
-    const a = Math.sqrt(dr * dr + di * di);
-    if (a > d) d = a;
-  }
-  const ms = mean(z);
-  const mt = mean(t1);
-  const mr = mt.re - ms.re;
-  const mi = mt.im - ms.im;
-  return {
-    phaseCommutationDefect: d,
-    meanDefect: Math.sqrt(mr * mr + mi * mi)
-  };
 }
 
 // ../omega/packages/trnn-core/src/memory/turingTape.ts
@@ -4073,6 +4789,7 @@ var MultiTorusEngine = class {
         lambda: w ? w.lambda : void 0,
         modePhase: w ? w.magneticPhase : void 0,
         drive: opts.drive,
+        reflect: opts.reflect,
         organs: opts.organs,
         sensors: opts.sensors
       });
@@ -4162,7 +4879,7 @@ var MultiTorusEngine = class {
     let cohSum = 0;
     let warmSum = 0;
     let warmCount = 0;
-    let finite2 = true;
+    let finite3 = true;
     for (const i of stepped) {
       this.engines[i].setWebReceipt(this.receipts[i]);
       const rep = this.engines[i].step();
@@ -4173,7 +4890,7 @@ var MultiTorusEngine = class {
         warmSum += rep.coherence;
         warmCount++;
       }
-      if (!rep.finite) finite2 = false;
+      if (!rep.finite) finite3 = false;
       if (rep.residualFlux > 0) this.ledger.postToSink(t, i, Math.sqrt(rep.residualFlux));
     }
     if (this.tape) this.lastTapeStep = this.tape.advance(this.engines[0].snapshot().z);
@@ -4205,7 +4922,7 @@ var MultiTorusEngine = class {
       rowSumDefect: this.coupling.rowSumDefect,
       worstEnergyRatio: worstRatio,
       digest,
-      finite: finite2
+      finite: finite3
     };
   }
   run(ticks) {
@@ -4858,6 +5575,51 @@ function encodeText(text, out) {
     }
   }
   return finishReport("text", out, boundField(out));
+}
+function gematriaAtom(text, dim) {
+  const atom = new Float64Array(dim);
+  const cps = Array.from(text.normalize("NFKD").toLowerCase().replace(/\s+/g, " ").trim());
+  const L = cps.length;
+  if (L === 0) return atom;
+  const vals = new Float64Array(L);
+  let mean3 = 0;
+  for (let p = 0; p < L; p++) {
+    const v = dpow(PHI, alphabetIndex(cps[p].codePointAt(0) ?? 0) / 2);
+    vals[p] = v;
+    mean3 += v;
+  }
+  mean3 /= L;
+  const modeRe = new Float64Array(TEXT_MODES);
+  const modeIm = new Float64Array(TEXT_MODES);
+  for (let k = 0; k < TEXT_MODES; k++) {
+    const ak = dpow(PHI, -k / 2);
+    const thk = 2 * Math.PI * k * PHI_INV / GOLDEN_PHASE_DENOM;
+    let re = 0;
+    let im = 0;
+    for (let p = 0; p < L; p++) {
+      const dv = vals[p] - mean3;
+      if (dv === 0) continue;
+      const ph = 2 * Math.PI * k * p / L + thk;
+      re += dv * dcos(ph);
+      im += dv * dsin(ph);
+    }
+    modeRe[k] = ak * re;
+    modeIm[k] = ak * im;
+  }
+  for (let j = 0; j < dim; j++) {
+    let re = 0;
+    let im = 0;
+    for (let k = 0; k < TEXT_MODES; k++) {
+      if (modeRe[k] === 0 && modeIm[k] === 0) continue;
+      const ph = 2 * Math.PI * k * j / dim;
+      const c = dcos(ph);
+      const s = dsin(ph);
+      re += modeRe[k] * c - modeIm[k] * s;
+      im += modeRe[k] * s + modeIm[k] * c;
+    }
+    atom[j] = datan2(im, re);
+  }
+  return atom;
 }
 function encodeGrid(data, width, height, out) {
   const n = out.n;
@@ -5941,6 +6703,270 @@ var ConceptStore = class {
   }
 };
 
+// ../omega/packages/trnn-core/src/substrate/correlation.ts
+var STAT_FLOOR = 34;
+var QUADRATIC_CAP = 512;
+var abstain = (n, reason) => ({
+  value: null,
+  n,
+  abstained: true,
+  reason
+});
+function pairLength(x, y) {
+  return Math.min(x.length, y.length);
+}
+function decimate(x, cap) {
+  const n = x.length;
+  if (n <= cap) return Float64Array.from(x);
+  const out = new Float64Array(cap);
+  for (let i = 0; i < cap; i++) out[i] = x[Math.floor(i * n / cap)];
+  return out;
+}
+function pearson(x, y) {
+  const n = pairLength(x, y);
+  if (n < STAT_FLOOR) return abstain(n, `n=${n} < F9 floor ${STAT_FLOOR}`);
+  let mx = 0;
+  let my = 0;
+  for (let i = 0; i < n; i++) {
+    mx += x[i];
+    my += y[i];
+  }
+  mx /= n;
+  my /= n;
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    const a = x[i] - mx;
+    const b = y[i] - my;
+    sxy += a * b;
+    sxx += a * a;
+    syy += b * b;
+  }
+  if (sxx <= 0 || syy <= 0) return abstain(n, "zero variance in one channel");
+  const r = sxy / Math.sqrt(sxx * syy);
+  return { value: Math.max(-1, Math.min(1, r)), n, abstained: false };
+}
+function rank(x) {
+  const n = x.length;
+  const idx = Array.from({ length: n }, (_, i2) => i2).sort((a, b) => x[a] - x[b]);
+  const r = new Float64Array(n);
+  let i = 0;
+  while (i < n) {
+    let j = i;
+    while (j + 1 < n && x[idx[j + 1]] === x[idx[i]]) j++;
+    const avg = (i + j) / 2 + 1;
+    for (let k = i; k <= j; k++) r[idx[k]] = avg;
+    i = j + 1;
+  }
+  return r;
+}
+function spearman(x, y) {
+  const n = pairLength(x, y);
+  if (n < STAT_FLOOR) return abstain(n, `n=${n} < F9 floor ${STAT_FLOOR}`);
+  return pearson(rank(Float64Array.from(x).slice(0, n)), rank(Float64Array.from(y).slice(0, n)));
+}
+function kendallTauB(x, y) {
+  const nRaw = pairLength(x, y);
+  if (nRaw < STAT_FLOOR) return abstain(nRaw, `n=${nRaw} < F9 floor ${STAT_FLOOR}`);
+  const a = decimate(Float64Array.from(x).slice(0, nRaw), QUADRATIC_CAP);
+  const b = decimate(Float64Array.from(y).slice(0, nRaw), QUADRATIC_CAP);
+  const n = a.length;
+  let conc = 0;
+  let disc = 0;
+  let tx = 0;
+  let ty = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const dx = a[i] - a[j];
+      const dy = b[i] - b[j];
+      const s = Math.sign(dx) * Math.sign(dy);
+      if (s > 0) conc++;
+      else if (s < 0) disc++;
+      else {
+        if (dx === 0 && dy !== 0) tx++;
+        else if (dy === 0 && dx !== 0) ty++;
+        else {
+          tx++;
+          ty++;
+        }
+      }
+    }
+  }
+  const n0 = n * (n - 1) / 2;
+  const den = Math.sqrt((n0 - tx) * (n0 - ty));
+  if (!(den > 0)) return abstain(n, "all pairs tied");
+  return { value: Math.max(-1, Math.min(1, (conc - disc) / den)), n, abstained: false };
+}
+function doubleCenter(v, n) {
+  const rowMean = new Float64Array(n);
+  let grand = 0;
+  for (let i = 0; i < n; i++) {
+    let s = 0;
+    for (let j = 0; j < n; j++) s += v[i * n + j];
+    rowMean[i] = s / n;
+    grand += s;
+  }
+  grand /= n * n;
+  const out = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) out[i * n + j] = v[i * n + j] - rowMean[i] - rowMean[j] + grand;
+  }
+  return out;
+}
+function distMatrix(x) {
+  const n = x.length;
+  const d = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const v = Math.abs(x[i] - x[j]);
+      d[i * n + j] = v;
+      d[j * n + i] = v;
+    }
+  }
+  return d;
+}
+function distanceCorrelation(x, y) {
+  const nRaw = pairLength(x, y);
+  if (nRaw < STAT_FLOOR) return abstain(nRaw, `n=${nRaw} < F9 floor ${STAT_FLOOR}`);
+  const a = decimate(Float64Array.from(x).slice(0, nRaw), QUADRATIC_CAP);
+  const b = decimate(Float64Array.from(y).slice(0, nRaw), QUADRATIC_CAP);
+  const n = a.length;
+  const A = doubleCenter(distMatrix(a), n);
+  const B = doubleCenter(distMatrix(b), n);
+  let dcov = 0;
+  let dvx = 0;
+  let dvy = 0;
+  for (let i = 0; i < n * n; i++) {
+    dcov += A[i] * B[i];
+    dvx += A[i] * A[i];
+    dvy += B[i] * B[i];
+  }
+  const m = n * n;
+  dcov /= m;
+  dvx /= m;
+  dvy /= m;
+  const den = Math.sqrt(Math.max(0, dvx) * Math.max(0, dvy));
+  if (!(den > 0)) return abstain(n, "degenerate distance variance");
+  return { value: Math.min(1, Math.sqrt(Math.max(0, dcov) / den)), n, abstained: false };
+}
+function medianPairwise(x) {
+  const n = x.length;
+  const d = [];
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) d.push(Math.abs(x[i] - x[j]));
+  if (d.length === 0) return 1;
+  d.sort((p, q) => p - q);
+  const mid = d.length >> 1;
+  const med = d.length % 2 ? d[mid] : 0.5 * (d[mid - 1] + d[mid]);
+  return med > 0 ? med : 1;
+}
+function rbfGram(x, sigma) {
+  const n = x.length;
+  const k = new Float64Array(n * n);
+  const inv = 1 / (2 * sigma * sigma);
+  for (let i = 0; i < n; i++) {
+    k[i * n + i] = 1;
+    for (let j = i + 1; j < n; j++) {
+      const dd = x[i] - x[j];
+      const v = dexp(-dd * dd * inv);
+      k[i * n + j] = v;
+      k[j * n + i] = v;
+    }
+  }
+  return k;
+}
+function hsic(x, y) {
+  const nRaw = pairLength(x, y);
+  if (nRaw < STAT_FLOOR) return abstain(nRaw, `n=${nRaw} < F9 floor ${STAT_FLOOR}`);
+  const a = decimate(Float64Array.from(x).slice(0, nRaw), QUADRATIC_CAP);
+  const b = decimate(Float64Array.from(y).slice(0, nRaw), QUADRATIC_CAP);
+  const n = a.length;
+  const K = doubleCenter(rbfGram(a, medianPairwise(a)), n);
+  const L = doubleCenter(rbfGram(b, medianPairwise(b)), n);
+  let kl = 0;
+  let kk = 0;
+  let ll = 0;
+  for (let i = 0; i < n * n; i++) {
+    kl += K[i] * L[i];
+    kk += K[i] * K[i];
+    ll += L[i] * L[i];
+  }
+  const den = Math.sqrt(Math.max(0, kk) * Math.max(0, ll));
+  if (!(den > 0)) return abstain(n, "degenerate kernel matrices");
+  return { value: Math.max(0, Math.min(1, kl / den)), n, abstained: false };
+}
+function invNormalCdf(p) {
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const pl = 0.02425;
+  const q = p;
+  if (q <= 0) return -Infinity;
+  if (q >= 1) return Infinity;
+  if (q < pl) {
+    const t2 = Math.sqrt(-2 * dlog(q));
+    return (((((c[0] * t2 + c[1]) * t2 + c[2]) * t2 + c[3]) * t2 + c[4]) * t2 + c[5]) / ((((d[0] * t2 + d[1]) * t2 + d[2]) * t2 + d[3]) * t2 + 1);
+  }
+  if (q > 1 - pl) {
+    const t2 = Math.sqrt(-2 * dlog(1 - q));
+    return -(((((c[0] * t2 + c[1]) * t2 + c[2]) * t2 + c[3]) * t2 + c[4]) * t2 + c[5]) / ((((d[0] * t2 + d[1]) * t2 + d[2]) * t2 + d[3]) * t2 + 1);
+  }
+  const t = q - 0.5;
+  const r = t * t;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * t / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+function normalScores(x) {
+  const r = rank(x);
+  const n = r.length;
+  const z = new Float64Array(n);
+  for (let i = 0; i < n; i++) z[i] = invNormalCdf(r[i] / (n + 1));
+  return z;
+}
+function gaussianMI(x, y) {
+  const n = pairLength(x, y);
+  if (n < STAT_FLOOR) return abstain(n, `n=${n} < F9 floor ${STAT_FLOOR}`);
+  const r = pearson(normalScores(Float64Array.from(x).slice(0, n)), normalScores(Float64Array.from(y).slice(0, n)));
+  if (r.value === null) return abstain(n, r.reason ?? "copula transform degenerate");
+  const rho = Math.max(-0.999999999, Math.min(0.999999999, r.value));
+  return { value: Math.max(0, -0.5 * dlog(1 - rho * rho)), n, abstained: false };
+}
+function permutationTest(stat, x, y, opts = {}) {
+  const B = opts.permutations ?? 199;
+  const base = stat(x, y);
+  if (base.value === null) return { ...base, p: null, permutations: 0 };
+  const n = pairLength(x, y);
+  const ys = Float64Array.from(y).slice(0, n);
+  const rng = new SeedStream(opts.seed ?? "omega-real/p2/permutation");
+  const buf = new Float64Array(n);
+  let ge = 0;
+  for (let b = 0; b < B; b++) {
+    buf.set(ys);
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(rng.next() * (i + 1));
+      const t = buf[i];
+      buf[i] = buf[j];
+      buf[j] = t;
+    }
+    const s = stat(x, buf);
+    if (s.value !== null && Math.abs(s.value) >= Math.abs(base.value) - 1e-15) ge++;
+  }
+  return { ...base, p: (1 + ge) / (B + 1), permutations: B };
+}
+function correlationReport(x, y) {
+  const n = pairLength(x, y);
+  const r = {
+    n,
+    pearson: pearson(x, y),
+    spearman: spearman(x, y),
+    kendall: kendallTauB(x, y),
+    dcor: distanceCorrelation(x, y),
+    hsic: hsic(x, y),
+    mi: gaussianMI(x, y)
+  };
+  return { ...r, abstained: r.pearson.abstained };
+}
+
 // ../omega/packages/trnn-core/src/cognition/selfModel.ts
 var LAMBDA_MAX = phiPow(-1);
 var DiagonalRLS = class {
@@ -6001,31 +7027,33 @@ var DiagonalRLS = class {
 var DiagonalSSM = class {
   constructor(dim, lr = phiPow(-1)) {
     this.dim = dim;
-    this.lr = lr;
+    this.rls = new DiagonalRLS(dim);
+    this.cOut = new Float64Array(dim);
     this.theta = new Float64Array(dim).fill(datanh(phiPow(-2) / LAMBDA_MAX));
-    this.bIn = new Float64Array(dim).fill(1 - phiPow(-2));
-    this.cOut = new Float64Array(dim).fill(phiPow(-4));
-    this.dSkip = new Float64Array(dim).fill(1);
     this.h = new Float64Array(dim);
-    this.hPrev = new Float64Array(dim);
-    this.dh = new Float64Array(dim);
     this.lam = new Float64Array(dim);
+    this.lr = lr;
+    this.bufRls = new Float64Array(dim);
+    this.bufH = new Float64Array(dim);
+    this.bufRes = new Float64Array(dim);
     this.refreshLambda();
   }
   name = "ssm";
-  theta;
-  bIn;
+  rls;
   cOut;
-  dSkip;
+  theta;
   h;
-  /** ∂h/∂θ carried forward (truncated to one step of recurrence). */
-  dh;
   lam;
-  hPrev;
+  lr;
+  bufRls;
+  bufH;
+  bufRes;
   reset() {
+    this.rls.reset();
+    this.cOut.fill(0);
+    this.theta.fill(datanh(phiPow(-2) / LAMBDA_MAX));
     this.h.fill(0);
-    this.hPrev.fill(0);
-    this.dh.fill(0);
+    this.refreshLambda();
   }
   lambdas() {
     return this.lam;
@@ -6045,37 +7073,34 @@ var DiagonalSSM = class {
    * it was *read* is not a model of anything.
    */
   predict(x, out) {
+    this.rls.predict(x, this.bufRls);
     for (let i = 0; i < this.dim; i++) {
-      const hNext = this.lam[i] * this.h[i] + this.bIn[i] * x[i];
-      out[i] = this.cOut[i] * hNext + this.dSkip[i] * x[i];
+      const hNext = this.lam[i] * this.h[i] + x[i];
+      out[i] = this.bufRls[i] + this.cOut[i] * hNext;
     }
     return out;
   }
-  /** Advance the state on x and take one gradient step against target y. */
+  /** Advance the state and take one online step against target y. */
   update(x, y) {
+    this.rls.predict(x, this.bufRls);
+    for (let i = 0; i < this.dim; i++) this.bufH[i] = this.lam[i] * this.h[i] + x[i];
+    for (let i = 0; i < this.dim; i++) this.bufRes[i] = y[i] - this.cOut[i] * this.bufH[i];
+    this.rls.update(x, this.bufRes);
     for (let i = 0; i < this.dim; i++) {
+      const hNext = this.bufH[i];
       const hPrev = this.h[i];
-      const lam = this.lam[i];
-      const hNext = lam * hPrev + this.bIn[i] * x[i];
-      const yhat = this.cOut[i] * hNext + this.dSkip[i] * x[i];
-      const e = yhat - y[i];
-      if (!Number.isFinite(e)) continue;
+      const e = this.bufRls[i] + this.cOut[i] * hNext - y[i];
+      if (!Number.isFinite(e)) {
+        this.h[i] = Number.isFinite(hNext) ? clamp(hNext, -phiPow(6), phiPow(6)) : 0;
+        continue;
+      }
+      const energyC = 1e-9 + hNext * hNext;
+      this.cOut[i] = clamp(this.cOut[i] - this.lr * e * hNext / energyC, -PHI, PHI);
       const t = dtanh(this.theta[i]);
       const dLam = LAMBDA_MAX * (1 - t * t);
-      const dhNext = dLam * hPrev + lam * this.dh[i];
-      const dhNextAbs = dhNext * this.cOut[i];
-      const energy2 = 1e-9 + x[i] * x[i] + hNext * hNext + dhNextAbs * dhNextAbs + 1;
-      const g2 = this.lr * e / energy2;
-      this.theta[i] -= g2 * this.cOut[i] * dhNext;
-      this.bIn[i] -= g2 * this.cOut[i] * x[i];
-      this.cOut[i] -= g2 * hNext;
-      this.dSkip[i] -= g2 * x[i];
-      this.bIn[i] = clamp(this.bIn[i], -PHI, PHI);
-      this.cOut[i] = clamp(this.cOut[i], -PHI, PHI);
-      this.dSkip[i] = clamp(this.dSkip[i], -PHI, PHI);
-      this.theta[i] = clamp(this.theta[i], -8, 8);
-      this.dh[i] = dhNext;
-      this.hPrev[i] = hPrev;
+      const gLam = e * this.cOut[i] * hPrev * dLam;
+      const energyL = 1e-9 + this.cOut[i] * hPrev * (this.cOut[i] * hPrev);
+      this.theta[i] = clamp(this.theta[i] - this.lr * gLam / energyL, -8, 8);
       this.h[i] = Number.isFinite(hNext) ? clamp(hNext, -phiPow(6), phiPow(6)) : 0;
     }
     this.refreshLambda();
@@ -6098,6 +7123,7 @@ var SelfModel = class {
     this.ssmWin = new Float64Array(window);
     this.rlsWin = new Float64Array(window);
     this.perWin = new Float64Array(window);
+    this.resid = new Float64Array(window * dim);
   }
   ssm;
   rls;
@@ -6108,6 +7134,10 @@ var SelfModel = class {
   ssmWin;
   rlsWin;
   perWin;
+  /** window × dim ring of SSM residual vectors, for the residual-dependence audit. */
+  resid;
+  residHead = 0;
+  residCount = 0;
   w = 0;
   filled = 0;
   samples = 0;
@@ -6128,14 +7158,18 @@ var SelfModel = class {
       let eS = 0;
       let eR = 0;
       let eP = 0;
+      const residBase = this.residHead * this.dim;
       for (let i = 0; i < this.dim; i++) {
         const dS = this.bufSsm[i] - x[i];
         const dR = this.bufRls[i] - x[i];
         const dP = this.prev[i] - x[i];
+        this.resid[residBase + i] = dS;
         eS += dS * dS;
         eR += dR * dR;
         eP += dP * dP;
       }
+      this.residHead = (this.residHead + 1) % this.window;
+      this.residCount = Math.min(this.window, this.residCount + 1);
       this.seen++;
       if (Number.isFinite(eS) && Number.isFinite(eR) && this.seen > this.coldStart) {
         this.ssmWin[this.w] = eS;
@@ -6171,6 +7205,69 @@ var SelfModel = class {
     for (let i = 0; i < this.filled; i++) s += win[i];
     return s / this.filled;
   }
+  /** Row-major chronological access into the residual ring (t oldest-first). */
+  residualAt(t, i) {
+    const row = ((this.residHead - this.residCount + t) % this.window + this.window) % this.window;
+    return this.resid[row * this.dim + i];
+  }
+  /**
+   * Residual-dependence audit. A diagonal model cannot see cross-dimension
+   * structure; this measures what it leaves behind, so "does the model
+   * understand correlates" is a number, not an opinion.
+   */
+  residualDependence() {
+    const n = this.residCount;
+    if (n < 2) return { auto: null, cross: null };
+    let autoSum = 0;
+    let autoN = 0;
+    for (let i = 0; i < this.dim; i++) {
+      let m = 0;
+      for (let t = 0; t < n; t++) m += this.residualAt(t, i);
+      m /= n;
+      let sxy = 0, sxx = 0, syy = 0;
+      for (let t = 1; t < n; t++) {
+        const a = this.residualAt(t, i) - m;
+        const b = this.residualAt(t - 1, i) - m;
+        sxy += a * b;
+        sxx += a * a;
+        syy += b * b;
+      }
+      if (sxx > 0 && syy > 0) {
+        autoSum += sxy / Math.sqrt(sxx * syy);
+        autoN++;
+      }
+    }
+    const auto = autoN > 0 ? autoSum / autoN : null;
+    let cross = null;
+    if (n >= STAT_FLOOR) {
+      let best = 0;
+      for (let i = 0; i < this.dim; i++) {
+        for (let j = i + 1; j < this.dim; j++) {
+          let mi = 0, mj = 0;
+          for (let t = 0; t < n; t++) {
+            mi += this.residualAt(t, i);
+            mj += this.residualAt(t, j);
+          }
+          mi /= n;
+          mj /= n;
+          let sxy = 0, sxx = 0, syy = 0;
+          for (let t = 0; t < n; t++) {
+            const a = this.residualAt(t, i) - mi;
+            const b = this.residualAt(t, j) - mj;
+            sxy += a * b;
+            sxx += a * a;
+            syy += b * b;
+          }
+          if (sxx > 0 && syy > 0) {
+            const r = Math.abs(sxy / Math.sqrt(sxx * syy));
+            if (r > best) best = r;
+          }
+        }
+      }
+      cross = best;
+    }
+    return { auto, cross };
+  }
   margin() {
     const r = this.mean(this.rlsWin);
     const s = this.mean(this.ssmWin);
@@ -6182,6 +7279,7 @@ var SelfModel = class {
     const rlsMse = this.mean(this.rlsWin);
     const perMse = this.mean(this.perWin);
     const inForce = this.enabled ? ssmMse : rlsMse;
+    const dep = this.residualDependence();
     return {
       dim: this.dim,
       samples: this.samples,
@@ -6194,7 +7292,9 @@ var SelfModel = class {
       spectralRadius: this.ssm.spectralRadius(),
       lambdaMax: LAMBDA_MAX,
       window: this.filled,
-      recent: this.log.slice(-13)
+      recent: this.log.slice(-13),
+      residualAuto: dep.auto,
+      residualCross: dep.cross
     };
   }
   reset() {
@@ -6209,11 +7309,440 @@ var SelfModel = class {
   }
 };
 
+// ../omega/packages/trnn-core/src/substrate/vsa.ts
+var TWO_PI6 = 6.283185307179586;
+var PI = 3.141592653589793;
+var CLEANUP_FAN_IN = 100;
+var CLEANUP_Z_FLOOR = 5;
+function wrapPhase(p) {
+  if (!Number.isFinite(p)) return NaN;
+  let x = p;
+  if (x >= PI || x < -PI) {
+    const k = Math.floor((x + PI) / TWO_PI6);
+    x -= k * TWO_PI6;
+    if (x >= PI) x -= TWO_PI6;
+    if (x < -PI) x += TWO_PI6;
+  }
+  return x;
+}
+function randomHv(dim, seed) {
+  const rng = new SeedStream(seed);
+  const v = new Float64Array(dim);
+  for (let i = 0; i < dim; i++) v[i] = wrapPhase(rng.signed() * PI);
+  return v;
+}
+function identityHv(dim) {
+  return new Float64Array(dim);
+}
+function conjugateHv(a) {
+  const out = new Float64Array(a.length);
+  for (let i = 0; i < a.length; i++) out[i] = wrapPhase(-a[i]);
+  return out;
+}
+function bind(a, b) {
+  const n = Math.min(a.length, b.length);
+  const out = new Float64Array(n);
+  for (let i = 0; i < n; i++) out[i] = wrapPhase(a[i] + b[i]);
+  return out;
+}
+function unbind(c, a) {
+  const n = Math.min(a.length, c.length);
+  const out = new Float64Array(n);
+  for (let i = 0; i < n; i++) out[i] = wrapPhase(c[i] - a[i]);
+  return out;
+}
+function permute(a, k = 1) {
+  const n = a.length;
+  const out = new Float64Array(n);
+  if (n === 0) return out;
+  const s = (k % n + n) % n;
+  for (let i = 0; i < n; i++) out[(i + s) % n] = a[i];
+  return out;
+}
+function bundle(vs, weights) {
+  const m = vs.length;
+  if (m === 0) return { hv: new Float64Array(0), agreement: new Float64Array(0), meanAgreement: NaN };
+  const dim = vs[0].length;
+  const re = new Float64Array(dim);
+  const im = new Float64Array(dim);
+  let wsum = 0;
+  for (let j = 0; j < m; j++) {
+    const w = weights ? weights[j] : 1;
+    if (!Number.isFinite(w) || w <= 0) continue;
+    wsum += w;
+    const v = vs[j];
+    for (let i = 0; i < dim; i++) {
+      const p = v[i];
+      if (!Number.isFinite(p)) continue;
+      re[i] += w * dcos(p);
+      im[i] += w * dsin(p);
+    }
+  }
+  const hv = new Float64Array(dim);
+  const agreement = new Float64Array(dim);
+  let agSum = 0;
+  for (let i = 0; i < dim; i++) {
+    const mag = Math.sqrt(re[i] * re[i] + im[i] * im[i]);
+    hv[i] = mag <= 1e-300 ? 0 : wrapPhase(datan2(im[i], re[i]));
+    const a = wsum > 0 ? Math.min(1, mag / wsum) : NaN;
+    agreement[i] = a;
+    agSum += Number.isFinite(a) ? a : 0;
+  }
+  return { hv, agreement, meanAgreement: dim > 0 ? agSum / dim : NaN };
+}
+function phiWeights(m) {
+  const w = [];
+  let x = 1;
+  for (let i = 0; i < m; i++) {
+    w.push(x);
+    x *= PHI_INV;
+  }
+  return w;
+}
+function similarity(a, b) {
+  const n = Math.min(a.length, b.length);
+  if (n === 0) return NaN;
+  let s = 0, m = 0;
+  for (let i = 0; i < n; i++) {
+    const d = a[i] - b[i];
+    if (!Number.isFinite(d)) continue;
+    s += dcos(d);
+    m++;
+  }
+  return m === 0 ? NaN : s / m;
+}
+function chanceSigma(dim) {
+  return dim > 0 ? 1 / Math.sqrt(2 * dim) : NaN;
+}
+function angularDistance(a, b) {
+  const s = similarity(a, b);
+  return Number.isFinite(s) ? dacos(Math.max(-1, Math.min(1, s))) : NaN;
+}
+function similarityPct(a, b, floor = PHI_INV) {
+  const s = similarity(a, b);
+  if (!Number.isFinite(s)) return 0;
+  const p = (s - floor) / (1 - floor);
+  return p < 0 ? 0 : p > 1 ? 1 : p;
+}
+var CleanupMemory = class {
+  constructor(dim, fanInCap = CLEANUP_FAN_IN, zFloor = CLEANUP_Z_FLOOR) {
+    this.dim = dim;
+    this.fanInCap = fanInCap;
+    this.zFloor = zFloor;
+  }
+  re = /* @__PURE__ */ new Map();
+  im = /* @__PURE__ */ new Map();
+  n = /* @__PURE__ */ new Map();
+  get size() {
+    return this.n.size;
+  }
+  labels() {
+    return [...this.n.keys()].sort();
+  }
+  /**
+   * Fold an exemplar into a prototype.
+   *
+   * At the fan-in ceiling the existing sum is scaled by φ⁻¹ before the new
+   * exemplar lands: the prototype keeps tracking rather than freezing, and the
+   * effective window stays bounded instead of the mean going to mush.
+   */
+  add(label, v, weight = 1) {
+    if (!Number.isFinite(weight) || weight <= 0) return;
+    let re = this.re.get(label);
+    let im = this.im.get(label);
+    if (!re || !im) {
+      re = new Float64Array(this.dim);
+      im = new Float64Array(this.dim);
+      this.re.set(label, re);
+      this.im.set(label, im);
+      this.n.set(label, 0);
+    }
+    let count = this.n.get(label) ?? 0;
+    if (count >= this.fanInCap) {
+      for (let i = 0; i < this.dim; i++) {
+        re[i] *= PHI_INV;
+        im[i] *= PHI_INV;
+      }
+      count = this.fanInCap - 1;
+    }
+    const lim = Math.min(this.dim, v.length);
+    for (let i = 0; i < lim; i++) {
+      const p = v[i];
+      if (!Number.isFinite(p)) continue;
+      re[i] += weight * dcos(p);
+      im[i] += weight * dsin(p);
+    }
+    this.n.set(label, count + 1);
+  }
+  /** Current prototype hypervector, or null when the label is unknown. */
+  prototype(label) {
+    const re = this.re.get(label);
+    const im = this.im.get(label);
+    if (!re || !im) return null;
+    const out = new Float64Array(this.dim);
+    for (let i = 0; i < this.dim; i++) {
+      out[i] = re[i] * re[i] + im[i] * im[i] <= 1e-300 ? 0 : wrapPhase(datan2(im[i], re[i]));
+    }
+    return out;
+  }
+  stats(label) {
+    const re = this.re.get(label);
+    const im = this.im.get(label);
+    const n = this.n.get(label);
+    if (!re || !im || n === void 0) return null;
+    let agree = 0;
+    for (let i = 0; i < this.dim; i++) agree += Math.sqrt(re[i] * re[i] + im[i] * im[i]);
+    const mean3 = this.dim > 0 && n > 0 ? Math.min(1, agree / (this.dim * n)) : NaN;
+    return { label, fanIn: n, meanAgreement: mean3, saturated: n >= this.fanInCap };
+  }
+  /**
+   * Nearest prototype, or null when the evidence does not clear chance.
+   *
+   * Two independent gates, both required:
+   *   z      = sim / (1/√(2D))  ≥ zFloor   — the match is not a coincidence
+   *   margin = sim − runnerUp   ≥ zFloor·σ — the match is not a coin flip
+   */
+  query(v, zFloor = this.zFloor) {
+    if (this.n.size === 0) return null;
+    const sigma = chanceSigma(this.dim);
+    let bestLabel = "";
+    let best = Number.NEGATIVE_INFINITY;
+    let second = Number.NEGATIVE_INFINITY;
+    for (const label of this.labels()) {
+      const proto = this.prototype(label);
+      if (!proto) continue;
+      const s = similarity(v, proto);
+      if (!Number.isFinite(s)) continue;
+      if (s > best) {
+        second = best;
+        best = s;
+        bestLabel = label;
+      } else if (s > second) {
+        second = s;
+      }
+    }
+    if (!Number.isFinite(best) || bestLabel === "") return null;
+    const margin = Number.isFinite(second) ? best - second : Number.POSITIVE_INFINITY;
+    const z = best / sigma;
+    if (z < zFloor) return null;
+    if (margin < zFloor * sigma) return null;
+    return { label: bestLabel, similarity: best, margin, z, fanIn: this.n.get(bestLabel) ?? 0 };
+  }
+};
+function encodeRecord(pairs) {
+  return bundle(pairs.map(([r, f]) => bind(r, f)));
+}
+function decodeRole(record, role) {
+  return unbind(record, role);
+}
+function encodeSequence(vs, weights) {
+  return bundle(vs.map((v, i) => permute(v, i)), weights);
+}
+function decodePosition(seq, i) {
+  return permute(seq, -i);
+}
+
+// ../omega/packages/trnn-core/src/cognition/lexicon.ts
+var LOG_PHI = dlog(PHI);
+var Lexicon = class _Lexicon {
+  constructor(dim) {
+    this.dim = dim;
+    this.memory = new CleanupMemory(dim);
+  }
+  atoms = /* @__PURE__ */ new Map();
+  freq = /* @__PURE__ */ new Map();
+  df = /* @__PURE__ */ new Map();
+  inDoc = /* @__PURE__ */ new Map();
+  docIds = /* @__PURE__ */ new Set();
+  tokenCount = 0;
+  memory;
+  logPhi(x) {
+    return x > 0 ? dlog(x) / LOG_PHI : 0;
+  }
+  get size() {
+    return this.freq.size;
+  }
+  get tokens() {
+    return this.tokenCount;
+  }
+  get documents() {
+    return this.docIds.size;
+  }
+  /** The deterministic, φ-structured atom for a word (lazy). */
+  atom(word) {
+    let a = this.atoms.get(word);
+    if (!a) {
+      a = gematriaAtom(word, this.dim);
+      let degenerate = true;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== 0) {
+          degenerate = false;
+          break;
+        }
+      }
+      if (degenerate) a = randomHv(this.dim, `lex:${word}`);
+      this.atoms.set(word, a);
+    }
+    return a;
+  }
+  /** The observed words → their φ-structured atoms (for resonant recall). */
+  atomsMap() {
+    return this.atoms;
+  }
+  /** Register one occurrence. `docId` (optional) separates distinct contexts for idf. */
+  observe(word, docId) {
+    const prev = this.freq.get(word) ?? 0;
+    this.freq.set(word, prev + 1);
+    this.tokenCount++;
+    if (prev === 0) this.memory.add(word, this.atom(word));
+    if (docId !== void 0) {
+      this.docIds.add(docId);
+      if (this.inDoc.get(word) !== docId) {
+        this.df.set(word, (this.df.get(word) ?? 0) + 1);
+        this.inDoc.set(word, docId);
+      }
+    }
+  }
+  tf(word) {
+    return this.logPhi(1 + (this.freq.get(word) ?? 0));
+  }
+  idf(word) {
+    const n = this.docIds.size;
+    if (n === 0) return 1;
+    return this.logPhi((n + 1) / (1 + (this.df.get(word) ?? 0)));
+  }
+  salience(word) {
+    return this.tf(word) * this.idf(word);
+  }
+  /** Bounded [0,1) per-word weight. */
+  weight(word) {
+    const s = this.salience(word);
+    return 1 - dexp(-s * LOG_PHI);
+  }
+  entry(word) {
+    if (!this.freq.has(word)) return null;
+    const tf = this.tf(word);
+    const idf = this.idf(word);
+    const salience = tf * idf;
+    return {
+      word,
+      frequency: this.freq.get(word),
+      documents: this.df.get(word) ?? 0,
+      tf,
+      idf,
+      salience,
+      weight: 1 - dexp(-salience * LOG_PHI)
+    };
+  }
+  /** Salience-weighted bundle of the words' atoms (reuses vsa.bundle). */
+  encode(words) {
+    return bundle(words.map((w) => this.atom(w)), words.map((w) => this.weight(w)));
+  }
+  /** Resolve a probe against the catalogue; abstains (null) when below chance. */
+  recall(vec) {
+    return this.memory.query(vec);
+  }
+  /** The whole catalogue, most salient first. */
+  catalogue(limit) {
+    const out = [];
+    for (const w of this.freq.keys()) out.push(this.entry(w));
+    out.sort((a, b) => b.salience - a.salience || b.frequency - a.frequency);
+    return limit === void 0 ? out : out.slice(0, limit);
+  }
+  /** Snapshot the measured state for cross-session persistence (canonical-safe). */
+  serialize() {
+    return {
+      dim: this.dim,
+      tokenCount: this.tokenCount,
+      freq: Object.fromEntries(this.freq),
+      df: Object.fromEntries(this.df),
+      docIds: [...this.docIds].sort()
+    };
+  }
+  /** Rebuild a lexicon from a saved state; atoms are recomputed lazily. */
+  static restore(s) {
+    const lex = new _Lexicon(s.dim);
+    lex.tokenCount = s.tokenCount;
+    for (const [w, n] of Object.entries(s.freq)) lex.freq.set(w, n);
+    for (const [w, n] of Object.entries(s.df)) lex.df.set(w, n);
+    for (const d of s.docIds) lex.docIds.add(d);
+    return lex;
+  }
+};
+
+// ../omega/packages/trnn-core/src/cognition/relations.ts
+var RELATION_ORDER = Object.freeze([
+  "identity",
+  "causation",
+  "inheritance",
+  "composition",
+  "opposition",
+  "temporal",
+  "evaluation",
+  "function",
+  "possession",
+  "location",
+  "gradation",
+  "correlation"
+]);
+var RELATION_WEIGHTS = (() => {
+  const w = {};
+  RELATION_ORDER.forEach((t, i) => {
+    w[t] = phiPow(-i);
+  });
+  return Object.freeze(w);
+})();
+var RelationGraph = class _RelationGraph {
+  out = /* @__PURE__ */ new Map();
+  relate(source, type, target, weight = RELATION_WEIGHTS[type]) {
+    const list = this.out.get(source) ?? [];
+    list.push({ type, target, weight });
+    this.out.set(source, list);
+  }
+  /** The processes attached to a node (its outgoing typed relations). */
+  outgoing(source) {
+    return this.out.get(source) ?? [];
+  }
+  get size() {
+    return this.out.size;
+  }
+  /** Snapshot the typed edges for cross-session persistence. */
+  serialize() {
+    const edges = {};
+    for (const [src, list] of this.out) {
+      edges[src] = list.map((e) => ({ type: e.type, target: e.target, weight: e.weight }));
+    }
+    return { edges };
+  }
+  /** Rebuild a relation graph from a saved state. */
+  static restore(s) {
+    const g2 = new _RelationGraph();
+    for (const [src, list] of Object.entries(s.edges)) {
+      g2.out.set(src, list.map((e) => ({ type: e.type, target: e.target, weight: e.weight })));
+    }
+    return g2;
+  }
+};
+function resonantRecall(probe, atoms, graph, opts = {}) {
+  const k = opts.k ?? 5;
+  const floor = opts.floor ?? phiPow(-1);
+  const hits = [];
+  for (const [key, atom] of atoms) {
+    const pct = similarityPct(probe, atom, floor);
+    if (pct <= 0) continue;
+    hits.push({ key, similarityPct: pct, processes: graph.outgoing(key) });
+  }
+  hits.sort((a, b) => b.similarityPct - a.similarityPct || (a.key < b.key ? -1 : 1));
+  return hits.slice(0, k);
+}
+
 // ../omega/packages/trnn-core/src/cognition/mind.ts
 var NOVELTY_THRESHOLD = phiPow(-3);
 var Mind = class {
   store;
   self;
+  lexicon;
+  relations;
   dim;
   noveltyThreshold;
   predicted;
@@ -6236,6 +7765,8 @@ var Mind = class {
       centroids: opts.centroids ?? 16
     });
     this.self = new SelfModel(this.dim, opts.window ?? 144);
+    this.lexicon = new Lexicon(opts.lexiconDim ?? 512);
+    this.relations = new RelationGraph();
     this.predicted = new Float64Array(this.dim);
     this.obs = new Float64Array(this.dim);
   }
@@ -6302,6 +7833,16 @@ var Mind = class {
   recall(vec, k = 5) {
     return this.store.search(vec, k);
   }
+  /**
+   * Refined-similarity recall over the word catalogue + relation graph: encode
+   * `text` through the φ-power gematria, then return the most similar observed
+   * words with their refined % and their attached processes. Observe-only —
+   * reads the lexicon/relations, never writes the engine.
+   */
+  recallSimilar(text, k = 5) {
+    const probe = gematriaAtom(text, this.lexicon.dim);
+    return resonantRecall(probe, this.lexicon.atomsMap(), this.relations, { k });
+  }
   report() {
     const records = this.store.records();
     const top = records.slice().sort((a, b) => b.hits - a.hits || b.tick - a.tick).slice(0, 13);
@@ -6319,7 +7860,7 @@ var Mind = class {
 };
 
 // ../omega/packages/trnn-core/src/sense/perception.ts
-var TWO_PI5 = 2 * Math.PI;
+var TWO_PI7 = 2 * Math.PI;
 var FIELD_PROJ = 8;
 var SPACE_DIM = 4;
 var CONTENT_DIM = 10;
@@ -6357,14 +7898,14 @@ function foldChannel(out, off, array, fused, layout) {
       const e = array.energy[j];
       total += e;
       if (e > peak) peak = e;
-      const th = TWO_PI5 * j / n;
+      const th = TWO_PI7 * j / n;
       sr += e * dcos(th);
       si += e * dsin(th);
     }
     if (total > 1e-300) {
       const R = dmag(sr, si);
       const len = R / total;
-      const ang = datan2(si, sr) / TWO_PI5 + 0.5;
+      const ang = datan2(si, sr) / TWO_PI7 + 0.5;
       out[spaceAt + 0] = ang;
       out[spaceAt + 1] = len;
       out[spaceAt + 2] = peak / total;
@@ -6838,6 +8379,119 @@ function runBattery(traj, train = {}) {
   return { cell, report };
 }
 
+// ../omega/packages/trnn-core/src/learn/tiers.ts
+var T1_MIN_LIMITS = {
+  maxStorageBufferBindingSize: 64 * 1024 * 1024,
+  maxComputeWorkgroupSizeX: 64
+};
+function tier0() {
+  return {
+    id: "T0",
+    label: "pure TypeScript",
+    available: true,
+    reason: "always available \u2014 the certified engine path",
+    evidence: { allocationFree: true }
+  };
+}
+async function probeTier1(opts = {}) {
+  const nav = opts.navigatorRef ?? (typeof navigator !== "undefined" ? navigator : void 0);
+  if (!nav?.gpu) {
+    return { id: "T1", label: "WebGPU training", available: false, reason: "no navigator.gpu in this context" };
+  }
+  try {
+    const adapter = await nav.gpu.requestAdapter();
+    if (!adapter) {
+      return { id: "T1", label: "WebGPU training", available: false, reason: "requestAdapter() returned null" };
+    }
+    const limits = adapter.limits ?? {};
+    const sb = Number(limits["maxStorageBufferBindingSize"] ?? 0);
+    const wg = Number(limits["maxComputeWorkgroupSizeX"] ?? 0);
+    const ok = sb >= T1_MIN_LIMITS.maxStorageBufferBindingSize && wg >= T1_MIN_LIMITS.maxComputeWorkgroupSizeX;
+    return {
+      id: "T1",
+      label: "WebGPU training",
+      available: ok,
+      reason: ok ? "adapter limits meet the training minimum" : `adapter under minimum (storage ${sb}B, workgroupX ${wg})`,
+      evidence: {
+        maxStorageBufferBindingSize: sb,
+        maxComputeWorkgroupSizeX: wg,
+        vendor: adapter.info?.vendor ?? "unknown",
+        architecture: adapter.info?.architecture ?? "unknown"
+      }
+    };
+  } catch (e) {
+    return {
+      id: "T1",
+      label: "WebGPU training",
+      available: false,
+      reason: `adapter probe threw: ${e.message}`
+    };
+  }
+}
+async function pingJson(url, opts) {
+  const f = opts.fetchImpl ?? globalThis.fetch;
+  if (!f) throw new Error("no fetch in this context");
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const t = ctrl ? setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 1500) : null;
+  const t0 = Date.now();
+  try {
+    const res = await f(url, ctrl ? { method: "GET", signal: ctrl.signal } : { method: "GET" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return { ms: Date.now() - t0, body: await res.json() };
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
+async function probeTier2(opts = {}) {
+  const base = opts.sidecarUrl;
+  if (!base) {
+    return { id: "T2", label: "local sidecar", available: false, reason: "no sidecar URL configured" };
+  }
+  try {
+    const { ms, body } = await pingJson(`${base.replace(/\/$/, "")}/health`, opts);
+    const info = body ?? {};
+    return {
+      id: "T2",
+      label: "local sidecar",
+      available: true,
+      reason: `sidecar answered in ${ms} ms`,
+      evidence: {
+        latencyMs: ms,
+        engine: String(info["engine"] ?? "unknown"),
+        version: String(info["version"] ?? "unknown")
+      }
+    };
+  } catch (e) {
+    return { id: "T2", label: "local sidecar", available: false, reason: `no answer: ${e.message}` };
+  }
+}
+async function probeTier3(opts = {}) {
+  const url = opts.hostedUrl;
+  if (!url) {
+    return { id: "T3", label: "hosted training", available: false, reason: "no hosted endpoint configured" };
+  }
+  try {
+    const { ms, body } = await pingJson(url, opts);
+    const info = body ?? {};
+    return {
+      id: "T3",
+      label: "hosted training",
+      available: true,
+      reason: `endpoint answered in ${ms} ms`,
+      evidence: { latencyMs: ms, version: String(info["version"] ?? "unknown") }
+    };
+  } catch (e) {
+    return { id: "T3", label: "hosted training", available: false, reason: `no answer: ${e.message}` };
+  }
+}
+async function probeTiers(opts = {}) {
+  const [t1, t2, t3] = await Promise.all([probeTier1(opts), probeTier2(opts), probeTier3(opts)]);
+  const tiers = [tier0(), t1, t2, t3];
+  const order = ["T3", "T2", "T1", "T0"];
+  const selected = order.find((id) => tiers.find((t) => t.id === id)?.available) ?? "T0";
+  return { tiers, selected };
+}
+
 // ../omega/packages/trnn-core/src/sense/scan.ts
 var FLUX_CLOSURE_TOLERANCE = 1e-9;
 var CAPTURE_FLOOR = 0.5;
@@ -7189,905 +8843,11 @@ function rungScan(engine, rank2) {
   if (!e) return null;
   return scanRung(e, rank2);
 }
-
-// ../omega/packages/trnn-core/src/runtime/host.ts
-function tapeCapacityFor(totalNodes) {
-  return Math.max(233, Math.min(10946, largestFibonacciAtMost(Math.max(233, totalNodes))));
-}
-var MEMORY_STRIDE = 144;
-var MIND_STRIDE = 21;
-var DEFAULT_ORGANS = { radialOrders: 8, radialGain: 0, stride: 3 };
-var DEFAULT_SENSORS = { bands: 10, depth: 233 };
-var DEFAULT_CHORDS = ["fibonacci", "lucas", "spiral"];
-var DEFAULT_CHORD_GAIN = 1 / 1.618033988749895;
-var DEFAULT_DRIVE = 1 / 1.618033988749895;
-var MIN_HZ = 8;
-var MAX_HZ = 64;
-var EngineHost = class {
-  profile;
-  seed;
-  ledger;
-  engine;
-  nodes;
-  sliceBudgetMs;
-  targetHz;
-  busHz = MAX_HZ;
-  running = false;
-  last = null;
-  lastLoad = 0;
-  tickRate = 0;
-  rateWindowStart = 0;
-  rateWindowTicks = 0;
-  checkpointTick = null;
-  overruns = 0;
-  /** Fractional tick debt carried between frames so the rate matches targetHz. */
-  debt = 0;
-  // ---- Ω-P6 sensory + braid memory ----
-  plane = null;
-  channelMeta = /* @__PURE__ */ new Map();
-  braid = null;
-  lastRecall = null;
-  lastFoldTick = -1;
-  stored = 0;
-  skipped = 0;
-  scratchField = null;
-  // ---- Ω-P7 cognition ----
-  mind = null;
-  learnCell = null;
-  lastLearn = null;
-  obs = null;
-  lastThought = null;
-  lastMindTick = -1;
-  /** Folds skipped because the ladder had nothing to report. */
-  quiescentFolds = 0;
-  // ---- Ω-P8 perception (sensory grounding) ----
-  /**
-   * A separate Mind for the senses: perceptual concepts live in a different
-   * dimensional space than ladder-telemetry concepts and must never collide with
-   * them. Same machinery, same novelty gate, own store + self-model.
-   */
-  sensoryMind = null;
-  perceptLayout = null;
-  perceptObs = null;
-  lastPercept = null;
-  lastPerceptTick = -1;
-  /** Perception folds skipped because every sense was silent. */
-  quiescentPercepts = 0;
-  constructor(opts) {
-    this.profile = typeof opts.profile === "string" ? profileById(opts.profile) : opts.profile;
-    this.seed = opts.seed ?? "metatron-omega";
-    this.sliceBudgetMs = Math.max(0.01, opts.sliceBudgetMs ?? 8);
-    this.targetHz = Math.min(MAX_HZ, Math.max(MIN_HZ, opts.targetHz ?? MAX_HZ));
-    const ladder = opts.rungs ?? DENSE_CORE;
-    const rungs = ladder.slice(0, this.profile.rungs);
-    this.nodes = rungs.map((_, rank2) => nodesForRank(this.profile, rank2));
-    this.engine = new MultiTorusEngine({
-      rungs,
-      nodes: (_r, rank2) => this.nodes[rank2],
-      seed: this.seed,
-      couplingBand: this.profile.couplingBand,
-      clock: this.profile.clock,
-      modes: this.profile.modes,
-      tapeCapacity: this.profile.tape,
-      drive: opts.drive ?? DEFAULT_DRIVE,
-      organs: opts.organs === null ? void 0 : opts.organs ?? DEFAULT_ORGANS,
-      sensors: opts.sensors === null ? void 0 : opts.sensors ?? DEFAULT_SENSORS,
-      chords: opts.chords === null ? void 0 : opts.chords ?? DEFAULT_CHORDS,
-      chordGain: opts.chordGain ?? DEFAULT_CHORD_GAIN,
-      tape: opts.tape === null ? void 0 : opts.tape ?? { capacity: tapeCapacityFor(this.nodes.reduce((a, b) => a + b, 0)) }
-    });
-    this.ledger = new RunLedger(
-      {
-        id: `${this.profile.id}:${this.seed}:${Date.now().toString(36)}`,
-        profileId: this.profile.id,
-        seed: this.seed,
-        nodes: this.nodes.slice(),
-        startedAt: Date.now()
-      },
-      4181,
-      opts.ledgerStride ?? 13
-    );
-  }
-  start() {
-    this.running = true;
-    this.debt = 0;
-  }
-  stop() {
-    this.running = false;
-    this.debt = 0;
-  }
-  isRunning() {
-    return this.running;
-  }
-  setTargetHz(hz) {
-    this.targetHz = Math.min(MAX_HZ, Math.max(MIN_HZ, hz));
-    this.busHz = Math.min(this.busHz, this.targetHz);
-  }
-  /** One deterministic tick, ledgered. Usable directly in tests. */
-  stepOnce() {
-    const rep = this.engine.step();
-    this.last = rep;
-    const mark = {
-      tick: rep.tick,
-      digest: rep.digest,
-      coherence: rep.coherence,
-      energy: rep.rungs.reduce((s, r) => s + (r?.energy ?? 0), 0),
-      fluxImbalance: rep.fluxImbalance,
-      orderingViolations: rep.orderingViolations,
-      finite: rep.finite
-    };
-    this.ledger.mark(mark);
-    this.foldMemory(rep.tick);
-    this.foldMind(rep);
-    this.foldPerception(rep);
-    return rep;
-  }
-  // ---- Ω-P6: sensory plane ----
-  /** Lazily build the plane over the live rung geometry. */
-  ensurePlane() {
-    if (!this.plane) {
-      this.plane = new SensoryPlane(this.engine.engines.map((e) => e.nodes));
-      this.engine.attachSensory(this.plane);
-    }
-    return this.plane;
-  }
-  declareChannel(id, modality, nodes, gain = 1) {
-    const plane = this.ensurePlane();
-    const n = nodes ?? this.nodes[0];
-    plane.declare({ id, modality, nodes: n, gain });
-    this.channelMeta.set(id, { modality, nodes: n, gain, report: null, updatedAt: -1 });
-  }
-  /**
-   * Encode raw modality data and push it into a channel. The host owns the
-   * encoders so the worker boundary only ever carries plain arrays.
-   */
-  pushChannel(id, data, opts = {}) {
-    const meta = this.channelMeta.get(id);
-    if (!meta) throw new Error(`EngineHost: channel "${id}" is not declared`);
-    const plane = this.ensurePlane();
-    const f = senseField(meta.nodes);
-    let report;
-    switch (meta.modality) {
-      case "text":
-        report = encodeText(typeof data === "string" ? data : String(data), f);
-        break;
-      case "grid":
-        report = encodeGrid(
-          typeof data === "string" ? [] : data,
-          opts.width ?? 0,
-          opts.height ?? 0,
-          f
-        );
-        break;
-      case "audio":
-        report = encodeAudio(typeof data === "string" ? [] : data, f);
-        break;
-      default:
-        report = encodeScalars(typeof data === "string" ? [] : data, f);
-        break;
-    }
-    plane.push(id, f, this.engine.currentTick());
-    meta.report = report;
-    meta.updatedAt = this.engine.currentTick();
-    return report;
-  }
-  muteChannel(id) {
-    this.plane?.mute(id);
-    const meta = this.channelMeta.get(id);
-    if (meta) meta.report = null;
-  }
-  /** Set the actuator loop gain (throws above φ⁻², Law L-S2). */
-  setSenseGain(g2) {
-    return this.ensurePlane().setLoopGain(g2);
-  }
-  sense() {
-    const plane = this.ensurePlane();
-    const channels = [...this.channelMeta.entries()].map(([id, m]) => ({
-      id,
-      modality: m.modality,
-      nodes: m.nodes,
-      gain: m.gain,
-      peak: m.report?.peak ?? 0,
-      energy: m.report?.energy ?? 0,
-      support: m.report?.support ?? 0,
-      updatedAt: m.updatedAt
-    }));
-    channels.sort((a, b) => a.id < b.id ? -1 : 1);
-    return { channels, report: plane.report() };
-  }
-  // ---- Ω-P6: braid memory ----
-  ensureBraid() {
-    if (!this.braid) {
-      const nodes = this.nodes[0] ?? 144;
-      this.braid = new TorusBraid({ nodes, capacity: ratedCapacity(nodes) });
-      this.scratchField = createField(nodes);
-    }
-    return this.braid;
-  }
-  /**
-   * Fold the rank-0 field into the braid on the memory stride, behind a
-   * novelty gate: a field the braid already recognises is *not* re-stored, so
-   * capacity buys distinct experience rather than repetition. The recall that
-   * decides this is the same cascade the UI reads as `familiarity`.
-   */
-  foldMemory(tick) {
-    if (tick % MEMORY_STRIDE !== 0 || tick === this.lastFoldTick) return;
-    const braid = this.ensureBraid();
-    const snap = this.engine.engines[0].snapshot();
-    const probe = this.scratchField;
-    const n = Math.min(probe.n, snap.z.n);
-    probe.re.fill(0);
-    probe.im.fill(0);
-    for (let i = 0; i < n; i++) {
-      probe.re[i] = snap.z.re[i];
-      probe.im[i] = snap.z.im[i];
-    }
-    const r = braid.recall(probe);
-    this.lastRecall = r;
-    this.lastFoldTick = tick;
-    if (r.accepted && r.similarity >= braid.accept) {
-      this.skipped++;
-    } else {
-      braid.store(snap.digest.slice(0, 16), probe, tick);
-      this.stored++;
-    }
-  }
-  // ---- Ω-P7: cognition ----
-  ensureMind() {
-    if (!this.mind) {
-      const dim = Math.max(6, this.engine.rungs.length * 6);
-      this.mind = new Mind({ dim, capacity: 610, seed: `${this.seed}-mind` });
-      this.obs = new Float64Array(dim);
-    }
-    return this.mind;
-  }
-  /**
-   * One cognitive fold per MIND_STRIDE ticks. The observation is the engine's
-   * own per-rung telemetry — coherence, energy, obstruction, clamp pressure —
-   * so a concept is literally a recurring shape of the ladder's behaviour, and
-   * surprise is measured against that same vector. Nothing here is synthesised.
-   */
-  foldMind(rep) {
-    if (rep.tick % MIND_STRIDE !== 0 || rep.tick === this.lastMindTick) return;
-    const mind = this.ensureMind();
-    const v = this.obs;
-    for (let i = 0; i < this.engine.rungs.length; i++) {
-      const t = rep.rungs[i];
-      const o = i * 6;
-      v[o] = t?.coherence ?? 0;
-      v[o + 1] = dlog1p(Math.max(0, t?.energy ?? 0));
-      v[o + 2] = t?.closureDefect ?? 0;
-      v[o + 3] = t?.clamped ?? 0;
-      v[o + 4] = t?.realizedGain ?? 0;
-      v[o + 5] = t?.skill ?? 0;
-    }
-    let norm2 = 0;
-    for (let i = 0; i < v.length; i++) norm2 += v[i] * v[i];
-    if (!(norm2 > 1e-18) || !Number.isFinite(norm2)) {
-      this.quiescentFolds++;
-      this.lastMindTick = rep.tick;
-      return;
-    }
-    this.lastThought = mind.observe(v, rep.tick, rep.digest.slice(0, 16));
-    this.lastMindTick = rep.tick;
-  }
-  cognition() {
-    return this.ensureMind().report();
-  }
-  // ---- Ω-P8 perception ----
-  /**
-   * Lazily build the perceptual Mind once the sensory array's band plan is
-   * known. The layout is per-channel over every declared channel (sorted id, so
-   * the block index is stable), sized from the rung-0 array's band count.
-   */
-  ensureSensoryMind() {
-    if (!this.sensoryMind) {
-      const array = this.engine.engines[0]?.sensors ?? null;
-      if (!array) return null;
-      const channels = this.plane ? this.plane.channelIds() : [];
-      if (channels.length === 0) return null;
-      this.perceptLayout = perceptionLayout(array.bands, channels.length);
-      this.sensoryMind = new Mind({
-        dim: this.perceptLayout.dim,
-        capacity: 610,
-        seed: `${this.seed}-percept`
-      });
-      this.perceptObs = new Float64Array(this.perceptLayout.dim);
-    }
-    return this.sensoryMind;
-  }
-  /**
-   * One perceptual fold per MIND_STRIDE ticks, after the cognitive fold. The
-   * observation is the sensory meaning-vector (Ω-P8): per-channel φ-band
-   * profile, spatial energy moments, and the fused-field projection. A silent
-   * world carries no experience, so — exactly like the cognitive fold — a
-   * zero-norm observation is skipped rather than minting a degenerate concept.
-   *
-   * Pure observation: it reads the array and the plane's staged channel fields,
-   * never writes the dynamics, so the determinism oracle is untouched.
-   */
-  foldPerception(rep) {
-    if (rep.tick % MIND_STRIDE !== 0 || rep.tick === this.lastPerceptTick) return;
-    this.lastPerceptTick = rep.tick;
-    const mind = this.ensureSensoryMind();
-    if (!mind || !this.perceptLayout || !this.perceptObs) return;
-    const array = this.engine.engines[0]?.sensors ?? null;
-    const ids = this.plane ? this.plane.channelIds() : [];
-    const fused = ids.map((id) => this.plane.channelField(id));
-    const norm2 = perceive(this.perceptObs, array, fused, this.perceptLayout);
-    if (!(norm2 > 1e-18) || !Number.isFinite(norm2)) {
-      this.quiescentPercepts++;
-      return;
-    }
-    this.lastPercept = mind.observe(this.perceptObs, rep.tick, `p${rep.tick}`);
-  }
-  /** The perceptual Mind's report — what the senses have learned. */
-  perception() {
-    return this.sensoryMind ? this.sensoryMind.report() : null;
-  }
-  /** Nearest perceptual concepts to the live sensory observation. */
-  perceiveReflect(k = 5) {
-    if (!this.sensoryMind) return { hits: [], exactOps: 0, pqOps: 0, hops: 0 };
-    return this.sensoryMind.recall(this.perceptObs ?? new Float64Array(this.sensoryMind.dim), k);
-  }
-  /** Nearest concepts to the live observation — the read side of the store. */
-  reflect(k = 5) {
-    const mind = this.ensureMind();
-    return mind.recall(this.obs ?? new Float64Array(mind.dim), k);
-  }
-  memory() {
-    const braid = this.ensureBraid();
-    return {
-      load: braid.load,
-      capacity: braid.capacity,
-      beta: braid.beta(),
-      stride: MEMORY_STRIDE,
-      lastFoldTick: this.lastFoldTick,
-      stored: this.stored,
-      skipped: this.skipped,
-      familiarity: this.lastRecall?.similarity ?? 0,
-      lastRecall: this.lastRecall,
-      patterns: braid.patterns().slice(-13)
-    };
-  }
-  /**
-   * Run as many ticks as fit in the slice budget, capped by the target rate.
-   * `nowMs` is the frame timeline (injected, so the rate window is testable);
-   * the slice budget is measured on the host's own monotonic clock — mixing
-   * the two would compare an injected timeline against real time.
-   */
-  pump(nowMs, elapsedMs) {
-    if (!this.running) return 0;
-    this.debt = Math.min(this.debt + this.targetHz * elapsedMs / 1e3, this.targetHz);
-    const wanted = Math.floor(this.debt);
-    if (wanted < 1) return 0;
-    const t0 = this.clock();
-    let done = 0;
-    for (let i = 0; i < wanted; i++) {
-      this.stepOnce();
-      done++;
-      if (this.clock() - t0 >= this.sliceBudgetMs) break;
-    }
-    this.debt -= done;
-    const spent = this.clock() - t0;
-    this.lastLoad = spent / this.sliceBudgetMs;
-    if (done < wanted || this.lastLoad > 1) {
-      this.overruns++;
-      this.busHz = Math.max(MIN_HZ, this.busHz / 1.618033988749895);
-    } else if (this.lastLoad < 0.5) {
-      this.busHz = Math.min(this.targetHz, this.busHz * 1.1);
-    }
-    if (this.rateWindowStart === 0) this.rateWindowStart = nowMs;
-    this.rateWindowTicks += done;
-    const span = nowMs - this.rateWindowStart;
-    if (span >= 1e3) {
-      this.tickRate = this.rateWindowTicks * 1e3 / span;
-      this.rateWindowStart = nowMs;
-      this.rateWindowTicks = 0;
-    }
-    return done;
-  }
-  clock() {
-    const p = globalThis.performance;
-    return p?.now ? p.now() : Date.now();
-  }
-  /** Exact web-wide checkpoint (rung state + web tick + digest chain). */
-  checkpoint() {
-    const cp = this.engine.checkpoint();
-    this.checkpointTick = cp.tick;
-    return cp;
-  }
-  restore(cp) {
-    this.engine.restore(cp);
-    this.last = null;
-    this.checkpointTick = cp.tick;
-  }
-  snapshot() {
-    const rep = this.last;
-    const cost = profileCost(this.profile);
-    const rungs = this.engine.rungs.map((r, i) => {
-      const t = rep?.rungs[i];
-      return {
-        n: r.n,
-        nodes: this.nodes[i],
-        coherence: t?.coherence ?? 0,
-        warm: t?.coherenceWarm ?? false,
-        energy: t?.energy ?? 0,
-        regime: t?.regime ?? "IDLE",
-        clamped: t?.clamped ?? 0,
-        obstruction: t?.obstruction ?? 0,
-        closureDefect: t?.closureDefect ?? 0,
-        closureQuality: t?.closureQuality ?? 0,
-        skill: t?.skill ?? 0
-      };
-    });
-    return {
-      running: this.running,
-      profile: this.profile.id,
-      seed: this.seed,
-      tick: this.engine.currentTick(),
-      tickRate: this.tickRate,
-      busHz: this.busHz,
-      coherence: rep?.coherence ?? 0,
-      coherenceWarm: rep?.coherenceWarm ?? NaN,
-      warmRungs: rep?.warmRungsTotal ?? 0,
-      energy: rungs.reduce((s, r) => s + r.energy, 0),
-      fluxMoved: rep?.fluxMoved ?? 0,
-      fluxImbalance: rep?.fluxImbalance ?? 0,
-      orderingViolations: rep?.orderingViolations ?? 0,
-      rowSumDefect: rep?.rowSumDefect ?? this.engine.coupling.rowSumDefect,
-      worstEnergyRatio: rep?.worstEnergyRatio ?? 1,
-      digest: rep?.digest ?? this.engine.digest(),
-      finite: rep?.finite ?? true,
-      stepped: rep?.stepped ?? [],
-      rungs,
-      nodes: this.nodes.slice(),
-      totalNodes: cost.nodes,
-      predictedBytes: cost.bytes,
-      checkpointTick: this.checkpointTick,
-      ledgerMarks: this.ledger.size(),
-      load: this.lastLoad,
-      senseChannels: this.plane?.report().channels ?? 0,
-      sensePeak: this.plane?.report().maxPeak ?? 0,
-      senseGain: this.plane?.currentLoopGain() ?? 0,
-      memoryLoad: this.braid?.load ?? 0,
-      memoryCapacity: this.braid?.capacity ?? 0,
-      familiarity: this.lastRecall?.similarity ?? 0,
-      memoryStage: this.lastRecall?.stage ?? "idle",
-      concepts: this.mind?.store.size ?? 0,
-      novelty: this.lastThought?.novelty ?? 0,
-      surprise: this.lastThought?.surprise ?? 0,
-      selfModel: this.mind?.self.enabled ?? false,
-      selfMargin: this.mind?.self.margin() ?? 0,
-      quiescentFolds: this.quiescentFolds,
-      perceptConcepts: this.sensoryMind?.store.size ?? 0,
-      perceptNovelty: this.lastPercept?.novelty ?? 0,
-      perceptSurprise: this.lastPercept?.surprise ?? 0,
-      quiescentPercepts: this.quiescentPercepts,
-      ...this.organSnapshot(),
-      chords: this.engine.coupling.chords,
-      tapeOccupancy: this.engine.tape?.occupied() ?? 0,
-      tapeCapacity: this.engine.tape?.capacity ?? 0,
-      tapeHead: this.engine.tape?.position() ?? 0
-    };
-  }
-  /**
-   * Ladder-wide organ rollup. Organ coverage is counted, not assumed: a rung
-   * without an organ bank contributes 0 nodes, so `organNodes < totalNodes`
-   * is visible in the UI instead of being papered over.
-   */
-  organSnapshot() {
-    let nodes = 0;
-    let res = 0;
-    let part = 0;
-    let rungs = 0;
-    for (const e of this.engine.engines) {
-      const r = e.organReport();
-      if (!r) continue;
-      nodes += e.nodes;
-      res += r.meanEigenResidual;
-      part += r.meanParticipation;
-      rungs++;
-    }
-    return {
-      organNodes: nodes,
-      organResidual: rungs > 0 ? res / rungs : 0,
-      organParticipation: rungs > 0 ? part / rungs : 0
-    };
-  }
-  overrunCount() {
-    return this.overruns;
-  }
-  // ---- Ω-P5 on-demand views (never on the snapshot bus) ----
-  /** Static topology: ladder rungs, clocks, channel matrix. */
-  describe() {
-    return describeEngine(this.engine);
-  }
-  /** One rung's live field, decimated for rendering. */
-  field(rank2, maxSamples = 610) {
-    return fieldFrame(this.engine, rank2, maxSamples);
-  }
-  /** Ledger positions and the tail of the double-entry journal. */
-  web(tail = 24) {
-    return webView(this.engine, tail);
-  }
-  /** N1 — six-section sensory scan of one toroid. */
-  scan(rank2) {
-    return rungScan(this.engine, rank2);
-  }
-  /** Measured spectral roundtrip on the shell and radial planes. */
-  spectral(rank2) {
-    return spectralView(this.engine, rank2);
-  }
-  // ---- Ω-P8: learning ----
-  /**
-   * Run the held-out battery for the learnable cell against this host's seed.
-   * Synchronous and off the bus by design: it is an explicit operator action,
-   * not something the tick loop does behind the user's back. The engine state
-   * is untouched — the battery builds its own private SingleTorusEngine.
-   */
-  learn(opts = {}) {
-    const t0 = Date.now();
-    const traj = sampleTrajectory({
-      nodes: opts.nodes ?? Math.min(89, this.nodes[this.nodes.length - 1] ?? 55),
-      seed: `${this.seed}-learn`,
-      warmup: opts.warmup ?? 89,
-      trainTicks: opts.trainTicks ?? 233,
-      holdTicks: opts.holdTicks ?? 89
-    });
-    const { cell, report } = runBattery(traj, {
-      iterations: opts.iterations ?? 240,
-      seed: `${this.seed}-spsa`
-    });
-    this.learnCell = cell;
-    this.lastLearn = {
-      report,
-      elapsedMs: Date.now() - t0,
-      certificates: cell.certificates().map((c) => ({ ...c })),
-      nodes: traj.nodes
-    };
-    return this.lastLearn;
-  }
-  /** Last battery result, or null when learning has never been run. */
-  learnState() {
-    return this.lastLearn;
-  }
-};
-
-// ../omega/packages/trnn-core/src/learn/spectralFilter.ts
-var FILTER_RHO_MAX = PHI_INV;
-var SpectralFilter = class {
-  kind = "SpectralFilter";
-  size;
-  /** raw layout: [mag_0..mag_{K-1}, phase_0..phase_{K-1}] */
-  raw;
-  rhoMax;
-  out;
-  constructor(modes, rhoMax = FILTER_RHO_MAX) {
-    if (!Number.isInteger(modes) || modes <= 0) throw new RangeError(`SpectralFilter: modes must be a positive integer, got ${modes}`);
-    if (!(rhoMax > 0) || !(rhoMax < 1)) throw new RangeError(`SpectralFilter: rhoMax must lie in (0,1), got ${rhoMax}`);
-    this.size = modes;
-    this.rhoMax = rhoMax;
-    this.raw = new Float64Array(2 * modes);
-    this.out = new Float64Array(2 * modes);
-  }
-  /** ρ_k ∈ [0, ρ_max]. |s(x)| is used so the map covers the closed lower end. */
-  magnitude(k) {
-    return this.rhoMax * Math.abs(algSigmoid(this.raw[k]));
-  }
-  /** ψ_k ∈ (−π, π). */
-  phase(k) {
-    return Math.PI * algSigmoid(this.raw[this.size + k]);
-  }
-  /** Interleaved [Re α_0, Im α_0, …]. Owned buffer; no allocation. */
-  values() {
-    for (let k = 0; k < this.size; k++) {
-      const r = this.magnitude(k);
-      const p = this.phase(k);
-      this.out[2 * k] = r * dcos(p);
-      this.out[2 * k + 1] = r * dsin(p);
-    }
-    return this.out;
-  }
-  /** c ← α ⊙ c, in place on an interleaved coefficient buffer. */
-  apply(coeffs) {
-    if (coeffs.length < 2 * this.size) {
-      throw new RangeError(`SpectralFilter.apply: buffer holds ${coeffs.length / 2} modes, filter needs ${this.size}`);
-    }
-    const a = this.values();
-    for (let k = 0; k < this.size; k++) {
-      const cr = coeffs[2 * k];
-      const ci = coeffs[2 * k + 1];
-      const ar = a[2 * k];
-      const ai = a[2 * k + 1];
-      coeffs[2 * k] = ar * cr - ai * ci;
-      coeffs[2 * k + 1] = ar * ci + ai * cr;
-    }
-    return coeffs;
-  }
-  /** The induced ℓ² gain of the filter: max_k |α_k|. */
-  gain() {
-    let m = 0;
-    for (let k = 0; k < this.size; k++) m = Math.max(m, this.magnitude(k));
-    return m;
-  }
-  certificate() {
-    const g2 = this.gain();
-    return {
-      kind: this.kind,
-      statement: `\u2016diag(\u03B1)\u2016\u2082 = max_k|\u03B1_k| \u2264 \u03C1_max = ${this.rhoMax} < 1 for every raw \u2208 R^${2 * this.size}`,
-      bound: this.rhoMax,
-      measured: g2,
-      holds: g2 <= this.rhoMax * (1 + 8 * Number.EPSILON)
-    };
-  }
-  /**
-   * One deterministic gradient step on E = ½ Σ_k (ρ_k − target_k)².
-   *
-   *   dE/draw_k = (ρ_k − t_k) · ρ_max · sign(s) · s'(raw_k)
-   *
-   * Targets above ρ_max are honestly unreachable; the step drives ρ_k to the
-   * ceiling and the residual it returns says so rather than pretending to fit.
-   */
-  stepMagnitudes(target, rate) {
-    if (target.length < this.size) throw new RangeError(`stepMagnitudes: need ${this.size} targets, got ${target.length}`);
-    let sse = 0;
-    for (let k = 0; k < this.size; k++) {
-      const x = this.raw[k];
-      const s = algSigmoid(x);
-      const rho = this.rhoMax * Math.abs(s);
-      const err = rho - target[k];
-      sse += err * err;
-      const sgn = s >= 0 ? 1 : -1;
-      this.raw[k] = x - rate * err * this.rhoMax * sgn * algSigmoidPrime(x);
-    }
-    return Math.sqrt(sse / this.size);
-  }
-  /** Run `iters` deterministic steps; returns the final RMS magnitude error. */
-  fitMagnitudes(target, rate = 1, iters = 512) {
-    let rms = Infinity;
-    for (let i = 0; i < iters; i++) rms = this.stepMagnitudes(target, rate);
-    return rms;
-  }
-};
-function diffusionTarget(lambda, dt, out) {
-  const o = out ?? new Float64Array(lambda.length);
-  for (let k = 0; k < lambda.length; k++) o[k] = dexp(-lambda[k] * dt);
-  return o;
-}
-
-// ../omega/packages/trnn-core/src/learn/mixer.ts
-var BIAS_TOTAL = PHI_INV;
-var SuperpositionMixer = class {
-  basis;
-  modes;
-  /** Learnable bias *field*, held as its own eigencoefficients β_k. */
-  bias;
-  spatial;
-  scratch;
-  constructor(basis, biasTotal = BIAS_TOTAL) {
-    this.basis = basis;
-    this.modes = basis.vectors.length;
-    this.spatial = createField(basis.n);
-    this.scratch = new Float64Array(2 * this.modes);
-    this.bias = new SimplexGain(this.modes, biasTotal);
-  }
-  /**
-   * c ← analyze( σ( synth(c) ) ) + β. In place on an interleaved buffer.
-   * Zero allocation after construction.
-   */
-  apply(coeffs) {
-    if (coeffs.length < 2 * this.modes) {
-      throw new RangeError(`SuperpositionMixer.apply: buffer holds ${coeffs.length / 2} modes, basis has ${this.modes}`);
-    }
-    let inE = 0;
-    const occupied = new Uint8Array(this.modes);
-    for (let k = 0; k < this.modes; k++) {
-      const e = coeffs[2 * k] ** 2 + coeffs[2 * k + 1] ** 2;
-      inE += e;
-      if (e > 0) occupied[k] = 1;
-    }
-    synthesize(this.basis, coeffs, this.spatial);
-    let peak = 0;
-    for (let i = 0; i < this.spatial.n; i++) {
-      const re = this.spatial.re[i];
-      const im = this.spatial.im[i];
-      const a = dmag(re, im);
-      if (a > peak) peak = a;
-      const g2 = algSigmoid(a);
-      this.spatial.re[i] = re * g2;
-      this.spatial.im[i] = im * g2;
-    }
-    analyze(this.basis, this.spatial, this.scratch);
-    const beta = this.bias.values();
-    let outE = 0;
-    let newE = 0;
-    for (let k = 0; k < this.modes; k++) {
-      const r = this.scratch[2 * k] + beta[k];
-      const i = this.scratch[2 * k + 1];
-      coeffs[2 * k] = r;
-      coeffs[2 * k + 1] = i;
-      const e = r * r + i * i;
-      outE += e;
-      if (!occupied[k]) newE += e;
-    }
-    return {
-      gain: inE > 0 ? Math.sqrt(outE / inE) : 0,
-      transfer: outE > 0 ? newE / outE : 0,
-      peak
-    };
-  }
-  /** The certified ℓ² bound of this mixer at its current parameters. */
-  bound(inputNorm) {
-    return inputNorm + this.bias.total;
-  }
-};
-
-// ../omega/packages/trnn-core/src/learn/spectralAttention.ts
-function deinterleave(coeffs, modes) {
-  const re = new Float64Array(modes);
-  const im = new Float64Array(modes);
-  for (let k = 0; k < modes; k++) {
-    re[k] = coeffs[2 * k];
-    im[k] = coeffs[2 * k + 1];
-  }
-  return { re, im };
-}
-function applySpectralAttention(coeffs, memory, modes, strength = 1) {
-  if (coeffs.length < 2 * modes || memory.length < 2 * modes) {
-    throw new RangeError("applySpectralAttention: buffers shorter than the declared mode count");
-  }
-  const s = Math.min(1, Math.max(0, strength));
-  const q = deinterleave(coeffs, modes);
-  const m = deinterleave(memory, modes);
-  const c = crossCorrelate(q, m);
-  let lag = 0;
-  let peak = -1;
-  let sumRot = 0;
-  for (let k = 0; k < modes; k++) {
-    const mag = dmag(c.re[k], c.im[k]);
-    if (mag > peak) {
-      peak = mag;
-      lag = k;
-    }
-  }
-  let eq = 0;
-  let em = 0;
-  for (let k = 0; k < modes; k++) {
-    eq += q.re[k] ** 2 + q.im[k] ** 2;
-    em += m.re[k] ** 2 + m.im[k] ** 2;
-  }
-  const denom = Math.sqrt(eq * em);
-  if (s > 0) {
-    for (let k = 0; k < modes; k++) {
-      const theta = s * datan2(c.im[k], c.re[k]);
-      sumRot += Math.abs(theta);
-      const ct = dcos(theta);
-      const st = dsin(theta);
-      const cr = coeffs[2 * k];
-      const ci = coeffs[2 * k + 1];
-      coeffs[2 * k] = cr * ct - ci * st;
-      coeffs[2 * k + 1] = cr * st + ci * ct;
-    }
-  }
-  return {
-    lag,
-    alignment: denom > 0 ? peak / denom : 0,
-    meanRotation: modes > 0 ? sumRot / modes : 0
-  };
-}
-
-// ../omega/packages/trnn-core/src/learn/tiers.ts
-var T1_MIN_LIMITS = {
-  maxStorageBufferBindingSize: 64 * 1024 * 1024,
-  maxComputeWorkgroupSizeX: 64
-};
-function tier0() {
-  return {
-    id: "T0",
-    label: "pure TypeScript",
-    available: true,
-    reason: "always available \u2014 the certified engine path",
-    evidence: { allocationFree: true }
-  };
-}
-async function probeTier1(opts = {}) {
-  const nav = opts.navigatorRef ?? (typeof navigator !== "undefined" ? navigator : void 0);
-  if (!nav?.gpu) {
-    return { id: "T1", label: "WebGPU training", available: false, reason: "no navigator.gpu in this context" };
-  }
-  try {
-    const adapter = await nav.gpu.requestAdapter();
-    if (!adapter) {
-      return { id: "T1", label: "WebGPU training", available: false, reason: "requestAdapter() returned null" };
-    }
-    const limits = adapter.limits ?? {};
-    const sb = Number(limits["maxStorageBufferBindingSize"] ?? 0);
-    const wg = Number(limits["maxComputeWorkgroupSizeX"] ?? 0);
-    const ok = sb >= T1_MIN_LIMITS.maxStorageBufferBindingSize && wg >= T1_MIN_LIMITS.maxComputeWorkgroupSizeX;
-    return {
-      id: "T1",
-      label: "WebGPU training",
-      available: ok,
-      reason: ok ? "adapter limits meet the training minimum" : `adapter under minimum (storage ${sb}B, workgroupX ${wg})`,
-      evidence: {
-        maxStorageBufferBindingSize: sb,
-        maxComputeWorkgroupSizeX: wg,
-        vendor: adapter.info?.vendor ?? "unknown",
-        architecture: adapter.info?.architecture ?? "unknown"
-      }
-    };
-  } catch (e) {
-    return {
-      id: "T1",
-      label: "WebGPU training",
-      available: false,
-      reason: `adapter probe threw: ${e.message}`
-    };
-  }
-}
-async function pingJson(url, opts) {
-  const f = opts.fetchImpl ?? globalThis.fetch;
-  if (!f) throw new Error("no fetch in this context");
-  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-  const t = ctrl ? setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 1500) : null;
-  const t0 = Date.now();
-  try {
-    const res = await f(url, ctrl ? { method: "GET", signal: ctrl.signal } : { method: "GET" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return { ms: Date.now() - t0, body: await res.json() };
-  } finally {
-    if (t) clearTimeout(t);
-  }
-}
-async function probeTier2(opts = {}) {
-  const base = opts.sidecarUrl;
-  if (!base) {
-    return { id: "T2", label: "local sidecar", available: false, reason: "no sidecar URL configured" };
-  }
-  try {
-    const { ms, body } = await pingJson(`${base.replace(/\/$/, "")}/health`, opts);
-    const info = body ?? {};
-    return {
-      id: "T2",
-      label: "local sidecar",
-      available: true,
-      reason: `sidecar answered in ${ms} ms`,
-      evidence: {
-        latencyMs: ms,
-        engine: String(info["engine"] ?? "unknown"),
-        version: String(info["version"] ?? "unknown")
-      }
-    };
-  } catch (e) {
-    return { id: "T2", label: "local sidecar", available: false, reason: `no answer: ${e.message}` };
-  }
-}
-async function probeTier3(opts = {}) {
-  const url = opts.hostedUrl;
-  if (!url) {
-    return { id: "T3", label: "hosted training", available: false, reason: "no hosted endpoint configured" };
-  }
-  try {
-    const { ms, body } = await pingJson(url, opts);
-    const info = body ?? {};
-    return {
-      id: "T3",
-      label: "hosted training",
-      available: true,
-      reason: `endpoint answered in ${ms} ms`,
-      evidence: { latencyMs: ms, version: String(info["version"] ?? "unknown") }
-    };
-  } catch (e) {
-    return { id: "T3", label: "hosted training", available: false, reason: `no answer: ${e.message}` };
-  }
-}
-async function probeTiers(opts = {}) {
-  const [t1, t2, t3] = await Promise.all([probeTier1(opts), probeTier2(opts), probeTier3(opts)]);
-  const tiers = [tier0(), t1, t2, t3];
-  const order = ["T3", "T2", "T1", "T0"];
-  const selected = order.find((id) => tiers.find((t) => t.id === id)?.available) ?? "T0";
-  return { tiers, selected };
+function morphismView(engine, sourceRank, targetRank) {
+  const src = engine.engines[sourceRank];
+  const tgt = engine.engines[targetRank];
+  if (!src || !tgt) return null;
+  return checkMorphism(src.snapshot().z, tgt.nodes);
 }
 
 // ../omega/packages/trnn-core/src/substrate/phiSubstrate.ts
@@ -8233,168 +8993,6 @@ function substrateParity() {
 }
 function substrateParityHolds() {
   return substrateParity().every((c) => c.class !== "A" || c.ok);
-}
-
-// ../omega/packages/trnn-core/src/substrate/coherenceKernel.ts
-var KERNEL_LAMBDA = phiPow(-2);
-var COHERENCE_GATE = phiPow(-2);
-function kernelRoots(lam = KERNEL_LAMBDA) {
-  const b = 1 - lam;
-  const disc = Math.sqrt(b * b + 4 * lam);
-  return [(b + disc) / 2, (b - disc) / 2];
-}
-function analyticExpectedC(theta = 1, d = 8, tauSteps = 1) {
-  const rho = dexp(-theta * tauSteps / PHI);
-  return rho * rho + (1 - rho * rho) / d;
-}
-function expectedCBias(d = 8, tauSteps = 1) {
-  const c = tauSteps <= 1 ? 0.17 : 0.07;
-  return c / d;
-}
-var PhiCoherenceKernel = class _PhiCoherenceKernel {
-  d;
-  tauSteps;
-  lam;
-  /** Live state Ψ(t), split complex. */
-  psiRe;
-  psiIm;
-  histRe;
-  histIm;
-  innRe;
-  innIm;
-  cap;
-  head = 0;
-  count = 0;
-  /** Running mean of the injected innovations (Welford incremental). */
-  innMeanRe;
-  innMeanIm;
-  constructor(d = 8, tauSteps = 2, lam = KERNEL_LAMBDA) {
-    if (!(d > 0) || !Number.isInteger(d)) throw new Error("kernel dimension must be a positive integer");
-    if (!(tauSteps >= 1) || !Number.isInteger(tauSteps)) throw new Error("tauSteps must be an integer >= 1");
-    this.d = d;
-    this.tauSteps = tauSteps;
-    this.lam = lam;
-    this.cap = 2 * tauSteps + 1;
-    this.psiRe = new Float64Array(d);
-    this.psiIm = new Float64Array(d);
-    this.histRe = new Float64Array(this.cap * d);
-    this.histIm = new Float64Array(this.cap * d);
-    this.innRe = new Float64Array(this.cap * d);
-    this.innIm = new Float64Array(this.cap * d);
-    this.innMeanRe = new Float64Array(d);
-    this.innMeanIm = new Float64Array(d);
-  }
-  /** τ in drive steps for a step size dt against the natural delay φ⁻¹. */
-  static fromDt(dt, d = 8) {
-    return new _PhiCoherenceKernel(d, Math.max(1, Math.round(dt / PHI_INV)));
-  }
-  reset() {
-    this.psiRe.fill(0);
-    this.psiIm.fill(0);
-    this.histRe.fill(0);
-    this.histIm.fill(0);
-    this.innRe.fill(0);
-    this.innIm.fill(0);
-    this.innMeanRe.fill(0);
-    this.innMeanIm.fill(0);
-    this.head = 0;
-    this.count = 0;
-  }
-  /** Ring slot of the entry `back` steps behind the newest one (0 = newest). */
-  slot(back) {
-    return ((this.head - 1 - back) % this.cap + this.cap) % this.cap;
-  }
-  /** Advance one τ with the given innovation. Returns the measured report. */
-  step(innRe, innIm) {
-    const d = this.d;
-    if (innRe.length !== d || innIm.length !== d) throw new Error("innovation has wrong dimension");
-    const haveA = this.count >= this.tauSteps;
-    const haveB = this.count >= 2 * this.tauSteps;
-    const sa = haveA ? this.slot(this.tauSteps - 1) * d : -1;
-    const sb = haveB ? this.slot(2 * this.tauSteps - 1) * d : -1;
-    const g2 = 1 - this.lam;
-    for (let i = 0; i < d; i++) {
-      const ar = haveA ? this.histRe[sa + i] : 0;
-      const ai = haveA ? this.histIm[sa + i] : 0;
-      const br = haveB ? this.histRe[sb + i] : 0;
-      const bi = haveB ? this.histIm[sb + i] : 0;
-      this.psiRe[i] = g2 * ar + this.lam * br + innRe[i];
-      this.psiIm[i] = g2 * ai + this.lam * bi + innIm[i];
-    }
-    const base = this.head * d;
-    this.histRe.set(this.psiRe, base);
-    this.histIm.set(this.psiIm, base);
-    this.innRe.set(innRe, base);
-    this.innIm.set(innIm, base);
-    this.head = (this.head + 1) % this.cap;
-    this.count++;
-    const n = this.count;
-    for (let i = 0; i < d; i++) {
-      this.innMeanRe[i] += (innRe[i] - this.innMeanRe[i]) / n;
-      this.innMeanIm[i] += (innIm[i] - this.innMeanIm[i]) / n;
-    }
-    let energy2 = 0;
-    for (let i = 0; i < d; i++) energy2 += this.psiRe[i] * this.psiRe[i] + this.psiIm[i] * this.psiIm[i];
-    const coherence = this.coherence();
-    return {
-      coherence,
-      gateOpen: coherence !== null && coherence > COHERENCE_GATE,
-      energy: energy2,
-      samples: this.count
-    };
-  }
-  /**
-   * Innovation-form C(t). Returns null (abstain) until τ+1 innovations exist
-   * or when either innovation has zero centred norm — never a fabricated 0.
-   */
-  coherence() {
-    if (this.count < this.tauSteps + 1) return null;
-    const d = this.d;
-    const now2 = this.slot(0) * d;
-    const lag = this.slot(this.tauSteps) * d;
-    let dotRe = 0;
-    let dotIm = 0;
-    let nn = 0;
-    let ll = 0;
-    for (let i = 0; i < d; i++) {
-      const ar = this.innRe[now2 + i] - this.innMeanRe[i];
-      const ai = this.innIm[now2 + i] - this.innMeanIm[i];
-      const br = this.innRe[lag + i] - this.innMeanRe[i];
-      const bi = this.innIm[lag + i] - this.innMeanIm[i];
-      dotRe += ar * br + ai * bi;
-      dotIm += ar * bi - ai * br;
-      nn += ar * ar + ai * ai;
-      ll += br * br + bi * bi;
-    }
-    const den = nn * ll;
-    if (!(den > 0)) return null;
-    const c = (dotRe * dotRe + dotIm * dotIm) / den;
-    return Math.min(1, Math.max(0, c));
-  }
-  /** The corridor gate: measured C(t) strictly above φ⁻². */
-  gateOpen() {
-    const c = this.coherence();
-    return c !== null && c > COHERENCE_GATE;
-  }
-};
-function ouInnovation(rand, re, im, theta = 1, fresh = false) {
-  const rho = dexp(-theta / PHI);
-  const sigma = Math.sqrt(1 - rho * rho);
-  const d = re.length;
-  for (let i = 0; i < d; i++) {
-    const u1 = Math.max(rand(), Number.MIN_VALUE);
-    const u2 = rand();
-    const r = Math.sqrt(-2 * dlog(u1));
-    const nr = r * dcos(2 * Math.PI * u2) / Math.SQRT2;
-    const ni = r * dsin(2 * Math.PI * u2) / Math.SQRT2;
-    if (fresh) {
-      re[i] = nr;
-      im[i] = ni;
-    } else {
-      re[i] = rho * re[i] + sigma * nr;
-      im[i] = rho * im[i] + sigma * ni;
-    }
-  }
 }
 
 // ../omega/packages/trnn-core/src/substrate/signalStats.ts
@@ -8670,268 +9268,265 @@ function safeLog(v, floor = 1e-300) {
   return dlog(v > floor ? v : floor);
 }
 
-// ../omega/packages/trnn-core/src/substrate/correlation.ts
-var STAT_FLOOR = 34;
-var QUADRATIC_CAP = 512;
-var abstain = (n, reason) => ({
-  value: null,
-  n,
-  abstained: true,
-  reason
-});
-function pairLength(x, y) {
-  return Math.min(x.length, y.length);
+// ../omega/packages/trnn-core/src/substrate/coherenceKernel.ts
+var KERNEL_LAMBDA = phiPow(-2);
+var COHERENCE_GATE = phiPow(-2);
+function kernelRoots(lam = KERNEL_LAMBDA) {
+  const b = 1 - lam;
+  const disc = Math.sqrt(b * b + 4 * lam);
+  return [(b + disc) / 2, (b - disc) / 2];
 }
-function decimate(x, cap) {
-  const n = x.length;
-  if (n <= cap) return Float64Array.from(x);
-  const out = new Float64Array(cap);
-  for (let i = 0; i < cap; i++) out[i] = x[Math.floor(i * n / cap)];
-  return out;
+function analyticExpectedC(theta = 1, d = 8, tauSteps = 1) {
+  const rho = dexp(-theta * tauSteps / PHI);
+  return rho * rho + (1 - rho * rho) / d;
 }
-function pearson(x, y) {
-  const n = pairLength(x, y);
-  if (n < STAT_FLOOR) return abstain(n, `n=${n} < F9 floor ${STAT_FLOOR}`);
-  let mx = 0;
-  let my = 0;
-  for (let i = 0; i < n; i++) {
-    mx += x[i];
-    my += y[i];
+function expectedCBias(d = 8, tauSteps = 1) {
+  const c = tauSteps <= 1 ? 0.17 : 0.07;
+  return c / d;
+}
+var PhiCoherenceKernel = class _PhiCoherenceKernel {
+  d;
+  tauSteps;
+  lam;
+  /** Live state Ψ(t), split complex. */
+  psiRe;
+  psiIm;
+  histRe;
+  histIm;
+  innRe;
+  innIm;
+  cap;
+  head = 0;
+  count = 0;
+  /** Running mean of the injected innovations (Welford incremental). */
+  innMeanRe;
+  innMeanIm;
+  constructor(d = 8, tauSteps = 2, lam = KERNEL_LAMBDA) {
+    if (!(d > 0) || !Number.isInteger(d)) throw new Error("kernel dimension must be a positive integer");
+    if (!(tauSteps >= 1) || !Number.isInteger(tauSteps)) throw new Error("tauSteps must be an integer >= 1");
+    this.d = d;
+    this.tauSteps = tauSteps;
+    this.lam = lam;
+    this.cap = 2 * tauSteps + 1;
+    this.psiRe = new Float64Array(d);
+    this.psiIm = new Float64Array(d);
+    this.histRe = new Float64Array(this.cap * d);
+    this.histIm = new Float64Array(this.cap * d);
+    this.innRe = new Float64Array(this.cap * d);
+    this.innIm = new Float64Array(this.cap * d);
+    this.innMeanRe = new Float64Array(d);
+    this.innMeanIm = new Float64Array(d);
   }
-  mx /= n;
-  my /= n;
-  let sxy = 0;
-  let sxx = 0;
-  let syy = 0;
-  for (let i = 0; i < n; i++) {
-    const a = x[i] - mx;
-    const b = y[i] - my;
-    sxy += a * b;
-    sxx += a * a;
-    syy += b * b;
+  /** τ in drive steps for a step size dt against the natural delay φ⁻¹. */
+  static fromDt(dt, d = 8) {
+    return new _PhiCoherenceKernel(d, Math.max(1, Math.round(dt / PHI_INV)));
   }
-  if (sxx <= 0 || syy <= 0) return abstain(n, "zero variance in one channel");
-  const r = sxy / Math.sqrt(sxx * syy);
-  return { value: Math.max(-1, Math.min(1, r)), n, abstained: false };
-}
-function rank(x) {
-  const n = x.length;
-  const idx = Array.from({ length: n }, (_, i2) => i2).sort((a, b) => x[a] - x[b]);
-  const r = new Float64Array(n);
-  let i = 0;
-  while (i < n) {
-    let j = i;
-    while (j + 1 < n && x[idx[j + 1]] === x[idx[i]]) j++;
-    const avg = (i + j) / 2 + 1;
-    for (let k = i; k <= j; k++) r[idx[k]] = avg;
-    i = j + 1;
+  reset() {
+    this.psiRe.fill(0);
+    this.psiIm.fill(0);
+    this.histRe.fill(0);
+    this.histIm.fill(0);
+    this.innRe.fill(0);
+    this.innIm.fill(0);
+    this.innMeanRe.fill(0);
+    this.innMeanIm.fill(0);
+    this.head = 0;
+    this.count = 0;
   }
-  return r;
-}
-function spearman(x, y) {
-  const n = pairLength(x, y);
-  if (n < STAT_FLOOR) return abstain(n, `n=${n} < F9 floor ${STAT_FLOOR}`);
-  return pearson(rank(Float64Array.from(x).slice(0, n)), rank(Float64Array.from(y).slice(0, n)));
-}
-function kendallTauB(x, y) {
-  const nRaw = pairLength(x, y);
-  if (nRaw < STAT_FLOOR) return abstain(nRaw, `n=${nRaw} < F9 floor ${STAT_FLOOR}`);
-  const a = decimate(Float64Array.from(x).slice(0, nRaw), QUADRATIC_CAP);
-  const b = decimate(Float64Array.from(y).slice(0, nRaw), QUADRATIC_CAP);
-  const n = a.length;
-  let conc = 0;
-  let disc = 0;
-  let tx = 0;
-  let ty = 0;
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const dx = a[i] - a[j];
-      const dy = b[i] - b[j];
-      const s = Math.sign(dx) * Math.sign(dy);
-      if (s > 0) conc++;
-      else if (s < 0) disc++;
-      else {
-        if (dx === 0 && dy !== 0) tx++;
-        else if (dy === 0 && dx !== 0) ty++;
-        else {
-          tx++;
-          ty++;
-        }
-      }
+  /** Ring slot of the entry `back` steps behind the newest one (0 = newest). */
+  slot(back) {
+    return ((this.head - 1 - back) % this.cap + this.cap) % this.cap;
+  }
+  /** Advance one τ with the given innovation. Returns the measured report. */
+  step(innRe, innIm) {
+    const d = this.d;
+    if (innRe.length !== d || innIm.length !== d) throw new Error("innovation has wrong dimension");
+    const haveA = this.count >= this.tauSteps;
+    const haveB = this.count >= 2 * this.tauSteps;
+    const sa = haveA ? this.slot(this.tauSteps - 1) * d : -1;
+    const sb = haveB ? this.slot(2 * this.tauSteps - 1) * d : -1;
+    const g2 = 1 - this.lam;
+    for (let i = 0; i < d; i++) {
+      const ar = haveA ? this.histRe[sa + i] : 0;
+      const ai = haveA ? this.histIm[sa + i] : 0;
+      const br = haveB ? this.histRe[sb + i] : 0;
+      const bi = haveB ? this.histIm[sb + i] : 0;
+      this.psiRe[i] = g2 * ar + this.lam * br + innRe[i];
+      this.psiIm[i] = g2 * ai + this.lam * bi + innIm[i];
+    }
+    const base = this.head * d;
+    this.histRe.set(this.psiRe, base);
+    this.histIm.set(this.psiIm, base);
+    this.innRe.set(innRe, base);
+    this.innIm.set(innIm, base);
+    this.head = (this.head + 1) % this.cap;
+    this.count++;
+    const n = this.count;
+    for (let i = 0; i < d; i++) {
+      this.innMeanRe[i] += (innRe[i] - this.innMeanRe[i]) / n;
+      this.innMeanIm[i] += (innIm[i] - this.innMeanIm[i]) / n;
+    }
+    let energy2 = 0;
+    for (let i = 0; i < d; i++) energy2 += this.psiRe[i] * this.psiRe[i] + this.psiIm[i] * this.psiIm[i];
+    const coherence = this.coherence();
+    return {
+      coherence,
+      gateOpen: coherence !== null && coherence > COHERENCE_GATE,
+      energy: energy2,
+      samples: this.count
+    };
+  }
+  /**
+   * Innovation-form C(t). Returns null (abstain) until τ+1 innovations exist
+   * or when either innovation has zero centred norm — never a fabricated 0.
+   */
+  coherence() {
+    if (this.count < this.tauSteps + 1) return null;
+    const d = this.d;
+    const now2 = this.slot(0) * d;
+    const lag = this.slot(this.tauSteps) * d;
+    let dotRe = 0;
+    let dotIm = 0;
+    let nn = 0;
+    let ll = 0;
+    for (let i = 0; i < d; i++) {
+      const ar = this.innRe[now2 + i] - this.innMeanRe[i];
+      const ai = this.innIm[now2 + i] - this.innMeanIm[i];
+      const br = this.innRe[lag + i] - this.innMeanRe[i];
+      const bi = this.innIm[lag + i] - this.innMeanIm[i];
+      dotRe += ar * br + ai * bi;
+      dotIm += ar * bi - ai * br;
+      nn += ar * ar + ai * ai;
+      ll += br * br + bi * bi;
+    }
+    const den = nn * ll;
+    if (!(den > 0)) return null;
+    const c = (dotRe * dotRe + dotIm * dotIm) / den;
+    return Math.min(1, Math.max(0, c));
+  }
+  /** The corridor gate: measured C(t) strictly above φ⁻². */
+  gateOpen() {
+    const c = this.coherence();
+    return c !== null && c > COHERENCE_GATE;
+  }
+};
+function ouInnovation(rand, re, im, theta = 1, fresh = false) {
+  const rho = dexp(-theta / PHI);
+  const sigma = Math.sqrt(1 - rho * rho);
+  const d = re.length;
+  for (let i = 0; i < d; i++) {
+    const u1 = Math.max(rand(), Number.MIN_VALUE);
+    const u2 = rand();
+    const r = Math.sqrt(-2 * dlog(u1));
+    const nr = r * dcos(2 * Math.PI * u2) / Math.SQRT2;
+    const ni = r * dsin(2 * Math.PI * u2) / Math.SQRT2;
+    if (fresh) {
+      re[i] = nr;
+      im[i] = ni;
+    } else {
+      re[i] = rho * re[i] + sigma * nr;
+      im[i] = rho * im[i] + sigma * ni;
     }
   }
-  const n0 = n * (n - 1) / 2;
-  const den = Math.sqrt((n0 - tx) * (n0 - ty));
-  if (!(den > 0)) return abstain(n, "all pairs tied");
-  return { value: Math.max(-1, Math.min(1, (conc - disc) / den)), n, abstained: false };
 }
-function doubleCenter(v, n) {
-  const rowMean = new Float64Array(n);
-  let grand = 0;
-  for (let i = 0; i < n; i++) {
-    let s = 0;
-    for (let j = 0; j < n; j++) s += v[i * n + j];
-    rowMean[i] = s / n;
-    grand += s;
-  }
-  grand /= n * n;
-  const out = new Float64Array(n * n);
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) out[i * n + j] = v[i * n + j] - rowMean[i] - rowMean[j] + grand;
-  }
-  return out;
+
+// ../omega/packages/trnn-core/src/substrate/resonanceBus.ts
+var KAPPA_PHASE = PHI_INV;
+var BLANK = {
+  value: NaN,
+  channels: [],
+  counted: 0,
+  abstained: 0,
+  gamma: NaN,
+  vetoId: null,
+  vetoValue: NaN,
+  dead: false,
+  gated: false,
+  subFloor: false
+};
+function clamp012(x) {
+  if (!Number.isFinite(x)) return NaN;
+  return x < 0 ? 0 : x > 1 ? 1 : x;
 }
-function distMatrix(x) {
-  const n = x.length;
-  const d = new Float64Array(n * n);
+function phaseClosureGamma(phaseDev, kappa = KAPPA_PHASE) {
+  if (Number.isNaN(phaseDev) || !Number.isFinite(kappa) || kappa <= 0) return NaN;
+  if (!Number.isFinite(phaseDev)) return 0;
+  const z = Math.abs(phaseDev) / kappa;
+  if (z >= 40) return 0;
+  return dexp(-(z * z));
+}
+function circularPhaseDev(phases) {
+  const n = phases.length;
+  if (n < 2) return NaN;
+  let sx = 0, sy = 0, m = 0;
   for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const v = Math.abs(x[i] - x[j]);
-      d[i * n + j] = v;
-      d[j * n + i] = v;
+    const p = phases[i];
+    if (!Number.isFinite(p)) continue;
+    sx += dcos(p);
+    sy += dsin(p);
+    m++;
+  }
+  if (m < 2) return NaN;
+  const r = Math.sqrt(sx * sx + sy * sy) / m;
+  if (r <= 1e-12) return Number.POSITIVE_INFINITY;
+  if (r >= 1) return 0;
+  return Math.sqrt(-2 * dlog(r));
+}
+function fuseResonance(channels, opts = {}) {
+  const gate = opts.coherenceGate ?? COHERENCE_GATE;
+  const c = opts.coherence;
+  const gated = Number.isFinite(c) && c < gate;
+  const gamma = phaseClosureGamma(opts.phaseDev ?? NaN, opts.kappa ?? KAPPA_PHASE);
+  const all = channels.map((ch) => ({ id: ch.id, value: clamp012(ch.value) }));
+  if (Number.isFinite(gamma)) all.push({ id: "gamma", value: gamma });
+  let logSum = 0;
+  let counted = 0;
+  let abstained = 0;
+  let vetoId = null;
+  let vetoValue = Number.POSITIVE_INFINITY;
+  let dead = false;
+  for (const ch of all) {
+    if (!Number.isFinite(ch.value)) {
+      abstained++;
+      continue;
     }
-  }
-  return d;
-}
-function distanceCorrelation(x, y) {
-  const nRaw = pairLength(x, y);
-  if (nRaw < STAT_FLOOR) return abstain(nRaw, `n=${nRaw} < F9 floor ${STAT_FLOOR}`);
-  const a = decimate(Float64Array.from(x).slice(0, nRaw), QUADRATIC_CAP);
-  const b = decimate(Float64Array.from(y).slice(0, nRaw), QUADRATIC_CAP);
-  const n = a.length;
-  const A = doubleCenter(distMatrix(a), n);
-  const B = doubleCenter(distMatrix(b), n);
-  let dcov = 0;
-  let dvx = 0;
-  let dvy = 0;
-  for (let i = 0; i < n * n; i++) {
-    dcov += A[i] * B[i];
-    dvx += A[i] * A[i];
-    dvy += B[i] * B[i];
-  }
-  const m = n * n;
-  dcov /= m;
-  dvx /= m;
-  dvy /= m;
-  const den = Math.sqrt(Math.max(0, dvx) * Math.max(0, dvy));
-  if (!(den > 0)) return abstain(n, "degenerate distance variance");
-  return { value: Math.min(1, Math.sqrt(Math.max(0, dcov) / den)), n, abstained: false };
-}
-function medianPairwise(x) {
-  const n = x.length;
-  const d = [];
-  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) d.push(Math.abs(x[i] - x[j]));
-  if (d.length === 0) return 1;
-  d.sort((p, q) => p - q);
-  const mid = d.length >> 1;
-  const med = d.length % 2 ? d[mid] : 0.5 * (d[mid - 1] + d[mid]);
-  return med > 0 ? med : 1;
-}
-function rbfGram(x, sigma) {
-  const n = x.length;
-  const k = new Float64Array(n * n);
-  const inv = 1 / (2 * sigma * sigma);
-  for (let i = 0; i < n; i++) {
-    k[i * n + i] = 1;
-    for (let j = i + 1; j < n; j++) {
-      const dd = x[i] - x[j];
-      const v = dexp(-dd * dd * inv);
-      k[i * n + j] = v;
-      k[j * n + i] = v;
+    counted++;
+    if (ch.value < vetoValue) {
+      vetoValue = ch.value;
+      vetoId = ch.id;
     }
-  }
-  return k;
-}
-function hsic(x, y) {
-  const nRaw = pairLength(x, y);
-  if (nRaw < STAT_FLOOR) return abstain(nRaw, `n=${nRaw} < F9 floor ${STAT_FLOOR}`);
-  const a = decimate(Float64Array.from(x).slice(0, nRaw), QUADRATIC_CAP);
-  const b = decimate(Float64Array.from(y).slice(0, nRaw), QUADRATIC_CAP);
-  const n = a.length;
-  const K = doubleCenter(rbfGram(a, medianPairwise(a)), n);
-  const L = doubleCenter(rbfGram(b, medianPairwise(b)), n);
-  let kl = 0;
-  let kk = 0;
-  let ll = 0;
-  for (let i = 0; i < n * n; i++) {
-    kl += K[i] * L[i];
-    kk += K[i] * K[i];
-    ll += L[i] * L[i];
-  }
-  const den = Math.sqrt(Math.max(0, kk) * Math.max(0, ll));
-  if (!(den > 0)) return abstain(n, "degenerate kernel matrices");
-  return { value: Math.max(0, Math.min(1, kl / den)), n, abstained: false };
-}
-function invNormalCdf(p) {
-  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
-  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
-  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
-  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
-  const pl = 0.02425;
-  const q = p;
-  if (q <= 0) return -Infinity;
-  if (q >= 1) return Infinity;
-  if (q < pl) {
-    const t2 = Math.sqrt(-2 * dlog(q));
-    return (((((c[0] * t2 + c[1]) * t2 + c[2]) * t2 + c[3]) * t2 + c[4]) * t2 + c[5]) / ((((d[0] * t2 + d[1]) * t2 + d[2]) * t2 + d[3]) * t2 + 1);
-  }
-  if (q > 1 - pl) {
-    const t2 = Math.sqrt(-2 * dlog(1 - q));
-    return -(((((c[0] * t2 + c[1]) * t2 + c[2]) * t2 + c[3]) * t2 + c[4]) * t2 + c[5]) / ((((d[0] * t2 + d[1]) * t2 + d[2]) * t2 + d[3]) * t2 + 1);
-  }
-  const t = q - 0.5;
-  const r = t * t;
-  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * t / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
-}
-function normalScores(x) {
-  const r = rank(x);
-  const n = r.length;
-  const z = new Float64Array(n);
-  for (let i = 0; i < n; i++) z[i] = invNormalCdf(r[i] / (n + 1));
-  return z;
-}
-function gaussianMI(x, y) {
-  const n = pairLength(x, y);
-  if (n < STAT_FLOOR) return abstain(n, `n=${n} < F9 floor ${STAT_FLOOR}`);
-  const r = pearson(normalScores(Float64Array.from(x).slice(0, n)), normalScores(Float64Array.from(y).slice(0, n)));
-  if (r.value === null) return abstain(n, r.reason ?? "copula transform degenerate");
-  const rho = Math.max(-0.999999999, Math.min(0.999999999, r.value));
-  return { value: Math.max(0, -0.5 * dlog(1 - rho * rho)), n, abstained: false };
-}
-function permutationTest(stat, x, y, opts = {}) {
-  const B = opts.permutations ?? 199;
-  const base = stat(x, y);
-  if (base.value === null) return { ...base, p: null, permutations: 0 };
-  const n = pairLength(x, y);
-  const ys = Float64Array.from(y).slice(0, n);
-  const rng = new SeedStream(opts.seed ?? "omega-real/p2/permutation");
-  const buf = new Float64Array(n);
-  let ge = 0;
-  for (let b = 0; b < B; b++) {
-    buf.set(ys);
-    for (let i = n - 1; i > 0; i--) {
-      const j = Math.floor(rng.next() * (i + 1));
-      const t = buf[i];
-      buf[i] = buf[j];
-      buf[j] = t;
+    if (ch.value <= 0) {
+      dead = true;
+      continue;
     }
-    const s = stat(x, buf);
-    if (s.value !== null && Math.abs(s.value) >= Math.abs(base.value) - 1e-15) ge++;
+    logSum += dlog(ch.value);
   }
-  return { ...base, p: (1 + ge) / (B + 1), permutations: B };
-}
-function correlationReport(x, y) {
-  const n = pairLength(x, y);
-  const r = {
-    n,
-    pearson: pearson(x, y),
-    spearman: spearman(x, y),
-    kendall: kendallTauB(x, y),
-    dcor: distanceCorrelation(x, y),
-    hsic: hsic(x, y),
-    mi: gaussianMI(x, y)
+  if (gated) {
+    return { ...BLANK, channels: all, counted: 0, abstained: all.length, gamma, gated: true };
+  }
+  if (counted === 0) return { ...BLANK, channels: all, abstained, gamma };
+  const value = dead ? 0 : dexp(logSum / counted);
+  return {
+    value,
+    channels: all,
+    counted,
+    abstained,
+    gamma,
+    vetoId,
+    vetoValue: Number.isFinite(vetoValue) ? vetoValue : NaN,
+    dead,
+    gated: false,
+    subFloor: value < RESONANCE_FLOOR
   };
-  return { ...r, abstained: r.pearson.abstained };
+}
+function blendWithResonance(prior, resonance) {
+  if (!Number.isFinite(prior)) return NaN;
+  if (!Number.isFinite(resonance)) return prior;
+  const w = PHI_INV / (1 + PHI_INV);
+  const p = Math.max(prior, 0);
+  if (p <= 0) return 0;
+  const r = Math.max(resonance, 1e-9);
+  return dexp((1 - w) * dlog(p) + w * dlog(r));
 }
 
 // ../omega/packages/trnn-core/src/substrate/causal.ts
@@ -9404,408 +9999,86 @@ function directedReport(x, y, opts = {}) {
   return { forward, reverse: reverse2, netDirection, verdict };
 }
 
-// ../omega/packages/trnn-core/src/substrate/resonanceBus.ts
-var KAPPA_PHASE = PHI_INV;
-var BLANK = {
-  value: NaN,
-  channels: [],
-  counted: 0,
-  abstained: 0,
-  gamma: NaN,
-  vetoId: null,
-  vetoValue: NaN,
-  dead: false,
-  gated: false,
-  subFloor: false
-};
-function clamp012(x) {
-  if (!Number.isFinite(x)) return NaN;
-  return x < 0 ? 0 : x > 1 ? 1 : x;
-}
-function phaseClosureGamma(phaseDev, kappa = KAPPA_PHASE) {
-  if (Number.isNaN(phaseDev) || !Number.isFinite(kappa) || kappa <= 0) return NaN;
-  if (!Number.isFinite(phaseDev)) return 0;
-  const z = Math.abs(phaseDev) / kappa;
-  if (z >= 40) return 0;
-  return dexp(-(z * z));
-}
-function circularPhaseDev(phases) {
-  const n = phases.length;
-  if (n < 2) return NaN;
-  let sx = 0, sy = 0, m = 0;
-  for (let i = 0; i < n; i++) {
-    const p = phases[i];
-    if (!Number.isFinite(p)) continue;
-    sx += dcos(p);
-    sy += dsin(p);
-    m++;
-  }
-  if (m < 2) return NaN;
-  const r = Math.sqrt(sx * sx + sy * sy) / m;
-  if (r <= 1e-12) return Number.POSITIVE_INFINITY;
-  if (r >= 1) return 0;
-  return Math.sqrt(-2 * dlog(r));
-}
-function fuseResonance(channels, opts = {}) {
-  const gate = opts.coherenceGate ?? COHERENCE_GATE;
-  const c = opts.coherence;
-  const gated = Number.isFinite(c) && c < gate;
-  const gamma = phaseClosureGamma(opts.phaseDev ?? NaN, opts.kappa ?? KAPPA_PHASE);
-  const all = channels.map((ch) => ({ id: ch.id, value: clamp012(ch.value) }));
-  if (Number.isFinite(gamma)) all.push({ id: "gamma", value: gamma });
-  let logSum = 0;
-  let counted = 0;
-  let abstained = 0;
-  let vetoId = null;
-  let vetoValue = Number.POSITIVE_INFINITY;
-  let dead = false;
-  for (const ch of all) {
-    if (!Number.isFinite(ch.value)) {
-      abstained++;
-      continue;
+// ../omega/packages/trnn-core/src/analysis/xcorrStack.ts
+var XCORR_FS = 1;
+var XCORR_BAND = [1 / 64, 1 / 4];
+function xcorrStack(named, opts = {}) {
+  const fs = opts.fs ?? XCORR_FS;
+  const band = opts.band ? [opts.band[0], opts.band[1]] : [XCORR_BAND[0], XCORR_BAND[1]];
+  const tick = opts.tick ?? 0;
+  const pairs = [];
+  const phases = [];
+  let dominantIdx = -1;
+  let dominantScore = -Infinity;
+  for (let i = 0; i < named.length; i++) {
+    for (let j = i + 1; j < named.length; j++) {
+      const x = named[i].series;
+      const y = named[j].series;
+      const m = welchMSC(x, y, { fs, band });
+      const p = bandPLV(x, y, band, fs);
+      const g2 = gccPhat(x, y);
+      const msc = m.bandMean;
+      const plv = p.plv;
+      const lag = g2.abstained ? null : g2.lag;
+      if (p.meanPhase !== null && Number.isFinite(p.meanPhase)) phases.push(p.meanPhase);
+      const score2 = msc ?? plv ?? -Infinity;
+      if (score2 > dominantScore) {
+        dominantScore = score2;
+        dominantIdx = pairs.length;
+      }
+      pairs.push({ a: named[i].id, b: named[j].id, msc, plv, lag, dcor: null, hsic: null, mi: null, directed: null, verdict: null });
     }
-    counted++;
-    if (ch.value < vetoValue) {
-      vetoValue = ch.value;
-      vetoId = ch.id;
-    }
-    if (ch.value <= 0) {
-      dead = true;
-      continue;
-    }
-    logSum += dlog(ch.value);
   }
-  if (gated) {
-    return { ...BLANK, channels: all, counted: 0, abstained: all.length, gamma, gated: true };
+  let dominant = null;
+  if (dominantIdx >= 0 && dominantScore > -Infinity) {
+    const pair2 = pairs[dominantIdx];
+    const x = named.find((s) => s.id === pair2.a).series;
+    const y = named.find((s) => s.id === pair2.b).series;
+    const r = correlationReport(x, y);
+    const dir = directedReport(x, y, { maxLag: 8 });
+    pairs[dominantIdx] = {
+      ...pair2,
+      dcor: r.dcor.value,
+      hsic: r.hsic.value,
+      mi: r.mi.value,
+      directed: dir.netDirection,
+      verdict: dir.verdict
+    };
+    dominant = `${pair2.a}\xD7${pair2.b}`;
   }
-  if (counted === 0) return { ...BLANK, channels: all, abstained, gamma };
-  const value = dead ? 0 : dexp(logSum / counted);
+  const channels = [];
+  for (const p of pairs) {
+    if (p.msc !== null && Number.isFinite(p.msc)) channels.push({ id: `${p.a}\xD7${p.b}`, value: p.msc });
+  }
+  const fusion = fuseResonance(channels, { phaseDev: circularPhaseDev(phases) });
+  let plvSum = 0;
+  let plvN = 0;
+  let maxLag = 0;
+  let lagN = 0;
+  for (const p of pairs) {
+    if (p.plv !== null && Number.isFinite(p.plv)) {
+      plvSum += p.plv;
+      plvN++;
+    }
+    if (p.lag !== null && Number.isFinite(p.lag)) {
+      maxLag = Math.max(maxLag, Math.abs(p.lag));
+      lagN++;
+    }
+  }
+  const fused = fusion.value;
+  const prev = opts.prevFusedCoherence ?? NaN;
+  const surprise = Number.isFinite(fused) && Number.isFinite(prev) ? Math.abs(fused - prev) : NaN;
   return {
-    value,
-    channels: all,
-    counted,
-    abstained,
-    gamma,
-    vetoId,
-    vetoValue: Number.isFinite(vetoValue) ? vetoValue : NaN,
-    dead,
-    gated: false,
-    subFloor: value < RESONANCE_FLOOR
+    tick,
+    pairs,
+    dominant,
+    fusedCoherence: fused,
+    meanPlv: plvN > 0 ? plvSum / plvN : NaN,
+    maxLag: lagN > 0 ? maxLag : NaN,
+    surprise,
+    abstained: fusion.counted === 0 && plvN === 0 && lagN === 0
   };
 }
-function blendWithResonance(prior, resonance) {
-  if (!Number.isFinite(prior)) return NaN;
-  if (!Number.isFinite(resonance)) return prior;
-  const w = PHI_INV / (1 + PHI_INV);
-  const p = Math.max(prior, 0);
-  if (p <= 0) return 0;
-  const r = Math.max(resonance, 1e-9);
-  return dexp((1 - w) * dlog(p) + w * dlog(r));
-}
-
-// ../omega/packages/trnn-core/src/substrate/vsa.ts
-var TWO_PI6 = 6.283185307179586;
-var PI = 3.141592653589793;
-var CLEANUP_FAN_IN = 100;
-var CLEANUP_Z_FLOOR = 5;
-function wrapPhase(p) {
-  if (!Number.isFinite(p)) return NaN;
-  let x = p;
-  if (x >= PI || x < -PI) {
-    const k = Math.floor((x + PI) / TWO_PI6);
-    x -= k * TWO_PI6;
-    if (x >= PI) x -= TWO_PI6;
-    if (x < -PI) x += TWO_PI6;
-  }
-  return x;
-}
-function randomHv(dim, seed) {
-  const rng = new SeedStream(seed);
-  const v = new Float64Array(dim);
-  for (let i = 0; i < dim; i++) v[i] = wrapPhase(rng.signed() * PI);
-  return v;
-}
-function identityHv(dim) {
-  return new Float64Array(dim);
-}
-function conjugateHv(a) {
-  const out = new Float64Array(a.length);
-  for (let i = 0; i < a.length; i++) out[i] = wrapPhase(-a[i]);
-  return out;
-}
-function bind(a, b) {
-  const n = Math.min(a.length, b.length);
-  const out = new Float64Array(n);
-  for (let i = 0; i < n; i++) out[i] = wrapPhase(a[i] + b[i]);
-  return out;
-}
-function unbind(c, a) {
-  const n = Math.min(a.length, c.length);
-  const out = new Float64Array(n);
-  for (let i = 0; i < n; i++) out[i] = wrapPhase(c[i] - a[i]);
-  return out;
-}
-function permute(a, k = 1) {
-  const n = a.length;
-  const out = new Float64Array(n);
-  if (n === 0) return out;
-  const s = (k % n + n) % n;
-  for (let i = 0; i < n; i++) out[(i + s) % n] = a[i];
-  return out;
-}
-function bundle(vs, weights) {
-  const m = vs.length;
-  if (m === 0) return { hv: new Float64Array(0), agreement: new Float64Array(0), meanAgreement: NaN };
-  const dim = vs[0].length;
-  const re = new Float64Array(dim);
-  const im = new Float64Array(dim);
-  let wsum = 0;
-  for (let j = 0; j < m; j++) {
-    const w = weights ? weights[j] : 1;
-    if (!Number.isFinite(w) || w <= 0) continue;
-    wsum += w;
-    const v = vs[j];
-    for (let i = 0; i < dim; i++) {
-      const p = v[i];
-      if (!Number.isFinite(p)) continue;
-      re[i] += w * dcos(p);
-      im[i] += w * dsin(p);
-    }
-  }
-  const hv = new Float64Array(dim);
-  const agreement = new Float64Array(dim);
-  let agSum = 0;
-  for (let i = 0; i < dim; i++) {
-    const mag = Math.sqrt(re[i] * re[i] + im[i] * im[i]);
-    hv[i] = mag <= 1e-300 ? 0 : wrapPhase(datan2(im[i], re[i]));
-    const a = wsum > 0 ? Math.min(1, mag / wsum) : NaN;
-    agreement[i] = a;
-    agSum += Number.isFinite(a) ? a : 0;
-  }
-  return { hv, agreement, meanAgreement: dim > 0 ? agSum / dim : NaN };
-}
-function phiWeights(m) {
-  const w = [];
-  let x = 1;
-  for (let i = 0; i < m; i++) {
-    w.push(x);
-    x *= PHI_INV;
-  }
-  return w;
-}
-function similarity(a, b) {
-  const n = Math.min(a.length, b.length);
-  if (n === 0) return NaN;
-  let s = 0, m = 0;
-  for (let i = 0; i < n; i++) {
-    const d = a[i] - b[i];
-    if (!Number.isFinite(d)) continue;
-    s += dcos(d);
-    m++;
-  }
-  return m === 0 ? NaN : s / m;
-}
-function chanceSigma(dim) {
-  return dim > 0 ? 1 / Math.sqrt(2 * dim) : NaN;
-}
-function angularDistance(a, b) {
-  const s = similarity(a, b);
-  return Number.isFinite(s) ? dacos(Math.max(-1, Math.min(1, s))) : NaN;
-}
-var CleanupMemory = class {
-  constructor(dim, fanInCap = CLEANUP_FAN_IN, zFloor = CLEANUP_Z_FLOOR) {
-    this.dim = dim;
-    this.fanInCap = fanInCap;
-    this.zFloor = zFloor;
-  }
-  re = /* @__PURE__ */ new Map();
-  im = /* @__PURE__ */ new Map();
-  n = /* @__PURE__ */ new Map();
-  get size() {
-    return this.n.size;
-  }
-  labels() {
-    return [...this.n.keys()].sort();
-  }
-  /**
-   * Fold an exemplar into a prototype.
-   *
-   * At the fan-in ceiling the existing sum is scaled by φ⁻¹ before the new
-   * exemplar lands: the prototype keeps tracking rather than freezing, and the
-   * effective window stays bounded instead of the mean going to mush.
-   */
-  add(label, v, weight = 1) {
-    if (!Number.isFinite(weight) || weight <= 0) return;
-    let re = this.re.get(label);
-    let im = this.im.get(label);
-    if (!re || !im) {
-      re = new Float64Array(this.dim);
-      im = new Float64Array(this.dim);
-      this.re.set(label, re);
-      this.im.set(label, im);
-      this.n.set(label, 0);
-    }
-    let count = this.n.get(label) ?? 0;
-    if (count >= this.fanInCap) {
-      for (let i = 0; i < this.dim; i++) {
-        re[i] *= PHI_INV;
-        im[i] *= PHI_INV;
-      }
-      count = this.fanInCap - 1;
-    }
-    const lim = Math.min(this.dim, v.length);
-    for (let i = 0; i < lim; i++) {
-      const p = v[i];
-      if (!Number.isFinite(p)) continue;
-      re[i] += weight * dcos(p);
-      im[i] += weight * dsin(p);
-    }
-    this.n.set(label, count + 1);
-  }
-  /** Current prototype hypervector, or null when the label is unknown. */
-  prototype(label) {
-    const re = this.re.get(label);
-    const im = this.im.get(label);
-    if (!re || !im) return null;
-    const out = new Float64Array(this.dim);
-    for (let i = 0; i < this.dim; i++) {
-      out[i] = re[i] * re[i] + im[i] * im[i] <= 1e-300 ? 0 : wrapPhase(datan2(im[i], re[i]));
-    }
-    return out;
-  }
-  stats(label) {
-    const re = this.re.get(label);
-    const im = this.im.get(label);
-    const n = this.n.get(label);
-    if (!re || !im || n === void 0) return null;
-    let agree = 0;
-    for (let i = 0; i < this.dim; i++) agree += Math.sqrt(re[i] * re[i] + im[i] * im[i]);
-    const mean3 = this.dim > 0 && n > 0 ? Math.min(1, agree / (this.dim * n)) : NaN;
-    return { label, fanIn: n, meanAgreement: mean3, saturated: n >= this.fanInCap };
-  }
-  /**
-   * Nearest prototype, or null when the evidence does not clear chance.
-   *
-   * Two independent gates, both required:
-   *   z      = sim / (1/√(2D))  ≥ zFloor   — the match is not a coincidence
-   *   margin = sim − runnerUp   ≥ zFloor·σ — the match is not a coin flip
-   */
-  query(v, zFloor = this.zFloor) {
-    if (this.n.size === 0) return null;
-    const sigma = chanceSigma(this.dim);
-    let bestLabel = "";
-    let best = Number.NEGATIVE_INFINITY;
-    let second = Number.NEGATIVE_INFINITY;
-    for (const label of this.labels()) {
-      const proto = this.prototype(label);
-      if (!proto) continue;
-      const s = similarity(v, proto);
-      if (!Number.isFinite(s)) continue;
-      if (s > best) {
-        second = best;
-        best = s;
-        bestLabel = label;
-      } else if (s > second) {
-        second = s;
-      }
-    }
-    if (!Number.isFinite(best) || bestLabel === "") return null;
-    const margin = Number.isFinite(second) ? best - second : Number.POSITIVE_INFINITY;
-    const z = best / sigma;
-    if (z < zFloor) return null;
-    if (margin < zFloor * sigma) return null;
-    return { label: bestLabel, similarity: best, margin, z, fanIn: this.n.get(bestLabel) ?? 0 };
-  }
-};
-function encodeRecord(pairs) {
-  return bundle(pairs.map(([r, f]) => bind(r, f)));
-}
-function decodeRole(record, role) {
-  return unbind(record, role);
-}
-function encodeSequence(vs, weights) {
-  return bundle(vs.map((v, i) => permute(v, i)), weights);
-}
-function decodePosition(seq, i) {
-  return permute(seq, -i);
-}
-
-// ../omega/packages/trnn-core/src/substrate/plasticity.ts
-function ojaStep(w, x, eta) {
-  const n = Math.min(w.length, x.length);
-  let y = 0;
-  for (let i = 0; i < n; i++) y += w[i] * x[i];
-  let drift = 0, sq = 0;
-  for (let i = 0; i < n; i++) {
-    const d = eta * y * (x[i] - y * w[i]);
-    w[i] += d;
-    drift += Math.abs(d);
-    sq += w[i] * w[i];
-  }
-  return { y, norm: Math.sqrt(sq), drift };
-}
-function sangerStep(W, k, d, x, eta) {
-  const y = new Float64Array(k);
-  for (let a = 0; a < k; a++) {
-    let s = 0;
-    const off = a * d;
-    for (let i = 0; i < d; i++) s += W[off + i] * x[i];
-    y[a] = s;
-  }
-  for (let a = 0; a < k; a++) {
-    const off = a * d;
-    for (let i = 0; i < d; i++) {
-      let back = 0;
-      for (let b = 0; b <= a; b++) back += y[b] * W[b * d + i];
-      W[off + i] += eta * y[a] * (x[i] - back);
-    }
-  }
-  return y;
-}
-function joglekarWindow(w, wMin = 0, wMax = 1, p = 1) {
-  if (!(wMax > wMin)) return NaN;
-  const wh = (w - wMin) / (wMax - wMin);
-  if (wh <= 0 || wh >= 1) return 0;
-  const u = 2 * wh - 1;
-  const f = 1 - dpow(u * u, p);
-  return f < 0 ? 0 : f > 1 ? 1 : f;
-}
-function memristiveStep(w, s, params) {
-  const wMin = params.wMin ?? 0;
-  const wMax = params.wMax ?? 1;
-  const p = params.p ?? 1;
-  if (!Number.isFinite(w) || !Number.isFinite(s)) return w;
-  const eta = s >= 0 ? params.etaSet : params.etaReset ?? params.etaSet * PHI_INV;
-  const f = joglekarWindow(w, wMin, wMax, p);
-  const next = w + eta * f * s;
-  return next < wMin ? wMin : next > wMax ? wMax : next;
-}
-function memristiveVector(w, drive, params) {
-  const n = Math.min(w.length, drive.length);
-  let drift = 0;
-  for (let i = 0; i < n; i++) {
-    const before = w[i];
-    w[i] = memristiveStep(before, drive[i], params);
-    drift += Math.abs(w[i] - before);
-  }
-  return drift;
-}
-var BcmThreshold = class {
-  constructor(tau, initial = 0) {
-    this.tau = tau;
-    this.theta = initial;
-  }
-  theta;
-  get value() {
-    return this.theta;
-  }
-  /** Update θ with a new post-synaptic activity and return the drive factor. */
-  observe(y) {
-    if (!Number.isFinite(y)) return 0;
-    this.theta += (y * y - this.theta) / Math.max(1, this.tau);
-    return y - this.theta;
-  }
-};
 
 // ../omega/packages/trnn-core/src/substrate/dmd.ts
 var MIN_SNAPSHOTS = 13;
@@ -9846,6 +10119,70 @@ function jacobiEigen(A, n, sweeps = 60) {
   const values = new Float64Array(n);
   for (let i = 0; i < n; i++) values[i] = A[i * n + i];
   return { values, vectors: V };
+}
+function oneSidedJacobi(X, D, n, sweeps = 60) {
+  const W = Float64Array.from(X);
+  const V = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) V[i * n + i] = 1;
+  const tol = 1e-13;
+  for (let s = 0; s < sweeps; s++) {
+    let maxOff = 0;
+    for (let p = 0; p < n; p++) {
+      for (let q = p + 1; q < n; q++) {
+        let a = 0;
+        let b = 0;
+        let g2 = 0;
+        for (let i = 0; i < D; i++) {
+          const wp = W[i * n + p];
+          const wq = W[i * n + q];
+          a += wp * wp;
+          b += wq * wq;
+          g2 += wp * wq;
+        }
+        const rel = a > 0 && b > 0 ? Math.abs(g2) / Math.sqrt(a * b) : 0;
+        if (rel > maxOff) maxOff = rel;
+        if (rel <= tol || g2 === 0) continue;
+        const zeta = (b - a) / (2 * g2);
+        const t = (zeta >= 0 ? 1 : -1) / (Math.abs(zeta) + Math.sqrt(zeta * zeta + 1));
+        const c = 1 / Math.sqrt(t * t + 1);
+        const sn = t * c;
+        for (let i = 0; i < D; i++) {
+          const wp = W[i * n + p];
+          const wq = W[i * n + q];
+          W[i * n + p] = c * wp - sn * wq;
+          W[i * n + q] = sn * wp + c * wq;
+        }
+        for (let k = 0; k < n; k++) {
+          const vp = V[k * n + p];
+          const vq = V[k * n + q];
+          V[k * n + p] = c * vp - sn * vq;
+          V[k * n + q] = sn * vp + c * vq;
+        }
+      }
+    }
+    if (maxOff <= tol) break;
+  }
+  const S = new Float64Array(n);
+  const U = new Float64Array(D * n);
+  for (let j = 0; j < n; j++) {
+    let norm2 = 0;
+    for (let i = 0; i < D; i++) norm2 += W[i * n + j] * W[i * n + j];
+    const sv = Math.sqrt(norm2);
+    S[j] = sv;
+    const inv = sv > 1e-300 ? 1 / sv : 0;
+    for (let i = 0; i < D; i++) U[i * n + j] = W[i * n + j] * inv;
+  }
+  const order = [...S.keys()].sort((p, q) => S[q] - S[p]);
+  const So = new Float64Array(n);
+  const Uo = new Float64Array(D * n);
+  const Vo = new Float64Array(n * n);
+  for (let j = 0; j < n; j++) {
+    const src = order[j];
+    So[j] = S[src];
+    for (let i = 0; i < D; i++) Uo[i * n + j] = U[i * n + src];
+    for (let k = 0; k < n; k++) Vo[k * n + j] = V[k * n + src];
+  }
+  return { U: Uo, S: So, V: Vo };
 }
 function hessenberg(A, n) {
   for (let m = 1; m < n - 1; m++) {
@@ -10027,55 +10364,36 @@ function fitDmd(snapshots, opts = {}) {
     if (s.length !== D) return null;
     for (let i = 0; i < D; i++) if (!Number.isFinite(s[i])) return null;
   }
-  const G = new Float64Array(cols * cols);
-  for (let a = 0; a < cols; a++) {
-    for (let b = a; b < cols; b++) {
-      let s = 0;
-      const xa = snapshots[a], xb = snapshots[b];
-      for (let i = 0; i < D; i++) s += xa[i] * xb[i];
-      G[a * cols + b] = s;
-      G[b * cols + a] = s;
-    }
+  const X = new Float64Array(D * cols);
+  for (let k = 0; k < cols; k++) {
+    const sk = snapshots[k];
+    for (let i = 0; i < D; i++) X[i * cols + k] = sk[i];
   }
-  const { values, vectors } = jacobiEigen(Float64Array.from(G), cols);
-  const order = [...values.keys()].sort((p, q) => values[q] - values[p]);
-  const sv = order.map((i) => values[i] > 0 ? Math.sqrt(values[i]) : 0);
-  const s0 = sv[0] ?? 0;
+  const { U, S, V } = oneSidedJacobi(X, D, cols);
+  const s0 = S[0] ?? 0;
   if (s0 <= 0) return null;
   let r = 0;
   const maxRank = Math.min(opts.maxRank ?? cols, cols);
-  while (r < maxRank && sv[r] > rankTol * s0) r++;
+  while (r < maxRank && S[r] > rankTol * s0) r++;
   if (r === 0) return null;
-  const U = new Float64Array(D * r);
-  for (let j = 0; j < r; j++) {
-    const col = order[j];
-    const inv = 1 / sv[j];
-    for (let k = 0; k < cols; k++) {
-      const vk = vectors[k * cols + col] * inv;
-      if (vk === 0) continue;
-      const xk = snapshots[k];
-      for (let i = 0; i < D; i++) U[i * r + j] += vk * xk[i];
-    }
-  }
   const At = new Float64Array(r * r);
   for (let a = 0; a < r; a++) {
     for (let b = 0; b < r; b++) {
-      const colB = order[b];
-      const invB = 1 / sv[b];
+      const invB = 1 / S[b];
       let acc = 0;
       for (let k = 0; k < cols; k++) {
-        const vk = vectors[k * cols + colB] * invB;
+        const vk = V[k * cols + b] * invB;
         if (vk === 0) continue;
         const yk = snapshots[k + 1];
         let dot2 = 0;
-        for (let i = 0; i < D; i++) dot2 += U[i * r + a] * yk[i];
+        for (let i = 0; i < D; i++) dot2 += U[i * cols + a] * yk[i];
         acc += dot2 * vk;
       }
       At[a * r + b] = acc;
     }
   }
   const { re, im } = generalEigenvalues(At, r);
-  const energyTotal = sv.slice(0, r).reduce((s, v) => s + v * v, 0);
+  const energyTotal = Array.from(S).slice(0, r).reduce((s, v) => s + v * v, 0);
   const modes = [];
   let radius = 0;
   for (let j = 0; j < r; j++) {
@@ -10087,7 +10405,7 @@ function fitDmd(snapshots, opts = {}) {
       magnitude: mag,
       growth: mag > 0 ? dlog(mag) / dt : Number.NEGATIVE_INFINITY,
       frequency: datan2(im[j], re[j]) / (2 * Math.PI * dt),
-      energy: energyTotal > 0 ? sv[j] * sv[j] / energyTotal : NaN
+      energy: energyTotal > 0 ? S[j] * S[j] / energyTotal : NaN
     });
   }
   let num = 0, den = 0;
@@ -10095,7 +10413,7 @@ function fitDmd(snapshots, opts = {}) {
     const z = new Float64Array(r);
     for (let a = 0; a < r; a++) {
       let s = 0;
-      for (let i = 0; i < D; i++) s += U[i * r + a] * x[i];
+      for (let i = 0; i < D; i++) s += U[i * cols + a] * x[i];
       z[a] = s;
     }
     const w = new Float64Array(r);
@@ -10107,7 +10425,7 @@ function fitDmd(snapshots, opts = {}) {
     const out = new Float64Array(D);
     for (let i = 0; i < D; i++) {
       let s = 0;
-      for (let a = 0; a < r; a++) s += U[i * r + a] * w[a];
+      for (let a = 0; a < r; a++) s += U[i * cols + a] * w[a];
       out[i] = s;
     }
     return out;
@@ -10124,73 +10442,346 @@ function fitDmd(snapshots, opts = {}) {
   return {
     rank: r,
     modes,
-    singularValues: sv.slice(0, r),
+    singularValues: Array.from(S).slice(0, r),
     relError: den > 0 ? Math.sqrt(num / den) : NaN,
     spectralRadius: radius,
     predict: predictFrom
   };
 }
 
-// ../omega/packages/trnn-core/src/ledger/canonical.ts
-function canonicalJson(value) {
-  return enc(value);
-}
-function enc(v) {
-  if (v === null) return "null";
-  const t = typeof v;
-  if (t === "boolean") return v ? "true" : "false";
-  if (t === "number") {
-    if (!Number.isFinite(v)) {
-      throw new TypeError("canonicalJson: non-finite number is not representable");
-    }
-    return Object.is(v, -0) ? "0" : JSON.stringify(v);
+// ../omega/packages/trnn-core/src/analysis/dmdModes.ts
+var DMD_WINDOW = 89;
+function ladderDmd(rungSeries, tick) {
+  if (rungSeries.length < 2) {
+    return { tick, rank: 0, modes: [], spectralRadius: NaN, relError: NaN, abstained: true, reason: "fewer than 2 rungs" };
   }
-  if (t === "string") return JSON.stringify(v);
-  if (Array.isArray(v)) return "[" + v.map((x) => enc(x === void 0 ? null : x)).join(",") + "]";
-  if (v instanceof Uint8Array) return JSON.stringify(bytesToBase64(v));
-  if (t === "object") {
-    const o = v;
-    const keys = Object.keys(o).filter((k) => o[k] !== void 0).sort();
-    return "{" + keys.map((k) => JSON.stringify(k) + ":" + enc(o[k])).join(",") + "}";
-  }
-  throw new TypeError(`canonicalJson: unsupported type ${t}`);
-}
-var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-function bytesToBase64(b) {
-  let out = "";
-  for (let i = 0; i < b.length; i += 3) {
-    const c0 = b[i], c1 = b[i + 1], c2 = b[i + 2];
-    out += B64[c0 >> 2];
-    out += B64[(c0 & 3) << 4 | (c1 ?? 0) >> 4];
-    out += i + 1 < b.length ? B64[(c1 & 15) << 2 | (c2 ?? 0) >> 6] : "=";
-    out += i + 2 < b.length ? B64[c2 & 63] : "=";
-  }
-  return out;
-}
-function base64ToBytes(s) {
-  const clean3 = s.replace(/=+$/, "");
-  const out = new Uint8Array(clean3.length * 3 >> 2);
-  let acc = 0, bits = 0, o = 0;
-  for (let i = 0; i < clean3.length; i++) {
-    const v = B64.indexOf(clean3[i]);
-    if (v < 0) throw new TypeError("base64ToBytes: invalid character");
-    acc = acc << 6 | v;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      out[o++] = acc >> bits & 255;
+  const n = rungSeries[0].length;
+  for (const s of rungSeries) {
+    if (s.length !== n) {
+      return { tick, rank: 0, modes: [], spectralRadius: NaN, relError: NaN, abstained: true, reason: "unaligned series lengths" };
     }
   }
-  return out;
+  if (n < MIN_SNAPSHOTS) {
+    return { tick, rank: 0, modes: [], spectralRadius: NaN, relError: NaN, abstained: true, reason: `n=${n} < MIN_SNAPSHOTS=${MIN_SNAPSHOTS}` };
+  }
+  const start = Math.max(0, n - DMD_WINDOW);
+  const snapshots = [];
+  for (let t = start; t < n; t++) {
+    const v = new Float64Array(rungSeries.length);
+    for (let r = 0; r < rungSeries.length; r++) v[r] = rungSeries[r][t];
+    snapshots.push(v);
+  }
+  const fit = fitDmd(snapshots);
+  if (!fit) {
+    return { tick, rank: 0, modes: [], spectralRadius: NaN, relError: NaN, abstained: true, reason: "DMD fit did not exist" };
+  }
+  return {
+    tick,
+    rank: fit.rank,
+    modes: fit.modes,
+    spectralRadius: fit.spectralRadius,
+    relError: fit.relError,
+    abstained: false
+  };
 }
-var TE = new TextEncoder();
-var TD = new TextDecoder();
-function utf8(s) {
-  return TE.encode(s);
+
+// ../omega/packages/trnn-core/src/harness/conformal.ts
+var ACI_ALPHA = 0.1;
+var ACI_GAMMA = PHI_INV / 16;
+var ACI_WINDOW = 233;
+var COVERAGE_TARGET = 0.85;
+var RECOVERY_BUDGET = 100;
+function quantileSorted(sorted, level) {
+  const n = sorted.length;
+  const k = Math.ceil((n + 1) * level);
+  if (k <= 0) return sorted[0];
+  if (k >= n) return sorted[n - 1];
+  return sorted[k - 1];
 }
-function fromUtf8(b) {
-  return TD.decode(b);
+var AdaptiveConformal = class {
+  alpha;
+  gamma;
+  window;
+  floor;
+  alphaT;
+  scores = [];
+  log = [];
+  constructor(opts = {}) {
+    const alpha = opts.alpha ?? ACI_ALPHA;
+    if (!(alpha > 0 && alpha < 1)) throw new RangeError("AdaptiveConformal: alpha must be in (0,1)");
+    const gamma = opts.gamma ?? ACI_GAMMA;
+    if (!(gamma > 0)) throw new RangeError("AdaptiveConformal: gamma must be > 0");
+    this.alpha = alpha;
+    this.gamma = gamma;
+    this.window = Math.max(1, Math.floor(opts.window ?? ACI_WINDOW));
+    this.floor = Math.max(1, Math.floor(opts.floor ?? STAT_FLOOR));
+    this.alphaT = alpha;
+  }
+  /** Current adaptive miscoverage level. */
+  currentAlpha() {
+    return this.alphaT;
+  }
+  /** Calibration scores currently in the window. */
+  calibrationSize() {
+    return this.scores.length;
+  }
+  /**
+   * Half-width for the next quote, or null when the window is under floor.
+   * Pure — calling it does not advance the recursion.
+   */
+  halfWidth() {
+    if (this.scores.length < this.floor) return null;
+    const sorted = [...this.scores].sort((a, b) => a - b);
+    const q = quantileSorted(sorted, 1 - this.alphaT);
+    return Number.isFinite(q) ? q : null;
+  }
+  /**
+   * Score one event: quote an interval around `prediction`, compare to
+   * `truth`, then advance αₜ and the calibration window.
+   */
+  observe(prediction, truth) {
+    const nCalib = this.scores.length;
+    const alphaT = this.alphaT;
+    const hw = this.halfWidth();
+    const score2 = Number.isFinite(prediction) && Number.isFinite(truth) ? Math.abs(truth - prediction) : NaN;
+    let covered = null;
+    let lo = null;
+    let hi = null;
+    if (hw !== null && Number.isFinite(score2)) {
+      lo = prediction - hw;
+      hi = prediction + hw;
+      covered = score2 <= hw;
+      const err = covered ? 0 : 1;
+      const next = alphaT + this.gamma * (this.alpha - err);
+      this.alphaT = Math.min(1 - 1e-9, Math.max(1e-9, next));
+    }
+    if (Number.isFinite(score2)) {
+      this.scores.push(score2);
+      if (this.scores.length > this.window) this.scores.shift();
+    }
+    const obs = {
+      prediction,
+      truth,
+      score: score2,
+      halfWidth: hw,
+      lo,
+      hi,
+      covered,
+      alphaT,
+      nCalib
+    };
+    this.log.push(obs);
+    return obs;
+  }
+  observations() {
+    return this.log;
+  }
+  /** Coverage over a suffix of the log (`from` inclusive, default all). */
+  report(from = 0) {
+    let scored = 0, covered = 0, abstained = 0, widthSum = 0;
+    for (let i = Math.max(0, from); i < this.log.length; i++) {
+      const o = this.log[i];
+      if (o.covered === null) {
+        abstained++;
+        continue;
+      }
+      scored++;
+      if (o.covered) covered++;
+      if (o.halfWidth !== null) widthSum += o.halfWidth;
+    }
+    return {
+      scored,
+      covered,
+      abstained,
+      coverage: scored > 0 ? covered / scored : null,
+      meanWidth: scored > 0 ? widthSum / scored : null,
+      alphaFinal: this.alphaT
+    };
+  }
+};
+function recoveryAfterShift(observations, shiftAt, target = COVERAGE_TARGET, budget = RECOVERY_BUDGET, probe = 55) {
+  const tail = [];
+  let recoveredAfter = null;
+  let settledFrom = -1;
+  for (let i = Math.max(0, shiftAt); i < observations.length; i++) {
+    const o = observations[i];
+    if (o.covered === null) continue;
+    tail.push(o.covered);
+    if (recoveredAfter === null && tail.length >= probe) {
+      const w = tail.slice(tail.length - probe);
+      const cov = w.reduce((a, b) => a + (b ? 1 : 0), 0) / probe;
+      if (cov >= target) {
+        recoveredAfter = tail.length;
+        settledFrom = tail.length;
+      }
+    }
+  }
+  const tailCoverage = tail.length > 0 ? tail.reduce((a, b) => a + (b ? 1 : 0), 0) / tail.length : null;
+  let settledCoverage = null;
+  if (settledFrom >= 0 && settledFrom < tail.length) {
+    const rest = tail.slice(settledFrom);
+    settledCoverage = rest.reduce((a, b) => a + (b ? 1 : 0), 0) / rest.length;
+  }
+  return {
+    shiftAt,
+    scored: tail.length,
+    recoveredAfter,
+    withinBudget: recoveredAfter !== null && recoveredAfter <= budget,
+    tailCoverage,
+    settledCoverage
+  };
 }
+
+// ../omega/packages/trnn-core/src/analysis/service.ts
+var RING_DEPTH = 233;
+var Ring = class {
+  constructor(depth) {
+    this.depth = depth;
+    this.buf = new Float64Array(depth);
+  }
+  buf;
+  head = 0;
+  n = 0;
+  /** False once a non-finite sample passes through — the ring stays honest. */
+  clean = true;
+  push(v) {
+    if (!Number.isFinite(v)) this.clean = false;
+    this.buf[this.head] = v;
+    this.head = (this.head + 1) % this.depth;
+    if (this.n < this.depth) this.n++;
+  }
+  get filled() {
+    return this.n >= this.depth;
+  }
+  get count() {
+    return this.n;
+  }
+  get finite() {
+    return this.clean;
+  }
+  /** Chronological copy, oldest → newest, of whatever the ring holds. */
+  linearize() {
+    const out = new Float64Array(this.n);
+    const start = this.n < this.depth ? 0 : this.head;
+    for (let i = 0; i < this.n; i++) out[i] = this.buf[(start + i) % this.depth];
+    return out;
+  }
+};
+var AnalysisService = class {
+  depth;
+  xcorrEnabled;
+  rungCoherenceRings;
+  rungEnergyRings;
+  channelRings = /* @__PURE__ */ new Map();
+  /** Stable-rung mask over the 28-cycle, derived once from heartbeatSchedule. */
+  stable;
+  prevStable = null;
+  lastReport = null;
+  lastXcorr = null;
+  lastDmd = null;
+  conformal;
+  conformalHalfWidth = null;
+  constructor(opts) {
+    this.depth = opts.depth ?? RING_DEPTH;
+    this.xcorrEnabled = opts.xcorr ?? true;
+    this.conformal = this.xcorrEnabled ? new AdaptiveConformal() : null;
+    this.rungCoherenceRings = Array.from({ length: opts.rungs }, () => new Ring(this.depth));
+    this.rungEnergyRings = Array.from({ length: opts.rungs }, () => new Ring(this.depth));
+    const mask = new Array(LUCAS_MOD13_PERIOD).fill(false);
+    for (const ev of heartbeatSchedule(1)) mask[ev.tick % LUCAS_MOD13_PERIOD] = true;
+    this.stable = mask;
+  }
+  /**
+   * Heartbeat at this tick, or null. Same rule as `heartbeatSchedule`: a tick
+   * fires when it lands on a stable rung, and the kind is 'short' exactly when
+   * the previous stable rung was 2 ticks ago (the {12,2} gap pattern).
+   */
+  onTick(tick) {
+    const r = (tick % LUCAS_MOD13_PERIOD + LUCAS_MOD13_PERIOD) % LUCAS_MOD13_PERIOD;
+    if (!this.stable[r]) return null;
+    const kind = this.prevStable !== null && tick - this.prevStable === 2 ? "short" : "long";
+    this.prevStable = tick;
+    return kind;
+  }
+  /**
+   * Feed one tick. Called from `stepOnce` after `foldPerception`; pure
+   * observation of the two reports, plus the long-heartbeat batch slot.
+   */
+  observe(rep, sense) {
+    const kind = this.onTick(rep.tick);
+    for (let i = 0; i < this.rungCoherenceRings.length; i++) {
+      const t = rep.rungs[i];
+      this.rungCoherenceRings[i].push(t?.coherence ?? NaN);
+      this.rungEnergyRings[i].push(t?.energy ?? NaN);
+    }
+    if (sense) {
+      for (const ch of sense.fusion.channels) {
+        let ring = this.channelRings.get(ch.id);
+        if (!ring) {
+          ring = new Ring(this.depth);
+          this.channelRings.set(ch.id, ring);
+        }
+        ring.push(ch.energy);
+      }
+    }
+    if (kind === null) return;
+    if (kind === "long" && this.xcorrEnabled) this.runXcorr(rep.tick);
+    this.lastReport = { tick: rep.tick, kind, xcorr: this.lastXcorr, dmd: this.lastDmd, conformalHalfWidth: this.conformalHalfWidth };
+  }
+  /**
+   * The batch slot. Only rings that are full AND finite enter the stack — a
+   * partial or dirty window is not evidence, and the estimators' own floors
+   * would only see a shorter honest series anyway.
+   */
+  runXcorr(tick) {
+    const named = [];
+    for (let i = 0; i < this.rungCoherenceRings.length; i++) {
+      const ring = this.rungCoherenceRings[i];
+      if (ring.filled && ring.finite) named.push({ id: `r${i}`, series: ring.linearize() });
+    }
+    for (const id of [...this.channelRings.keys()].sort()) {
+      const ring = this.channelRings.get(id);
+      if (ring.filled && ring.finite) named.push({ id: `c:${id}`, series: ring.linearize() });
+    }
+    const prevFused = this.lastXcorr?.fusedCoherence ?? NaN;
+    this.lastXcorr = xcorrStack(named, {
+      tick,
+      prevFusedCoherence: prevFused
+    });
+    const rungSeries = [];
+    for (let i = 0; i < this.rungCoherenceRings.length; i++) {
+      const ring = this.rungCoherenceRings[i];
+      if (ring.filled && ring.finite) rungSeries.push(ring.linearize());
+    }
+    this.lastDmd = ladderDmd(rungSeries, tick);
+    const curr = this.lastXcorr.fusedCoherence;
+    if (this.conformal && Number.isFinite(prevFused) && Number.isFinite(curr)) {
+      this.conformalHalfWidth = this.conformal.observe(prevFused, curr).halfWidth;
+    } else {
+      this.conformalHalfWidth = null;
+    }
+  }
+  /** Latest retained report, or null before the first heartbeat. */
+  report() {
+    return this.lastReport;
+  }
+  /** Chronological coherence window of one rung (copy; batch-path only). */
+  rungCoherence(rank2) {
+    return this.rungCoherenceRings[rank2]?.linearize() ?? new Float64Array(0);
+  }
+  /** Chronological energy window of one rung (copy; batch-path only). */
+  rungEnergy(rank2) {
+    return this.rungEnergyRings[rank2]?.linearize() ?? new Float64Array(0);
+  }
+  /** Chronological fused-energy window of one channel, or null if unknown. */
+  channelEnergy(id) {
+    return this.channelRings.get(id)?.linearize() ?? null;
+  }
+  /** Channel ids currently ringed, sorted. */
+  channelIds() {
+    return [...this.channelRings.keys()].sort();
+  }
+};
 
 // ../omega/node_modules/@noble/hashes/_u64.js
 var U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
@@ -10920,6 +11511,731 @@ var sha512 = /* @__PURE__ */ createHasher(
   /* @__PURE__ */ oidNist(3)
 );
 
+// ../omega/node_modules/@noble/ciphers/utils.js
+function isBytes2(a) {
+  return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
+}
+var atitle2 = (title) => title ? `"${title}" ` : "";
+function abool(value, title = "") {
+  if (typeof value !== "boolean")
+    throw new TypeError(atitle2(title) + "expected boolean, got type=" + typeof value);
+  return value;
+}
+function anumber2(n, title = "") {
+  if (typeof n !== "number")
+    throw new TypeError(atitle2(title) + "expected number, got " + typeof n);
+  if (!Number.isSafeInteger(n) || n < 0)
+    throw new RangeError(atitle2(title) + "expected integer >= 0, got " + n);
+  return n;
+}
+function abytes2(value, length, title = "") {
+  if (isBytes2(value) && (length === void 0 || value.length === length))
+    return value;
+  if (length !== void 0)
+    anumber2(length, "length");
+  const bytes = isBytes2(value);
+  const ofLen = length !== void 0 ? ` of length ${length}` : "";
+  const got = bytes ? `length=${value.length}` : `type=${typeof value}`;
+  const message = atitle2(title) + "expected Uint8Array" + ofLen + ", got " + got;
+  if (!bytes)
+    throw new TypeError(message);
+  throw new RangeError(message);
+}
+function aexists2(instance, checkFinished = true) {
+  if (instance.destroyed)
+    throw new Error("hash was destroyed");
+  if (checkFinished && instance.finished)
+    throw new Error("digest() was already called");
+}
+function aoutput2(out, instance) {
+  abytes2(out, void 0, "output");
+  const min = instance.outputLen;
+  if (!(out.length >= min)) {
+    throw new RangeError('"output" expected length >= ' + min);
+  }
+}
+function aoutput32(out, instance) {
+  aoutput2(out, instance);
+  if (!isAligned32(out))
+    throw new Error("invalid output, must be aligned");
+}
+function u8(arr) {
+  return new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength);
+}
+function u32(arr) {
+  return new Uint32Array(arr.buffer, arr.byteOffset, Math.floor(arr.byteLength / 4));
+}
+function clean2(...arrays) {
+  for (let i = 0; i < arrays.length; i++) {
+    arrays[i].fill(0);
+  }
+}
+function createView2(arr) {
+  return new DataView(arr.buffer, arr.byteOffset, arr.byteLength);
+}
+var isLE = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
+function byteSwap(word) {
+  return word << 24 & 4278190080 | word << 8 & 16711680 | word >>> 8 & 65280 | word >>> 24 & 255;
+}
+var swap8IfBE = isLE ? (n) => n : (n) => byteSwap(n) >>> 0;
+function byteSwap32(arr) {
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = byteSwap(arr[i]);
+  }
+  return arr;
+}
+var swap32IfBE = isLE ? (u) => u : byteSwap32;
+function equalBytes(a, b) {
+  a = abytes2(a);
+  b = abytes2(b);
+  if (a.length !== b.length)
+    return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++)
+    diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+function wrapMacConstructor(keyLen, macCons, fromMsg) {
+  const mac = macCons;
+  const getArgs = fromMsg || (() => []);
+  const macC = (msg, key) => mac(key, ...getArgs(msg)).update(msg).digest();
+  const tmp = mac(new Uint8Array(keyLen), ...getArgs(new Uint8Array(0)));
+  macC.outputLen = tmp.outputLen;
+  macC.blockLen = tmp.blockLen;
+  macC.create = (key, ...args) => mac(key, ...args);
+  return macC;
+}
+var wrapCipher = /* @__NO_SIDE_EFFECTS__ */ (params, constructor) => {
+  function wrappedCipher(key, ...args) {
+    abytes2(key, void 0, "key");
+    if (params.nonceLength !== void 0) {
+      const nonce = args[0];
+      abytes2(nonce, params.varSizeNonce ? void 0 : params.nonceLength, "nonce");
+    }
+    const tagl = params.tagLength;
+    const aadStart = params.nonceLength !== void 0 ? 1 : 0;
+    if (!params.withAAD) {
+      for (let i = aadStart; i < args.length; i++)
+        if (isBytes2(args[i]))
+          throw new Error("AAD not supported");
+    }
+    if (params.withAAD && args[aadStart] !== void 0)
+      abytes2(args[aadStart], void 0, "AAD");
+    const cipher = constructor(key, ...args);
+    const checkOutput = (fnLength, output) => {
+      if (output !== void 0) {
+        if (fnLength !== 2)
+          throw new Error("cipher output not supported");
+        abytes2(output, void 0, "output");
+      }
+    };
+    let called = false;
+    const wrCipher = {
+      encrypt(data, output) {
+        if (called)
+          throw new Error("cannot encrypt() twice with same key + nonce");
+        called = true;
+        abytes2(data, void 0, "data");
+        checkOutput(cipher.encrypt.length, output);
+        return cipher.encrypt(data, output);
+      },
+      decrypt(data, output) {
+        abytes2(data, void 0, "data");
+        if (tagl && data.length < tagl)
+          throw new Error('"ciphertext" expected length >= tagLength=' + tagl);
+        checkOutput(cipher.decrypt.length, output);
+        return cipher.decrypt(data, output);
+      }
+    };
+    return wrCipher;
+  }
+  Object.assign(wrappedCipher, params);
+  return wrappedCipher;
+};
+function getOutput(expectedLength, out, onlyAligned = true) {
+  if (out === void 0)
+    return new Uint8Array(expectedLength);
+  abytes2(out, expectedLength, "output");
+  if (onlyAligned && !isAligned32(out))
+    throw new Error("invalid output, must be aligned");
+  return out;
+}
+function u64Lengths(dataLength, aadLength, isLE2) {
+  anumber2(dataLength);
+  anumber2(aadLength);
+  abool(isLE2);
+  const num = new Uint8Array(16);
+  const view = createView2(num);
+  view.setBigUint64(0, BigInt(aadLength), isLE2);
+  view.setBigUint64(8, BigInt(dataLength), isLE2);
+  return num;
+}
+function isAligned32(bytes) {
+  return bytes.byteOffset % 4 === 0;
+}
+function copyBytes(bytes) {
+  return Uint8Array.from(abytes2(bytes));
+}
+
+// ../omega/node_modules/@noble/ciphers/_polyval.js
+var BLOCK_SIZE = 16;
+var ZEROS16 = /* @__PURE__ */ new Uint8Array(16);
+var ZEROS32 = /* @__PURE__ */ u32(ZEROS16);
+var POLY = 225;
+var mul2 = (s0, s1, s2, s3) => {
+  const hiBit = s3 & 1;
+  return {
+    s3: s2 << 31 | s3 >>> 1,
+    s2: s1 << 31 | s2 >>> 1,
+    s1: s0 << 31 | s1 >>> 1,
+    // NIST SP 800-38D §6.3 applies `V >> 1` and XORs R on carry. In this
+    // 4x32-bit split, R = 0xe1 || 0^120 lives in the top byte of s0.
+    s0: s0 >>> 1 ^ POLY << 24 & -(hiBit & 1)
+    // reduce % poly
+  };
+};
+var swapLE = (n) => (n >>> 0 & 255) << 24 | (n >>> 8 & 255) << 16 | (n >>> 16 & 255) << 8 | n >>> 24 & 255 | 0;
+var estimateWindow = (bytes) => {
+  if (bytes > 64 * 1024)
+    return 8;
+  if (bytes > 1024)
+    return 4;
+  return 2;
+};
+var GHASH = class {
+  blockLen = BLOCK_SIZE;
+  outputLen = BLOCK_SIZE;
+  s0 = 0;
+  s1 = 0;
+  s2 = 0;
+  s3 = 0;
+  finished = false;
+  destroyed = false;
+  t;
+  W;
+  windowSize;
+  // We select bits per window adaptively based on expectedLength
+  constructor(key, expectedLength) {
+    abytes2(key, 16, "key");
+    key = copyBytes(key);
+    const kView = createView2(key);
+    let k0 = kView.getUint32(0, false);
+    let k1 = kView.getUint32(4, false);
+    let k2 = kView.getUint32(8, false);
+    let k3 = kView.getUint32(12, false);
+    const doubles = [];
+    for (let i = 0; i < 128; i++) {
+      doubles.push({ s0: swapLE(k0), s1: swapLE(k1), s2: swapLE(k2), s3: swapLE(k3) });
+      ({ s0: k0, s1: k1, s2: k2, s3: k3 } = mul2(k0, k1, k2, k3));
+    }
+    const W = estimateWindow(expectedLength || 1024);
+    if (![1, 2, 4, 8].includes(W))
+      throw new Error("ghash: invalid window size, expected 2, 4 or 8");
+    this.W = W;
+    const bits = 128;
+    const windows = bits / W;
+    const windowSize = this.windowSize = 2 ** W;
+    const items = [];
+    for (let w = 0; w < windows; w++) {
+      for (let byte = 0; byte < windowSize; byte++) {
+        let s0 = 0, s1 = 0, s2 = 0, s3 = 0;
+        for (let j = 0; j < W; j++) {
+          const bit = byte >>> W - j - 1 & 1;
+          if (!bit)
+            continue;
+          const { s0: d0, s1: d1, s2: d2, s3: d3 } = doubles[W * w + j];
+          s0 ^= d0, s1 ^= d1, s2 ^= d2, s3 ^= d3;
+        }
+        items.push({ s0, s1, s2, s3 });
+      }
+    }
+    this.t = items;
+  }
+  _updateBlock(s0, s1, s2, s3) {
+    s0 ^= this.s0, s1 ^= this.s1, s2 ^= this.s2, s3 ^= this.s3;
+    const { W, t, windowSize } = this;
+    let o0 = 0, o1 = 0, o2 = 0, o3 = 0;
+    const mask = (1 << W) - 1;
+    let w = 0;
+    for (const num of [s0, s1, s2, s3]) {
+      for (let bytePos = 0; bytePos < 4; bytePos++) {
+        const byte = num >>> 8 * bytePos & 255;
+        for (let bitPos = 8 / W - 1; bitPos >= 0; bitPos--) {
+          const bit = byte >>> W * bitPos & mask;
+          const { s0: e0, s1: e1, s2: e2, s3: e3 } = t[w * windowSize + bit];
+          o0 ^= e0, o1 ^= e1, o2 ^= e2, o3 ^= e3;
+          w += 1;
+        }
+      }
+    }
+    this.s0 = o0;
+    this.s1 = o1;
+    this.s2 = o2;
+    this.s3 = o3;
+  }
+  update(data) {
+    aexists2(this);
+    abytes2(data);
+    data = copyBytes(data);
+    const b32 = u32(data);
+    const blocks = Math.floor(data.length / BLOCK_SIZE);
+    const left = data.length % BLOCK_SIZE;
+    for (let i = 0; i < blocks; i++) {
+      this._updateBlock(swap8IfBE(b32[i * 4 + 0]), swap8IfBE(b32[i * 4 + 1]), swap8IfBE(b32[i * 4 + 2]), swap8IfBE(b32[i * 4 + 3]));
+    }
+    if (left) {
+      ZEROS16.set(data.subarray(blocks * BLOCK_SIZE));
+      this._updateBlock(swap8IfBE(ZEROS32[0]), swap8IfBE(ZEROS32[1]), swap8IfBE(ZEROS32[2]), swap8IfBE(ZEROS32[3]));
+      clean2(ZEROS32);
+    }
+    return this;
+  }
+  destroy() {
+    this.destroyed = true;
+    const { t } = this;
+    for (const elm of t) {
+      elm.s0 = 0, elm.s1 = 0, elm.s2 = 0, elm.s3 = 0;
+    }
+  }
+  digestInto(out) {
+    aexists2(this);
+    aoutput32(out, this);
+    this.finished = true;
+    const { s0, s1, s2, s3 } = this;
+    const o32 = u32(out);
+    o32[0] = s0;
+    o32[1] = s1;
+    o32[2] = s2;
+    o32[3] = s3;
+    if (!isLE)
+      swap32IfBE(o32.subarray(0, BLOCK_SIZE / 4));
+  }
+  digest() {
+    const res = new Uint8Array(BLOCK_SIZE);
+    this.digestInto(res);
+    this.destroy();
+    return res;
+  }
+};
+var ghash = /* @__PURE__ */ wrapMacConstructor(16, (key, expectedLength) => new GHASH(key, expectedLength), (msg) => [msg.length]);
+
+// ../omega/node_modules/@noble/ciphers/aes.js
+var BLOCK_SIZE2 = 16;
+var BLOCK_SIZE32 = 4;
+var EMPTY_BLOCK = /* @__PURE__ */ new Uint8Array(BLOCK_SIZE2);
+var POLY2 = 283;
+function validateKeyLength(key) {
+  if (![16, 24, 32].includes(key.length))
+    throw new Error('"aes key" expected Uint8Array of length 16/24/32, got length=' + key.length);
+}
+function mul22(n) {
+  return n << 1 ^ POLY2 & -(n >> 7);
+}
+function mul(a, b) {
+  let res = 0;
+  for (; b > 0; b >>= 1) {
+    res ^= a & -(b & 1);
+    a = mul22(a);
+  }
+  return res;
+}
+var sbox = /* @__PURE__ */ (() => {
+  const t = new Uint8Array(256);
+  for (let i = 0, x = 1; i < 256; i++, x ^= mul22(x))
+    t[i] = x;
+  const box = new Uint8Array(256);
+  box[0] = 99;
+  for (let i = 0; i < 255; i++) {
+    let x = t[255 - i];
+    x |= x << 8;
+    box[t[i]] = (x ^ x >> 4 ^ x >> 5 ^ x >> 6 ^ x >> 7 ^ 99) & 255;
+  }
+  clean2(t);
+  return box;
+})();
+var rotr32_8 = (n) => n << 24 | n >>> 8;
+var rotl32_8 = (n) => n << 8 | n >>> 24;
+function genTtable(sbox2, fn) {
+  if (sbox2.length !== 256)
+    throw new Error("wrong sbox length");
+  const T0 = new Uint32Array(256).map((_, j) => fn(sbox2[j]));
+  const T1 = T0.map(rotl32_8);
+  const T2 = T1.map(rotl32_8);
+  const T3 = T2.map(rotl32_8);
+  const T01 = new Uint32Array(256 * 256);
+  const T23 = new Uint32Array(256 * 256);
+  const sbox22 = new Uint16Array(256 * 256);
+  for (let i = 0; i < 256; i++) {
+    for (let j = 0; j < 256; j++) {
+      const idx = i * 256 + j;
+      T01[idx] = T0[i] ^ T1[j];
+      T23[idx] = T2[i] ^ T3[j];
+      sbox22[idx] = sbox2[i] << 8 | sbox2[j];
+    }
+  }
+  return { sbox: sbox2, sbox2: sbox22, T0, T1, T2, T3, T01, T23 };
+}
+var tableEncoding = /* @__PURE__ */ genTtable(sbox, (s) => mul(s, 3) << 24 | s << 16 | s << 8 | mul(s, 2));
+var xPowers = /* @__PURE__ */ (() => {
+  const p = new Uint8Array(16);
+  for (let i = 0, x = 1; i < 16; i++, x = mul22(x))
+    p[i] = x;
+  return p;
+})();
+function expandKeyLE(key) {
+  abytes2(key);
+  const len = key.length;
+  validateKeyLength(key);
+  const { sbox2 } = tableEncoding;
+  const toClean = [];
+  if (!isLE || !isAligned32(key))
+    toClean.push(key = copyBytes(key));
+  const k32 = swap32IfBE(u32(key));
+  const Nk = k32.length;
+  const subByte = (n) => applySbox(sbox2, n, n, n, n);
+  const xk = new Uint32Array(len + 28);
+  xk.set(k32);
+  for (let i = Nk; i < xk.length; i++) {
+    let t = xk[i - 1];
+    if (i % Nk === 0)
+      t = subByte(rotr32_8(t)) ^ xPowers[i / Nk - 1];
+    else if (Nk > 6 && i % Nk === 4)
+      t = subByte(t);
+    xk[i] = xk[i - Nk] ^ t;
+  }
+  clean2(...toClean);
+  return xk;
+}
+function apply0123(T01, T23, s0, s1, s2, s3) {
+  return T01[s0 << 8 & 65280 | s1 >>> 8 & 255] ^ T23[s2 >>> 8 & 65280 | s3 >>> 24 & 255];
+}
+function applySbox(sbox2, s0, s1, s2, s3) {
+  return sbox2[s0 & 255 | s1 & 65280] | sbox2[s2 >>> 16 & 255 | s3 >>> 16 & 65280] << 16;
+}
+function encrypt(xk, s0, s1, s2, s3) {
+  const { sbox2, T01, T23 } = tableEncoding;
+  let k = 0;
+  s0 ^= xk[k++], s1 ^= xk[k++], s2 ^= xk[k++], s3 ^= xk[k++];
+  const rounds = xk.length / 4 - 2;
+  for (let i = 0; i < rounds; i++) {
+    const t02 = xk[k++] ^ apply0123(T01, T23, s0, s1, s2, s3);
+    const t12 = xk[k++] ^ apply0123(T01, T23, s1, s2, s3, s0);
+    const t22 = xk[k++] ^ apply0123(T01, T23, s2, s3, s0, s1);
+    const t32 = xk[k++] ^ apply0123(T01, T23, s3, s0, s1, s2);
+    s0 = t02, s1 = t12, s2 = t22, s3 = t32;
+  }
+  const t0 = xk[k++] ^ applySbox(sbox2, s0, s1, s2, s3);
+  const t1 = xk[k++] ^ applySbox(sbox2, s1, s2, s3, s0);
+  const t2 = xk[k++] ^ applySbox(sbox2, s2, s3, s0, s1);
+  const t3 = xk[k++] ^ applySbox(sbox2, s3, s0, s1, s2);
+  return { s0: t0, s1: t1, s2: t2, s3: t3 };
+}
+function ctr32(xk, isLE2, nonce, src, dst) {
+  abytes2(nonce, BLOCK_SIZE2, "nonce");
+  abytes2(src);
+  dst = getOutput(src.length, dst);
+  const ctr = nonce;
+  const c32 = u32(ctr);
+  const view = createView2(ctr);
+  const src32 = u32(src);
+  const dst32 = u32(dst);
+  const ctrPos = isLE2 ? 0 : 12;
+  const srcLen = src.length;
+  let ctrNum = view.getUint32(ctrPos, isLE2);
+  for (let i = 0; i + 4 <= src32.length; i += 4) {
+    const { s0, s1, s2, s3 } = encrypt(xk, swap8IfBE(c32[0]), swap8IfBE(c32[1]), swap8IfBE(c32[2]), swap8IfBE(c32[3]));
+    dst32[i + 0] = src32[i + 0] ^ swap8IfBE(s0);
+    dst32[i + 1] = src32[i + 1] ^ swap8IfBE(s1);
+    dst32[i + 2] = src32[i + 2] ^ swap8IfBE(s2);
+    dst32[i + 3] = src32[i + 3] ^ swap8IfBE(s3);
+    ctrNum = ctrNum + 1 >>> 0;
+    view.setUint32(ctrPos, ctrNum, isLE2);
+  }
+  const start = BLOCK_SIZE2 * Math.floor(src32.length / BLOCK_SIZE32);
+  if (start < srcLen) {
+    const { s0, s1, s2, s3 } = encrypt(xk, swap8IfBE(c32[0]), swap8IfBE(c32[1]), swap8IfBE(c32[2]), swap8IfBE(c32[3]));
+    const b32 = new Uint32Array([s0, s1, s2, s3]);
+    swap32IfBE(b32);
+    const buf = u8(b32);
+    for (let i = start, pos = 0; i < srcLen; i++, pos++)
+      dst[i] = src[i] ^ buf[pos];
+    clean2(b32);
+  }
+  return dst;
+}
+function computeTag(fn, isLE2, key, data, AAD) {
+  const aadLength = AAD ? AAD.length : 0;
+  const h = fn.create(key, data.length + aadLength);
+  if (AAD)
+    h.update(AAD);
+  const num = u64Lengths(8 * data.length, 8 * aadLength, isLE2);
+  h.update(data);
+  h.update(num);
+  const res = h.digest();
+  clean2(num);
+  return res;
+}
+var gcm = /* @__PURE__ */ wrapCipher({ blockSize: 16, nonceLength: 12, tagLength: 16, withAAD: true, varSizeNonce: true }, function aesgcm(key, nonce, AAD) {
+  if (nonce.length < 8)
+    throw new Error("aes/gcm: invalid nonce length");
+  const tagLength = 16;
+  function _computeTag(authKey, tagMask, data) {
+    const tag = computeTag(ghash, false, authKey, data, AAD);
+    for (let i = 0; i < tagMask.length; i++)
+      tag[i] ^= tagMask[i];
+    return tag;
+  }
+  function deriveKeys() {
+    const xk = expandKeyLE(key);
+    const authKey = EMPTY_BLOCK.slice();
+    const counter = EMPTY_BLOCK.slice();
+    ctr32(xk, false, counter, counter, authKey);
+    if (nonce.length === 12) {
+      counter.set(nonce);
+    } else {
+      const nonceLen = EMPTY_BLOCK.slice();
+      const view = createView2(nonceLen);
+      view.setBigUint64(8, BigInt(nonce.length * 8), false);
+      const g2 = ghash.create(authKey).update(nonce).update(nonceLen);
+      g2.digestInto(counter);
+      g2.destroy();
+    }
+    const tagMask = ctr32(xk, false, counter, EMPTY_BLOCK);
+    return { xk, authKey, counter, tagMask };
+  }
+  return {
+    encrypt(plaintext) {
+      const { xk, authKey, counter, tagMask } = deriveKeys();
+      const out = new Uint8Array(plaintext.length + tagLength);
+      const toClean = [xk, authKey, counter, tagMask];
+      if (!isAligned32(plaintext))
+        toClean.push(plaintext = copyBytes(plaintext));
+      ctr32(xk, false, counter, plaintext, out.subarray(0, plaintext.length));
+      const tag = _computeTag(authKey, tagMask, out.subarray(0, out.length - tagLength));
+      toClean.push(tag);
+      out.set(tag, plaintext.length);
+      clean2(...toClean);
+      return out;
+    },
+    decrypt(ciphertext) {
+      const { xk, authKey, counter, tagMask } = deriveKeys();
+      const toClean = [xk, authKey, tagMask, counter];
+      if (!isAligned32(ciphertext))
+        toClean.push(ciphertext = copyBytes(ciphertext));
+      const data = ciphertext.subarray(0, -tagLength);
+      const passedTag = ciphertext.subarray(-tagLength);
+      const tag = _computeTag(authKey, tagMask, data);
+      toClean.push(tag);
+      if (!equalBytes(tag, passedTag)) {
+        clean2(...toClean);
+        throw new Error("aes-gcm: invalid tag");
+      }
+      const out = ctr32(xk, false, counter, data);
+      clean2(...toClean);
+      return out;
+    }
+  };
+});
+
+// ../omega/node_modules/@noble/hashes/hmac.js
+var _HMAC = class {
+  oHash;
+  iHash;
+  blockLen;
+  outputLen;
+  canXOF = false;
+  finished = false;
+  destroyed = false;
+  constructor(hash, key) {
+    ahash(hash);
+    abytes(key, void 0, "key");
+    this.iHash = hash.create();
+    if (typeof this.iHash.update !== "function")
+      throw new Error("expected Hash instance");
+    this.blockLen = this.iHash.blockLen;
+    this.outputLen = this.iHash.outputLen;
+    const blockLen = this.blockLen;
+    const pad = new Uint8Array(blockLen);
+    pad.set(key.length > blockLen ? hash.create().update(key).digest() : key);
+    for (let i = 0; i < pad.length; i++)
+      pad[i] ^= 54;
+    this.iHash.update(pad);
+    this.oHash = hash.create();
+    for (let i = 0; i < pad.length; i++)
+      pad[i] ^= 54 ^ 92;
+    this.oHash.update(pad);
+    clean(pad);
+  }
+  update(buf) {
+    aexists(this);
+    this.iHash.update(buf);
+    return this;
+  }
+  digestInto(out) {
+    aexists(this);
+    aoutput(out, this);
+    this.finished = true;
+    const buf = out.subarray(0, this.outputLen);
+    this.iHash.digestInto(buf);
+    this.oHash.update(buf);
+    this.oHash.digestInto(buf);
+    this.destroy();
+  }
+  digest() {
+    const out = new Uint8Array(this.oHash.outputLen);
+    this.digestInto(out);
+    return out;
+  }
+  _cloneInto(to) {
+    to ||= Object.create(Object.getPrototypeOf(this), {});
+    const { oHash, iHash, finished, destroyed, blockLen, outputLen, canXOF } = this;
+    to = to;
+    to.finished = finished;
+    to.destroyed = destroyed;
+    to.blockLen = blockLen;
+    to.outputLen = outputLen;
+    to.canXOF = canXOF;
+    to.oHash = oHash._cloneInto(to.oHash);
+    to.iHash = iHash._cloneInto(to.iHash);
+    return to;
+  }
+  clone() {
+    return this._cloneInto();
+  }
+  destroy() {
+    this.destroyed = true;
+    this.oHash.destroy();
+    this.iHash.destroy();
+  }
+};
+var hmac = /* @__PURE__ */ (() => {
+  const hmac_ = (hash, key, message) => new _HMAC(hash, key).update(message).digest();
+  hmac_.create = (hash, key) => new _HMAC(hash, key);
+  return hmac_;
+})();
+
+// ../omega/node_modules/@noble/hashes/hkdf.js
+var HKDF_COUNTER = /* @__PURE__ */ Uint8Array.of(0);
+var EMPTY_BUFFER = /* @__PURE__ */ Uint8Array.of();
+function expand(hash, prk, info, length = 32, _recycled) {
+  ahash(hash);
+  anumber(length, "length");
+  abytes(prk, void 0, "prk");
+  const olen = hash.outputLen;
+  if (prk.length < olen)
+    throw new Error('"prk" must be at least HashLen octets');
+  if (length > 255 * olen)
+    throw new Error("Length must be <= 255*HashLen");
+  const blocks = Math.ceil(length / olen);
+  if (info === void 0)
+    info = EMPTY_BUFFER;
+  else
+    abytes(info, void 0, "info");
+  if (!blocks) {
+    if (_recycled)
+      clean(prk);
+    return new Uint8Array();
+  }
+  const okm = _recycled && blocks === 1 ? prk : new Uint8Array(blocks * olen);
+  const { iHash, oHash } = hmac.create(hash, prk);
+  const T = _recycled ? prk : new Uint8Array(olen);
+  const worker = blocks > 1 ? _recycled?.iHash || hash.create() : void 0;
+  for (let counter = 0; counter < blocks - 1; counter++) {
+    HKDF_COUNTER[0] = counter + 1;
+    const iWork = iHash._cloneInto(worker);
+    if (counter)
+      iWork.update(T);
+    iWork.update(info).update(HKDF_COUNTER).digestInto(T);
+    oHash._cloneInto(worker).update(T).digestInto(T);
+    okm.set(T, olen * counter);
+  }
+  HKDF_COUNTER[0] = blocks;
+  if (blocks > 1)
+    iHash.update(T);
+  iHash.update(info).update(HKDF_COUNTER).digestInto(T);
+  oHash.update(T).digestInto(T);
+  okm.set(T, olen * (blocks - 1));
+  iHash.destroy();
+  oHash.destroy();
+  worker?.destroy();
+  if (T !== okm)
+    clean(T);
+  clean(HKDF_COUNTER);
+  if (length === okm.length)
+    return okm;
+  const res = okm.slice(0, length);
+  clean(okm);
+  return res;
+}
+var hkdf = (hash, ikm, salt, info, length) => {
+  ahash(hash);
+  if (salt === void 0)
+    salt = new Uint8Array(hash.outputLen);
+  const HMAC = hmac.create(hash, salt).update(ikm);
+  return expand(hash, HMAC.digest(), info, length, HMAC);
+};
+
+// ../omega/packages/trnn-core/src/ledger/canonical.ts
+function canonicalJson(value) {
+  return enc(value);
+}
+function enc(v) {
+  if (v === null) return "null";
+  const t = typeof v;
+  if (t === "boolean") return v ? "true" : "false";
+  if (t === "number") {
+    if (!Number.isFinite(v)) {
+      throw new TypeError("canonicalJson: non-finite number is not representable");
+    }
+    return Object.is(v, -0) ? "0" : JSON.stringify(v);
+  }
+  if (t === "string") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map((x) => enc(x === void 0 ? null : x)).join(",") + "]";
+  if (v instanceof Uint8Array) return JSON.stringify(bytesToBase64(v));
+  if (t === "object") {
+    const o = v;
+    const keys = Object.keys(o).filter((k) => o[k] !== void 0).sort();
+    return "{" + keys.map((k) => JSON.stringify(k) + ":" + enc(o[k])).join(",") + "}";
+  }
+  throw new TypeError(`canonicalJson: unsupported type ${t}`);
+}
+var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function bytesToBase64(b) {
+  let out = "";
+  for (let i = 0; i < b.length; i += 3) {
+    const c0 = b[i], c1 = b[i + 1], c2 = b[i + 2];
+    out += B64[c0 >> 2];
+    out += B64[(c0 & 3) << 4 | (c1 ?? 0) >> 4];
+    out += i + 1 < b.length ? B64[(c1 & 15) << 2 | (c2 ?? 0) >> 6] : "=";
+    out += i + 2 < b.length ? B64[c2 & 63] : "=";
+  }
+  return out;
+}
+function base64ToBytes(s) {
+  const clean3 = s.replace(/=+$/, "");
+  const out = new Uint8Array(clean3.length * 3 >> 2);
+  let acc = 0, bits = 0, o = 0;
+  for (let i = 0; i < clean3.length; i++) {
+    const v = B64.indexOf(clean3[i]);
+    if (v < 0) throw new TypeError("base64ToBytes: invalid character");
+    acc = acc << 6 | v;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[o++] = acc >> bits & 255;
+    }
+  }
+  return out;
+}
+var TE = new TextEncoder();
+var TD = new TextDecoder();
+function utf8(s) {
+  return TE.encode(s);
+}
+function fromUtf8(b) {
+  return TD.decode(b);
+}
+
 // ../omega/packages/trnn-core/src/ledger/merkle.ts
 var LEAF_PREFIX = 0;
 var NODE_PREFIX = 1;
@@ -11098,8 +12414,8 @@ function aarray(item, title, inner2 = () => {
     inner2(item[i], `${title}[${i}]`);
   return item;
 }
-var abytes2 = (value, length, title) => abytes(value, length, title);
-var anumber2 = anumber;
+var abytes3 = (value, length, title) => abytes(value, length, title);
+var anumber3 = anumber;
 function aobject2(value, title = "object") {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     throw new TypeError(title === "object" ? "expected valid options object" : `"${title}" expected object, got type=${typeof value}`);
@@ -11111,16 +12427,16 @@ function afunction(value, title) {
   return value;
 }
 var bytesToHex2 = bytesToHex;
-var concatBytes2 = (...arrays) => concatBytes(...arrays);
+var concatBytes3 = (...arrays) => concatBytes(...arrays);
 var hexToBytes2 = (hex) => hexToBytes(hex);
-var isBytes2 = isBytes;
+var isBytes3 = isBytes;
 var randomBytes2 = (bytesLength) => randomBytes(bytesLength);
 var _0n = /* @__PURE__ */ BigInt(0);
 var _1n = /* @__PURE__ */ BigInt(1);
-var atitle2 = (title) => title ? `"${title}" ` : "";
-function abool(value, title = "") {
+var atitle3 = (title) => title ? `"${title}" ` : "";
+function abool2(value, title = "") {
   if (typeof value !== "boolean")
-    throw new TypeError(atitle2(title) + "expected boolean, got type=" + typeof value);
+    throw new TypeError(atitle3(title) + "expected boolean, got type=" + typeof value);
   return value;
 }
 function abignumber(n) {
@@ -11128,7 +12444,7 @@ function abignumber(n) {
     if (!isPosBig(n))
       throw new RangeError("positive bigint expected, got " + n);
   } else
-    anumber2(n);
+    anumber3(n);
   return n;
 }
 function asafenumber(value, title = "") {
@@ -11150,7 +12466,7 @@ function bytesToNumberBE(bytes) {
   return hexToNumber(bytesToHex(bytes));
 }
 function bytesToNumberLE(bytes) {
-  return hexToNumber(bytesToHex(copyBytes(abytes(bytes)).reverse()));
+  return hexToNumber(bytesToHex(copyBytes2(abytes(bytes)).reverse()));
 }
 function numberToBytesBE(n, len) {
   anumber(len);
@@ -11166,8 +12482,8 @@ function numberToBytesBE(n, len) {
 function numberToBytesLE(n, len) {
   return numberToBytesBE(n, len).reverse();
 }
-function copyBytes(bytes) {
-  return Uint8Array.from(abytes2(bytes));
+function copyBytes2(bytes) {
+  return Uint8Array.from(abytes3(bytes));
 }
 function isPosBig(n) {
   return typeof n === "bigint" && _0n <= n;
@@ -11453,7 +12769,7 @@ function validateField(field) {
 function FpInvertBatch(Fp2, nums, passZero = false) {
   validateField(Fp2);
   aarray(nums, "nums");
-  abool(passZero, "passZero");
+  abool2(passZero, "passZero");
   const F = Fp2;
   const inverted = new Array(nums.length).fill(passZero ? F.ZERO : void 0);
   const multipliedAcc = nums.reduce((acc, num, i) => {
@@ -11486,7 +12802,7 @@ function FpLegendre(Fp2, n) {
 }
 function nLength(n, nBitLength) {
   if (nBitLength !== void 0)
-    anumber2(nBitLength);
+    anumber3(nBitLength);
   if (n <= _0n2)
     throw new Error("invalid n length: expected positive n, got " + n);
   if (nBitLength !== void 0 && nBitLength < 1)
@@ -11601,7 +12917,7 @@ var _Field = class {
     return this.isLE ? numberToBytesLE(num, this.BYTES) : numberToBytesBE(num, this.BYTES);
   }
   fromBytes(bytes, skipValidation = false) {
-    abytes2(bytes);
+    abytes3(bytes);
     const { _lengths: allowedLengths, BYTES, isLE: isLE2, ORDER, _mod: modFromBytes } = this;
     if (allowedLengths) {
       if (bytes.length < 1 || !allowedLengths.includes(bytes.length) || bytes.length > BYTES) {
@@ -11629,7 +12945,7 @@ var _Field = class {
   // We can't move this out because Fp6, Fp12 implement it
   // and it's unclear what to return in there.
   cmov(a, b, condition) {
-    abool(condition, "condition");
+    abool2(condition, "condition");
     return condition ? b : a;
   }
 };
@@ -11679,7 +12995,7 @@ function probeRandomBytes(randomBytes3, length) {
   afunction(randomBytes3, "randomBytes");
   try {
     const probe = randomBytes3(length);
-    if (!isBytes2(probe) || probe.length !== length)
+    if (!isBytes3(probe) || probe.length !== length)
       return void 0;
   } catch {
     return void 0;
@@ -11889,7 +13205,7 @@ var ScalarMultiplier = class {
       throw new Error("randomBytes is required for scalar blinding");
     const bits = this.Point.Fn.BITS + BLIND_BITS;
     const blind = this.randomBytes(BLIND_BYTES);
-    if (!isBytes2(blind) || blind.length !== BLIND_BYTES)
+    if (!isBytes3(blind) || blind.length !== BLIND_BYTES)
       throw new Error("randomBytes returned invalid byte array");
     blind[0] = blind[0] & 63 | 128;
     const n = scalar + bytesToNumberBE(blind) * this.Point.Fn.ORDER;
@@ -11976,7 +13292,7 @@ var ScalarMultiplier = class {
 function mulAddUnsafe(c, points, scalars, allowOversized = false) {
   validatePointCons(c);
   validateMSMPoints(points, c);
-  abool(allowOversized, "allowOversized");
+  abool2(allowOversized, "allowOversized");
   validateMSMScalars(scalars, c.Fn, allowOversized ? c.Fn.ORDER ** _4n2 : void 0);
   if (points.length !== scalars.length)
     throw new Error("arrays of points and scalars must have equal length");
@@ -12112,9 +13428,9 @@ function edwards(params, extraOpts = {}) {
     static fromBytes(bytes, zip215 = false) {
       const len = Fp2.BYTES;
       const { a, d } = CURVE;
-      bytes = copyBytes(abytes2(bytes, len, "point"));
-      abool(zip215, "zip215");
-      const normed = copyBytes(bytes);
+      bytes = copyBytes2(abytes3(bytes, len, "point"));
+      abool2(zip215, "zip215");
+      const normed = copyBytes2(bytes);
       const lastByte = bytes[len - 1];
       normed[len - 1] = lastByte & ~128;
       const y = bytesToNumberLE(normed);
@@ -12348,7 +13664,7 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
   const toMontgomerySecret2 = opts.toMontgomerySecret;
   const adjustScalarBytes2 = opts.adjustScalarBytes === void 0 ? (bytes) => bytes : opts.adjustScalarBytes;
   const domain = opts.domain === void 0 ? (data, ctx, phflag) => {
-    abool(phflag, "phflag");
+    abool2(phflag, "phflag");
     if (ctx.length || phflag)
       throw new Error("Contexts/pre-hash are not supported");
     return data;
@@ -12358,8 +13674,8 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
   }
   function getPrivateScalar(key) {
     const len = lengths.secretKey;
-    abytes2(key, lengths.secretKey, "secretKey");
-    const hashed = abytes2(hash(key), 2 * len, "hashedSecretKey");
+    abytes3(key, lengths.secretKey, "secretKey");
+    const hashed = abytes3(hash(key), 2 * len, "hashedSecretKey");
     const head = adjustScalarBytes2(hashed.slice(0, len));
     const prefix = hashed.slice(len, 2 * len);
     const scalar = modN_LE(head);
@@ -12375,12 +13691,12 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
     return getExtendedPublicKey(secretKey).pointBytes;
   }
   function hashDomainToScalar(context = Uint8Array.of(), ...msgs) {
-    const msg = concatBytes2(...msgs);
-    return modN_LE(hash(domain(msg, abytes2(context, void 0, "context"), !!prehash)));
+    const msg = concatBytes3(...msgs);
+    return modN_LE(hash(domain(msg, abytes3(context, void 0, "context"), !!prehash)));
   }
   function sign(msg, secretKey, options = {}) {
     validateObject(options, {}, {}, "options");
-    msg = abytes2(msg, void 0, "message");
+    msg = abytes3(msg, void 0, "message");
     if (prehash)
       msg = prehash(msg);
     const { prefix, scalar, pointBytes } = getExtendedPublicKey(secretKey);
@@ -12390,8 +13706,8 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
     const s = Fn.create(r + k * scalar);
     if (!Fn.isValid(s))
       throw new Error("sign failed: invalid s");
-    const rs = concatBytes2(R, Fn.toBytes(s));
-    return abytes2(rs, lengths.signature, "result");
+    const rs = concatBytes3(R, Fn.toBytes(s));
+    return abytes3(rs, lengths.signature, "result");
   }
   const verifyOpts = {
     zip215: opts.zip215
@@ -12401,11 +13717,11 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
     const { context } = options;
     const zip215 = options.zip215 === void 0 ? !!verifyOpts.zip215 : options.zip215;
     const len = lengths.signature;
-    sig = abytes2(sig, len, "signature");
-    msg = abytes2(msg, void 0, "message");
-    publicKey = abytes2(publicKey, lengths.publicKey, "publicKey");
+    sig = abytes3(sig, len, "signature");
+    msg = abytes3(msg, void 0, "message");
+    publicKey = abytes3(publicKey, lengths.publicKey, "publicKey");
     if (zip215 !== void 0)
-      abool(zip215, "zip215");
+      abool2(zip215, "zip215");
     if (prehash)
       msg = prehash(msg);
     const mid = len / 2;
@@ -12434,10 +13750,10 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
   };
   function randomSecretKey(seed) {
     seed = seed === void 0 ? randomBytes3(lengths.seed) : seed;
-    return abytes2(seed, lengths.seed, "seed");
+    return abytes3(seed, lengths.seed, "seed");
   }
   function isValidSecretKey(key) {
-    return isBytes2(key) && key.length === lengths.secretKey;
+    return isBytes3(key) && key.length === lengths.secretKey;
   }
   function isValidPublicKey(key, zip215) {
     try {
@@ -12588,670 +13904,6 @@ function verifyTreeHead(sth, expectedPublicKey) {
   }
 }
 
-// ../omega/node_modules/@noble/ciphers/utils.js
-function isBytes3(a) {
-  return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
-}
-var atitle3 = (title) => title ? `"${title}" ` : "";
-function abool2(value, title = "") {
-  if (typeof value !== "boolean")
-    throw new TypeError(atitle3(title) + "expected boolean, got type=" + typeof value);
-  return value;
-}
-function anumber3(n, title = "") {
-  if (typeof n !== "number")
-    throw new TypeError(atitle3(title) + "expected number, got " + typeof n);
-  if (!Number.isSafeInteger(n) || n < 0)
-    throw new RangeError(atitle3(title) + "expected integer >= 0, got " + n);
-  return n;
-}
-function abytes3(value, length, title = "") {
-  if (isBytes3(value) && (length === void 0 || value.length === length))
-    return value;
-  if (length !== void 0)
-    anumber3(length, "length");
-  const bytes = isBytes3(value);
-  const ofLen = length !== void 0 ? ` of length ${length}` : "";
-  const got = bytes ? `length=${value.length}` : `type=${typeof value}`;
-  const message = atitle3(title) + "expected Uint8Array" + ofLen + ", got " + got;
-  if (!bytes)
-    throw new TypeError(message);
-  throw new RangeError(message);
-}
-function aexists2(instance, checkFinished = true) {
-  if (instance.destroyed)
-    throw new Error("hash was destroyed");
-  if (checkFinished && instance.finished)
-    throw new Error("digest() was already called");
-}
-function aoutput2(out, instance) {
-  abytes3(out, void 0, "output");
-  const min = instance.outputLen;
-  if (!(out.length >= min)) {
-    throw new RangeError('"output" expected length >= ' + min);
-  }
-}
-function aoutput32(out, instance) {
-  aoutput2(out, instance);
-  if (!isAligned32(out))
-    throw new Error("invalid output, must be aligned");
-}
-function u8(arr) {
-  return new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength);
-}
-function u32(arr) {
-  return new Uint32Array(arr.buffer, arr.byteOffset, Math.floor(arr.byteLength / 4));
-}
-function clean2(...arrays) {
-  for (let i = 0; i < arrays.length; i++) {
-    arrays[i].fill(0);
-  }
-}
-function createView2(arr) {
-  return new DataView(arr.buffer, arr.byteOffset, arr.byteLength);
-}
-var isLE = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
-function byteSwap(word) {
-  return word << 24 & 4278190080 | word << 8 & 16711680 | word >>> 8 & 65280 | word >>> 24 & 255;
-}
-var swap8IfBE = isLE ? (n) => n : (n) => byteSwap(n) >>> 0;
-function byteSwap32(arr) {
-  for (let i = 0; i < arr.length; i++) {
-    arr[i] = byteSwap(arr[i]);
-  }
-  return arr;
-}
-var swap32IfBE = isLE ? (u) => u : byteSwap32;
-function equalBytes(a, b) {
-  a = abytes3(a);
-  b = abytes3(b);
-  if (a.length !== b.length)
-    return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++)
-    diff |= a[i] ^ b[i];
-  return diff === 0;
-}
-function wrapMacConstructor(keyLen, macCons, fromMsg) {
-  const mac = macCons;
-  const getArgs = fromMsg || (() => []);
-  const macC = (msg, key) => mac(key, ...getArgs(msg)).update(msg).digest();
-  const tmp = mac(new Uint8Array(keyLen), ...getArgs(new Uint8Array(0)));
-  macC.outputLen = tmp.outputLen;
-  macC.blockLen = tmp.blockLen;
-  macC.create = (key, ...args) => mac(key, ...args);
-  return macC;
-}
-var wrapCipher = /* @__NO_SIDE_EFFECTS__ */ (params, constructor) => {
-  function wrappedCipher(key, ...args) {
-    abytes3(key, void 0, "key");
-    if (params.nonceLength !== void 0) {
-      const nonce = args[0];
-      abytes3(nonce, params.varSizeNonce ? void 0 : params.nonceLength, "nonce");
-    }
-    const tagl = params.tagLength;
-    const aadStart = params.nonceLength !== void 0 ? 1 : 0;
-    if (!params.withAAD) {
-      for (let i = aadStart; i < args.length; i++)
-        if (isBytes3(args[i]))
-          throw new Error("AAD not supported");
-    }
-    if (params.withAAD && args[aadStart] !== void 0)
-      abytes3(args[aadStart], void 0, "AAD");
-    const cipher = constructor(key, ...args);
-    const checkOutput = (fnLength, output) => {
-      if (output !== void 0) {
-        if (fnLength !== 2)
-          throw new Error("cipher output not supported");
-        abytes3(output, void 0, "output");
-      }
-    };
-    let called = false;
-    const wrCipher = {
-      encrypt(data, output) {
-        if (called)
-          throw new Error("cannot encrypt() twice with same key + nonce");
-        called = true;
-        abytes3(data, void 0, "data");
-        checkOutput(cipher.encrypt.length, output);
-        return cipher.encrypt(data, output);
-      },
-      decrypt(data, output) {
-        abytes3(data, void 0, "data");
-        if (tagl && data.length < tagl)
-          throw new Error('"ciphertext" expected length >= tagLength=' + tagl);
-        checkOutput(cipher.decrypt.length, output);
-        return cipher.decrypt(data, output);
-      }
-    };
-    return wrCipher;
-  }
-  Object.assign(wrappedCipher, params);
-  return wrappedCipher;
-};
-function getOutput(expectedLength, out, onlyAligned = true) {
-  if (out === void 0)
-    return new Uint8Array(expectedLength);
-  abytes3(out, expectedLength, "output");
-  if (onlyAligned && !isAligned32(out))
-    throw new Error("invalid output, must be aligned");
-  return out;
-}
-function u64Lengths(dataLength, aadLength, isLE2) {
-  anumber3(dataLength);
-  anumber3(aadLength);
-  abool2(isLE2);
-  const num = new Uint8Array(16);
-  const view = createView2(num);
-  view.setBigUint64(0, BigInt(aadLength), isLE2);
-  view.setBigUint64(8, BigInt(dataLength), isLE2);
-  return num;
-}
-function isAligned32(bytes) {
-  return bytes.byteOffset % 4 === 0;
-}
-function copyBytes2(bytes) {
-  return Uint8Array.from(abytes3(bytes));
-}
-
-// ../omega/node_modules/@noble/ciphers/_polyval.js
-var BLOCK_SIZE = 16;
-var ZEROS16 = /* @__PURE__ */ new Uint8Array(16);
-var ZEROS32 = /* @__PURE__ */ u32(ZEROS16);
-var POLY = 225;
-var mul2 = (s0, s1, s2, s3) => {
-  const hiBit = s3 & 1;
-  return {
-    s3: s2 << 31 | s3 >>> 1,
-    s2: s1 << 31 | s2 >>> 1,
-    s1: s0 << 31 | s1 >>> 1,
-    // NIST SP 800-38D §6.3 applies `V >> 1` and XORs R on carry. In this
-    // 4x32-bit split, R = 0xe1 || 0^120 lives in the top byte of s0.
-    s0: s0 >>> 1 ^ POLY << 24 & -(hiBit & 1)
-    // reduce % poly
-  };
-};
-var swapLE = (n) => (n >>> 0 & 255) << 24 | (n >>> 8 & 255) << 16 | (n >>> 16 & 255) << 8 | n >>> 24 & 255 | 0;
-var estimateWindow = (bytes) => {
-  if (bytes > 64 * 1024)
-    return 8;
-  if (bytes > 1024)
-    return 4;
-  return 2;
-};
-var GHASH = class {
-  blockLen = BLOCK_SIZE;
-  outputLen = BLOCK_SIZE;
-  s0 = 0;
-  s1 = 0;
-  s2 = 0;
-  s3 = 0;
-  finished = false;
-  destroyed = false;
-  t;
-  W;
-  windowSize;
-  // We select bits per window adaptively based on expectedLength
-  constructor(key, expectedLength) {
-    abytes3(key, 16, "key");
-    key = copyBytes2(key);
-    const kView = createView2(key);
-    let k0 = kView.getUint32(0, false);
-    let k1 = kView.getUint32(4, false);
-    let k2 = kView.getUint32(8, false);
-    let k3 = kView.getUint32(12, false);
-    const doubles = [];
-    for (let i = 0; i < 128; i++) {
-      doubles.push({ s0: swapLE(k0), s1: swapLE(k1), s2: swapLE(k2), s3: swapLE(k3) });
-      ({ s0: k0, s1: k1, s2: k2, s3: k3 } = mul2(k0, k1, k2, k3));
-    }
-    const W = estimateWindow(expectedLength || 1024);
-    if (![1, 2, 4, 8].includes(W))
-      throw new Error("ghash: invalid window size, expected 2, 4 or 8");
-    this.W = W;
-    const bits = 128;
-    const windows = bits / W;
-    const windowSize = this.windowSize = 2 ** W;
-    const items = [];
-    for (let w = 0; w < windows; w++) {
-      for (let byte = 0; byte < windowSize; byte++) {
-        let s0 = 0, s1 = 0, s2 = 0, s3 = 0;
-        for (let j = 0; j < W; j++) {
-          const bit = byte >>> W - j - 1 & 1;
-          if (!bit)
-            continue;
-          const { s0: d0, s1: d1, s2: d2, s3: d3 } = doubles[W * w + j];
-          s0 ^= d0, s1 ^= d1, s2 ^= d2, s3 ^= d3;
-        }
-        items.push({ s0, s1, s2, s3 });
-      }
-    }
-    this.t = items;
-  }
-  _updateBlock(s0, s1, s2, s3) {
-    s0 ^= this.s0, s1 ^= this.s1, s2 ^= this.s2, s3 ^= this.s3;
-    const { W, t, windowSize } = this;
-    let o0 = 0, o1 = 0, o2 = 0, o3 = 0;
-    const mask = (1 << W) - 1;
-    let w = 0;
-    for (const num of [s0, s1, s2, s3]) {
-      for (let bytePos = 0; bytePos < 4; bytePos++) {
-        const byte = num >>> 8 * bytePos & 255;
-        for (let bitPos = 8 / W - 1; bitPos >= 0; bitPos--) {
-          const bit = byte >>> W * bitPos & mask;
-          const { s0: e0, s1: e1, s2: e2, s3: e3 } = t[w * windowSize + bit];
-          o0 ^= e0, o1 ^= e1, o2 ^= e2, o3 ^= e3;
-          w += 1;
-        }
-      }
-    }
-    this.s0 = o0;
-    this.s1 = o1;
-    this.s2 = o2;
-    this.s3 = o3;
-  }
-  update(data) {
-    aexists2(this);
-    abytes3(data);
-    data = copyBytes2(data);
-    const b32 = u32(data);
-    const blocks = Math.floor(data.length / BLOCK_SIZE);
-    const left = data.length % BLOCK_SIZE;
-    for (let i = 0; i < blocks; i++) {
-      this._updateBlock(swap8IfBE(b32[i * 4 + 0]), swap8IfBE(b32[i * 4 + 1]), swap8IfBE(b32[i * 4 + 2]), swap8IfBE(b32[i * 4 + 3]));
-    }
-    if (left) {
-      ZEROS16.set(data.subarray(blocks * BLOCK_SIZE));
-      this._updateBlock(swap8IfBE(ZEROS32[0]), swap8IfBE(ZEROS32[1]), swap8IfBE(ZEROS32[2]), swap8IfBE(ZEROS32[3]));
-      clean2(ZEROS32);
-    }
-    return this;
-  }
-  destroy() {
-    this.destroyed = true;
-    const { t } = this;
-    for (const elm of t) {
-      elm.s0 = 0, elm.s1 = 0, elm.s2 = 0, elm.s3 = 0;
-    }
-  }
-  digestInto(out) {
-    aexists2(this);
-    aoutput32(out, this);
-    this.finished = true;
-    const { s0, s1, s2, s3 } = this;
-    const o32 = u32(out);
-    o32[0] = s0;
-    o32[1] = s1;
-    o32[2] = s2;
-    o32[3] = s3;
-    if (!isLE)
-      swap32IfBE(o32.subarray(0, BLOCK_SIZE / 4));
-  }
-  digest() {
-    const res = new Uint8Array(BLOCK_SIZE);
-    this.digestInto(res);
-    this.destroy();
-    return res;
-  }
-};
-var ghash = /* @__PURE__ */ wrapMacConstructor(16, (key, expectedLength) => new GHASH(key, expectedLength), (msg) => [msg.length]);
-
-// ../omega/node_modules/@noble/ciphers/aes.js
-var BLOCK_SIZE2 = 16;
-var BLOCK_SIZE32 = 4;
-var EMPTY_BLOCK = /* @__PURE__ */ new Uint8Array(BLOCK_SIZE2);
-var POLY2 = 283;
-function validateKeyLength(key) {
-  if (![16, 24, 32].includes(key.length))
-    throw new Error('"aes key" expected Uint8Array of length 16/24/32, got length=' + key.length);
-}
-function mul22(n) {
-  return n << 1 ^ POLY2 & -(n >> 7);
-}
-function mul(a, b) {
-  let res = 0;
-  for (; b > 0; b >>= 1) {
-    res ^= a & -(b & 1);
-    a = mul22(a);
-  }
-  return res;
-}
-var sbox = /* @__PURE__ */ (() => {
-  const t = new Uint8Array(256);
-  for (let i = 0, x = 1; i < 256; i++, x ^= mul22(x))
-    t[i] = x;
-  const box = new Uint8Array(256);
-  box[0] = 99;
-  for (let i = 0; i < 255; i++) {
-    let x = t[255 - i];
-    x |= x << 8;
-    box[t[i]] = (x ^ x >> 4 ^ x >> 5 ^ x >> 6 ^ x >> 7 ^ 99) & 255;
-  }
-  clean2(t);
-  return box;
-})();
-var rotr32_8 = (n) => n << 24 | n >>> 8;
-var rotl32_8 = (n) => n << 8 | n >>> 24;
-function genTtable(sbox2, fn) {
-  if (sbox2.length !== 256)
-    throw new Error("wrong sbox length");
-  const T0 = new Uint32Array(256).map((_, j) => fn(sbox2[j]));
-  const T1 = T0.map(rotl32_8);
-  const T2 = T1.map(rotl32_8);
-  const T3 = T2.map(rotl32_8);
-  const T01 = new Uint32Array(256 * 256);
-  const T23 = new Uint32Array(256 * 256);
-  const sbox22 = new Uint16Array(256 * 256);
-  for (let i = 0; i < 256; i++) {
-    for (let j = 0; j < 256; j++) {
-      const idx = i * 256 + j;
-      T01[idx] = T0[i] ^ T1[j];
-      T23[idx] = T2[i] ^ T3[j];
-      sbox22[idx] = sbox2[i] << 8 | sbox2[j];
-    }
-  }
-  return { sbox: sbox2, sbox2: sbox22, T0, T1, T2, T3, T01, T23 };
-}
-var tableEncoding = /* @__PURE__ */ genTtable(sbox, (s) => mul(s, 3) << 24 | s << 16 | s << 8 | mul(s, 2));
-var xPowers = /* @__PURE__ */ (() => {
-  const p = new Uint8Array(16);
-  for (let i = 0, x = 1; i < 16; i++, x = mul22(x))
-    p[i] = x;
-  return p;
-})();
-function expandKeyLE(key) {
-  abytes3(key);
-  const len = key.length;
-  validateKeyLength(key);
-  const { sbox2 } = tableEncoding;
-  const toClean = [];
-  if (!isLE || !isAligned32(key))
-    toClean.push(key = copyBytes2(key));
-  const k32 = swap32IfBE(u32(key));
-  const Nk = k32.length;
-  const subByte = (n) => applySbox(sbox2, n, n, n, n);
-  const xk = new Uint32Array(len + 28);
-  xk.set(k32);
-  for (let i = Nk; i < xk.length; i++) {
-    let t = xk[i - 1];
-    if (i % Nk === 0)
-      t = subByte(rotr32_8(t)) ^ xPowers[i / Nk - 1];
-    else if (Nk > 6 && i % Nk === 4)
-      t = subByte(t);
-    xk[i] = xk[i - Nk] ^ t;
-  }
-  clean2(...toClean);
-  return xk;
-}
-function apply0123(T01, T23, s0, s1, s2, s3) {
-  return T01[s0 << 8 & 65280 | s1 >>> 8 & 255] ^ T23[s2 >>> 8 & 65280 | s3 >>> 24 & 255];
-}
-function applySbox(sbox2, s0, s1, s2, s3) {
-  return sbox2[s0 & 255 | s1 & 65280] | sbox2[s2 >>> 16 & 255 | s3 >>> 16 & 65280] << 16;
-}
-function encrypt(xk, s0, s1, s2, s3) {
-  const { sbox2, T01, T23 } = tableEncoding;
-  let k = 0;
-  s0 ^= xk[k++], s1 ^= xk[k++], s2 ^= xk[k++], s3 ^= xk[k++];
-  const rounds = xk.length / 4 - 2;
-  for (let i = 0; i < rounds; i++) {
-    const t02 = xk[k++] ^ apply0123(T01, T23, s0, s1, s2, s3);
-    const t12 = xk[k++] ^ apply0123(T01, T23, s1, s2, s3, s0);
-    const t22 = xk[k++] ^ apply0123(T01, T23, s2, s3, s0, s1);
-    const t32 = xk[k++] ^ apply0123(T01, T23, s3, s0, s1, s2);
-    s0 = t02, s1 = t12, s2 = t22, s3 = t32;
-  }
-  const t0 = xk[k++] ^ applySbox(sbox2, s0, s1, s2, s3);
-  const t1 = xk[k++] ^ applySbox(sbox2, s1, s2, s3, s0);
-  const t2 = xk[k++] ^ applySbox(sbox2, s2, s3, s0, s1);
-  const t3 = xk[k++] ^ applySbox(sbox2, s3, s0, s1, s2);
-  return { s0: t0, s1: t1, s2: t2, s3: t3 };
-}
-function ctr32(xk, isLE2, nonce, src, dst) {
-  abytes3(nonce, BLOCK_SIZE2, "nonce");
-  abytes3(src);
-  dst = getOutput(src.length, dst);
-  const ctr = nonce;
-  const c32 = u32(ctr);
-  const view = createView2(ctr);
-  const src32 = u32(src);
-  const dst32 = u32(dst);
-  const ctrPos = isLE2 ? 0 : 12;
-  const srcLen = src.length;
-  let ctrNum = view.getUint32(ctrPos, isLE2);
-  for (let i = 0; i + 4 <= src32.length; i += 4) {
-    const { s0, s1, s2, s3 } = encrypt(xk, swap8IfBE(c32[0]), swap8IfBE(c32[1]), swap8IfBE(c32[2]), swap8IfBE(c32[3]));
-    dst32[i + 0] = src32[i + 0] ^ swap8IfBE(s0);
-    dst32[i + 1] = src32[i + 1] ^ swap8IfBE(s1);
-    dst32[i + 2] = src32[i + 2] ^ swap8IfBE(s2);
-    dst32[i + 3] = src32[i + 3] ^ swap8IfBE(s3);
-    ctrNum = ctrNum + 1 >>> 0;
-    view.setUint32(ctrPos, ctrNum, isLE2);
-  }
-  const start = BLOCK_SIZE2 * Math.floor(src32.length / BLOCK_SIZE32);
-  if (start < srcLen) {
-    const { s0, s1, s2, s3 } = encrypt(xk, swap8IfBE(c32[0]), swap8IfBE(c32[1]), swap8IfBE(c32[2]), swap8IfBE(c32[3]));
-    const b32 = new Uint32Array([s0, s1, s2, s3]);
-    swap32IfBE(b32);
-    const buf = u8(b32);
-    for (let i = start, pos = 0; i < srcLen; i++, pos++)
-      dst[i] = src[i] ^ buf[pos];
-    clean2(b32);
-  }
-  return dst;
-}
-function computeTag(fn, isLE2, key, data, AAD) {
-  const aadLength = AAD ? AAD.length : 0;
-  const h = fn.create(key, data.length + aadLength);
-  if (AAD)
-    h.update(AAD);
-  const num = u64Lengths(8 * data.length, 8 * aadLength, isLE2);
-  h.update(data);
-  h.update(num);
-  const res = h.digest();
-  clean2(num);
-  return res;
-}
-var gcm = /* @__PURE__ */ wrapCipher({ blockSize: 16, nonceLength: 12, tagLength: 16, withAAD: true, varSizeNonce: true }, function aesgcm(key, nonce, AAD) {
-  if (nonce.length < 8)
-    throw new Error("aes/gcm: invalid nonce length");
-  const tagLength = 16;
-  function _computeTag(authKey, tagMask, data) {
-    const tag = computeTag(ghash, false, authKey, data, AAD);
-    for (let i = 0; i < tagMask.length; i++)
-      tag[i] ^= tagMask[i];
-    return tag;
-  }
-  function deriveKeys() {
-    const xk = expandKeyLE(key);
-    const authKey = EMPTY_BLOCK.slice();
-    const counter = EMPTY_BLOCK.slice();
-    ctr32(xk, false, counter, counter, authKey);
-    if (nonce.length === 12) {
-      counter.set(nonce);
-    } else {
-      const nonceLen = EMPTY_BLOCK.slice();
-      const view = createView2(nonceLen);
-      view.setBigUint64(8, BigInt(nonce.length * 8), false);
-      const g2 = ghash.create(authKey).update(nonce).update(nonceLen);
-      g2.digestInto(counter);
-      g2.destroy();
-    }
-    const tagMask = ctr32(xk, false, counter, EMPTY_BLOCK);
-    return { xk, authKey, counter, tagMask };
-  }
-  return {
-    encrypt(plaintext) {
-      const { xk, authKey, counter, tagMask } = deriveKeys();
-      const out = new Uint8Array(plaintext.length + tagLength);
-      const toClean = [xk, authKey, counter, tagMask];
-      if (!isAligned32(plaintext))
-        toClean.push(plaintext = copyBytes2(plaintext));
-      ctr32(xk, false, counter, plaintext, out.subarray(0, plaintext.length));
-      const tag = _computeTag(authKey, tagMask, out.subarray(0, out.length - tagLength));
-      toClean.push(tag);
-      out.set(tag, plaintext.length);
-      clean2(...toClean);
-      return out;
-    },
-    decrypt(ciphertext) {
-      const { xk, authKey, counter, tagMask } = deriveKeys();
-      const toClean = [xk, authKey, tagMask, counter];
-      if (!isAligned32(ciphertext))
-        toClean.push(ciphertext = copyBytes2(ciphertext));
-      const data = ciphertext.subarray(0, -tagLength);
-      const passedTag = ciphertext.subarray(-tagLength);
-      const tag = _computeTag(authKey, tagMask, data);
-      toClean.push(tag);
-      if (!equalBytes(tag, passedTag)) {
-        clean2(...toClean);
-        throw new Error("aes-gcm: invalid tag");
-      }
-      const out = ctr32(xk, false, counter, data);
-      clean2(...toClean);
-      return out;
-    }
-  };
-});
-
-// ../omega/node_modules/@noble/hashes/hmac.js
-var _HMAC = class {
-  oHash;
-  iHash;
-  blockLen;
-  outputLen;
-  canXOF = false;
-  finished = false;
-  destroyed = false;
-  constructor(hash, key) {
-    ahash(hash);
-    abytes(key, void 0, "key");
-    this.iHash = hash.create();
-    if (typeof this.iHash.update !== "function")
-      throw new Error("expected Hash instance");
-    this.blockLen = this.iHash.blockLen;
-    this.outputLen = this.iHash.outputLen;
-    const blockLen = this.blockLen;
-    const pad = new Uint8Array(blockLen);
-    pad.set(key.length > blockLen ? hash.create().update(key).digest() : key);
-    for (let i = 0; i < pad.length; i++)
-      pad[i] ^= 54;
-    this.iHash.update(pad);
-    this.oHash = hash.create();
-    for (let i = 0; i < pad.length; i++)
-      pad[i] ^= 54 ^ 92;
-    this.oHash.update(pad);
-    clean(pad);
-  }
-  update(buf) {
-    aexists(this);
-    this.iHash.update(buf);
-    return this;
-  }
-  digestInto(out) {
-    aexists(this);
-    aoutput(out, this);
-    this.finished = true;
-    const buf = out.subarray(0, this.outputLen);
-    this.iHash.digestInto(buf);
-    this.oHash.update(buf);
-    this.oHash.digestInto(buf);
-    this.destroy();
-  }
-  digest() {
-    const out = new Uint8Array(this.oHash.outputLen);
-    this.digestInto(out);
-    return out;
-  }
-  _cloneInto(to) {
-    to ||= Object.create(Object.getPrototypeOf(this), {});
-    const { oHash, iHash, finished, destroyed, blockLen, outputLen, canXOF } = this;
-    to = to;
-    to.finished = finished;
-    to.destroyed = destroyed;
-    to.blockLen = blockLen;
-    to.outputLen = outputLen;
-    to.canXOF = canXOF;
-    to.oHash = oHash._cloneInto(to.oHash);
-    to.iHash = iHash._cloneInto(to.iHash);
-    return to;
-  }
-  clone() {
-    return this._cloneInto();
-  }
-  destroy() {
-    this.destroyed = true;
-    this.oHash.destroy();
-    this.iHash.destroy();
-  }
-};
-var hmac = /* @__PURE__ */ (() => {
-  const hmac_ = (hash, key, message) => new _HMAC(hash, key).update(message).digest();
-  hmac_.create = (hash, key) => new _HMAC(hash, key);
-  return hmac_;
-})();
-
-// ../omega/node_modules/@noble/hashes/hkdf.js
-var HKDF_COUNTER = /* @__PURE__ */ Uint8Array.of(0);
-var EMPTY_BUFFER = /* @__PURE__ */ Uint8Array.of();
-function expand(hash, prk, info, length = 32, _recycled) {
-  ahash(hash);
-  anumber(length, "length");
-  abytes(prk, void 0, "prk");
-  const olen = hash.outputLen;
-  if (prk.length < olen)
-    throw new Error('"prk" must be at least HashLen octets');
-  if (length > 255 * olen)
-    throw new Error("Length must be <= 255*HashLen");
-  const blocks = Math.ceil(length / olen);
-  if (info === void 0)
-    info = EMPTY_BUFFER;
-  else
-    abytes(info, void 0, "info");
-  if (!blocks) {
-    if (_recycled)
-      clean(prk);
-    return new Uint8Array();
-  }
-  const okm = _recycled && blocks === 1 ? prk : new Uint8Array(blocks * olen);
-  const { iHash, oHash } = hmac.create(hash, prk);
-  const T = _recycled ? prk : new Uint8Array(olen);
-  const worker = blocks > 1 ? _recycled?.iHash || hash.create() : void 0;
-  for (let counter = 0; counter < blocks - 1; counter++) {
-    HKDF_COUNTER[0] = counter + 1;
-    const iWork = iHash._cloneInto(worker);
-    if (counter)
-      iWork.update(T);
-    iWork.update(info).update(HKDF_COUNTER).digestInto(T);
-    oHash._cloneInto(worker).update(T).digestInto(T);
-    okm.set(T, olen * counter);
-  }
-  HKDF_COUNTER[0] = blocks;
-  if (blocks > 1)
-    iHash.update(T);
-  iHash.update(info).update(HKDF_COUNTER).digestInto(T);
-  oHash.update(T).digestInto(T);
-  okm.set(T, olen * (blocks - 1));
-  iHash.destroy();
-  oHash.destroy();
-  worker?.destroy();
-  if (T !== okm)
-    clean(T);
-  clean(HKDF_COUNTER);
-  if (length === okm.length)
-    return okm;
-  const res = okm.slice(0, length);
-  clean(okm);
-  return res;
-}
-var hkdf = (hash, ikm, salt, info, length) => {
-  ahash(hash);
-  if (salt === void 0)
-    salt = new Uint8Array(hash.outputLen);
-  const HMAC = hmac.create(hash, salt).update(ikm);
-  return expand(hash, HMAC.digest(), info, length, HMAC);
-};
-
 // ../omega/packages/trnn-core/src/genome/record.ts
 var GENOME_VERSION = 2;
 function leafBytes(header, sealed) {
@@ -13263,7 +13915,7 @@ function deriveKey(master, id) {
 function nonceFor(id, recordedAt) {
   return sha256(utf8(`nonce:${id}:${recordedAt}`)).slice(0, 12);
 }
-var GenomeLedger = class {
+var GenomeLedger = class _GenomeLedger {
   constructor(logId, master, signer) {
     this.logId = logId;
     this.master = master;
@@ -13475,6 +14127,790 @@ var GenomeLedger = class {
     if (!verifyTreeHead(this.head(timestamp), this.signer.publicKey)) failures.push("signed head failed to verify");
     return { ok: failures.length === 0, checked: this.order.length, failures };
   }
+  /** Snapshot every sealed record for cross-session persistence (canonical-safe). */
+  serialize() {
+    return {
+      logId: this.logId,
+      records: this.order.map((id) => {
+        const r = this.records.get(id);
+        return { header: r.header, sealed: r.sealed };
+      }),
+      shredded: [...this.shredded].sort(),
+      successor: Object.fromEntries(this.successor)
+    };
+  }
+  /**
+   * Rebuild a ledger from a saved state. Each sealed record is replayed into a
+   * fresh Merkle log by recomputing its leaf bytes, so the reconstructed root is
+   * byte-identical to the saved one — `audit()` then verifies it end to end.
+   */
+  static restore(s, master, signer) {
+    const g2 = new _GenomeLedger(s.logId, master, signer);
+    for (const r of s.records) g2.restoreRecord(r.header, r.sealed);
+    for (const id of s.shredded) g2.shredded.add(id);
+    for (const [k, v] of Object.entries(s.successor)) g2.successor.set(k, v);
+    return g2;
+  }
+  restoreRecord(header, sealed) {
+    const leafIndex = this.log.append(leafBytes(header, sealed));
+    const key = deriveKey(this.master, header.id);
+    const rec = {
+      header,
+      sealed,
+      leafIndex,
+      leafHex: toHex(this.log.leafHash(leafIndex))
+    };
+    this.records.set(header.id, rec);
+    this.keys.set(header.id, key);
+    this.order.push(header.id);
+  }
+};
+
+// ../omega/packages/trnn-core/src/analysis/evidenceLedger.ts
+function finite(v) {
+  return v !== null && v !== void 0 && Number.isFinite(v) ? v : null;
+}
+function summarize(report) {
+  const x = report.xcorr;
+  const d = report.dmd;
+  return {
+    tick: report.tick,
+    kind: report.kind,
+    conformalHalfWidth: finite(report.conformalHalfWidth),
+    xcorr: x ? {
+      fusedCoherence: finite(x.fusedCoherence),
+      meanPlv: finite(x.meanPlv),
+      maxLag: finite(x.maxLag),
+      surprise: finite(x.surprise),
+      abstained: x.abstained,
+      dominant: x.dominant,
+      pairs: x.pairs.map((p) => ({
+        a: p.a,
+        b: p.b,
+        msc: finite(p.msc),
+        plv: finite(p.plv),
+        lag: finite(p.lag),
+        dcor: finite(p.dcor),
+        hsic: finite(p.hsic),
+        mi: finite(p.mi),
+        directed: finite(p.directed),
+        verdict: p.verdict
+      }))
+    } : null,
+    dmd: d ? {
+      rank: d.rank,
+      spectralRadius: finite(d.spectralRadius),
+      relError: finite(d.relError),
+      abstained: d.abstained,
+      modes: d.modes.map((m) => ({
+        lambdaRe: finite(m.lambdaRe),
+        lambdaIm: finite(m.lambdaIm),
+        magnitude: finite(m.magnitude),
+        growth: finite(m.growth),
+        frequency: finite(m.frequency),
+        energy: finite(m.energy)
+      }))
+    } : null
+  };
+}
+var EvidenceLedger = class {
+  genome;
+  sealed = 0;
+  constructor(seed) {
+    const master = sha256(utf8(`${seed}:evidence:master`));
+    const signer = keyPairFromSeed(sha256(utf8(`${seed}:evidence:signer`)));
+    this.genome = new GenomeLedger(`omega-evidence:${seed}`, master, signer);
+  }
+  get size() {
+    return this.genome.size;
+  }
+  get sealCount() {
+    return this.sealed;
+  }
+  rootHex() {
+    return this.genome.rootHex();
+  }
+  head(timestamp) {
+    return this.genome.head(timestamp);
+  }
+  /** Full self-audit: every sealed record must verify against its own log. */
+  audit(timestamp) {
+    return this.genome.audit(timestamp);
+  }
+  /** Seal one long-heartbeat report. Returns null when there is nothing to seal. */
+  seal(report) {
+    if (!report.xcorr) return null;
+    const id = `finding:${report.tick}`;
+    const rec = this.genome.append({
+      id,
+      kind: "AnalysisFinding",
+      body: summarize(report),
+      recordedAt: report.tick,
+      provenance: {
+        attributedTo: "omega/analysis",
+        generatedBy: "analysis:long-heartbeat",
+        evidence: "measured"
+      }
+    });
+    this.sealed++;
+    return {
+      recordId: id,
+      leafIndex: rec.leafIndex,
+      treeSize: this.genome.size,
+      rootHex: this.genome.rootHex(),
+      sth: this.genome.head(report.tick)
+    };
+  }
+};
+
+// ../omega/packages/trnn-core/src/runtime/host.ts
+function tapeCapacityFor(totalNodes) {
+  return Math.max(233, Math.min(10946, largestFibonacciAtMost(Math.max(233, totalNodes))));
+}
+var MEMORY_STRIDE = 144;
+var MIND_STRIDE = 21;
+var DEFAULT_ORGANS = { radialOrders: 8, radialGain: 0, stride: 3 };
+var DEFAULT_SENSORS = { bands: 10, depth: 233 };
+var DEFAULT_CHORDS = ["fibonacci", "lucas", "spiral"];
+var DEFAULT_CHORD_GAIN = 1 / 1.618033988749895;
+var DEFAULT_ANALYSIS = {};
+var DEFAULT_DRIVE = 1 / 1.618033988749895;
+var MIN_HZ = 8;
+var MAX_HZ = 64;
+var EngineHost = class {
+  profile;
+  seed;
+  ledger;
+  engine;
+  nodes;
+  sliceBudgetMs;
+  targetHz;
+  busHz = MAX_HZ;
+  running = false;
+  last = null;
+  lastLoad = 0;
+  tickRate = 0;
+  rateWindowStart = 0;
+  rateWindowTicks = 0;
+  checkpointTick = null;
+  overruns = 0;
+  /** Fractional tick debt carried between frames so the rate matches targetHz. */
+  debt = 0;
+  // ---- Ω-P6 sensory + braid memory ----
+  plane = null;
+  channelMeta = /* @__PURE__ */ new Map();
+  braid = null;
+  lastRecall = null;
+  lastFoldTick = -1;
+  stored = 0;
+  skipped = 0;
+  scratchField = null;
+  // ---- Ω-P7 cognition ----
+  mind = null;
+  learnCell = null;
+  lastLearn = null;
+  obs = null;
+  lastThought = null;
+  lastMindTick = -1;
+  /** Folds skipped because the ladder had nothing to report. */
+  quiescentFolds = 0;
+  // ---- Ω-P8 perception (sensory grounding) ----
+  /**
+   * A separate Mind for the senses: perceptual concepts live in a different
+   * dimensional space than ladder-telemetry concepts and must never collide with
+   * them. Same machinery, same novelty gate, own store + self-model.
+   */
+  sensoryMind = null;
+  perceptLayout = null;
+  perceptObs = null;
+  lastPercept = null;
+  lastPerceptTick = -1;
+  /** Perception folds skipped because every sense was silent. */
+  quiescentPercepts = 0;
+  // ---- Ω-REAL P9 analysis (observe-only) ----
+  analysisService = null;
+  /** Opt-in: append the xcorr telemetry dims to the foldMind observation. */
+  injectAnalysis;
+  /** Append-only evidence path: seals long-heartbeat findings. Observe-only. */
+  evidenceLedger = null;
+  lastEvidenceSeal = null;
+  constructor(opts) {
+    this.profile = typeof opts.profile === "string" ? profileById(opts.profile) : opts.profile;
+    this.seed = opts.seed ?? "metatron-omega";
+    this.sliceBudgetMs = Math.max(0.01, opts.sliceBudgetMs ?? 8);
+    this.targetHz = Math.min(MAX_HZ, Math.max(MIN_HZ, opts.targetHz ?? MAX_HZ));
+    const ladder = opts.rungs ?? DENSE_CORE;
+    const rungs = ladder.slice(0, this.profile.rungs);
+    this.nodes = rungs.map((_, rank2) => nodesForRank(this.profile, rank2));
+    this.engine = new MultiTorusEngine({
+      rungs,
+      nodes: (_r, rank2) => this.nodes[rank2],
+      seed: this.seed,
+      couplingBand: this.profile.couplingBand,
+      clock: this.profile.clock,
+      modes: this.profile.modes,
+      tapeCapacity: this.profile.tape,
+      drive: opts.drive ?? DEFAULT_DRIVE,
+      organs: opts.organs === null ? void 0 : opts.organs ?? DEFAULT_ORGANS,
+      sensors: opts.sensors === null ? void 0 : opts.sensors ?? DEFAULT_SENSORS,
+      chords: opts.chords === null ? void 0 : opts.chords ?? DEFAULT_CHORDS,
+      chordGain: opts.chordGain ?? DEFAULT_CHORD_GAIN,
+      tape: opts.tape === null ? void 0 : opts.tape ?? { capacity: tapeCapacityFor(this.nodes.reduce((a, b) => a + b, 0)) }
+    });
+    const analysisOpts = opts.analysis === null ? null : opts.analysis ?? DEFAULT_ANALYSIS;
+    this.injectAnalysis = analysisOpts?.injectToMind ?? false;
+    this.analysisService = analysisOpts ? new AnalysisService({ rungs: this.engine.rungs.length, xcorr: analysisOpts.xcorr ?? true }) : null;
+    this.evidenceLedger = analysisOpts ? new EvidenceLedger(this.seed) : null;
+    this.ledger = new RunLedger(
+      {
+        id: `${this.profile.id}:${this.seed}:${Date.now().toString(36)}`,
+        profileId: this.profile.id,
+        seed: this.seed,
+        nodes: this.nodes.slice(),
+        startedAt: Date.now()
+      },
+      4181,
+      opts.ledgerStride ?? 13
+    );
+  }
+  start() {
+    this.running = true;
+    this.debt = 0;
+  }
+  stop() {
+    this.running = false;
+    this.debt = 0;
+  }
+  isRunning() {
+    return this.running;
+  }
+  setTargetHz(hz) {
+    this.targetHz = Math.min(MAX_HZ, Math.max(MIN_HZ, hz));
+    this.busHz = Math.min(this.busHz, this.targetHz);
+  }
+  /** One deterministic tick, ledgered. Usable directly in tests. */
+  stepOnce() {
+    const rep = this.engine.step();
+    this.last = rep;
+    const mark = {
+      tick: rep.tick,
+      digest: rep.digest,
+      coherence: rep.coherence,
+      energy: rep.rungs.reduce((s, r) => s + (r?.energy ?? 0), 0),
+      fluxImbalance: rep.fluxImbalance,
+      orderingViolations: rep.orderingViolations,
+      finite: rep.finite
+    };
+    this.ledger.mark(mark);
+    this.foldMemory(rep.tick);
+    this.foldMind(rep);
+    this.foldPerception(rep);
+    this.analysisService?.observe(rep, this.plane ? this.plane.report() : null);
+    const ar = this.analysisService?.report();
+    if (ar && ar.kind === "long" && ar.tick === rep.tick && ar.xcorr) {
+      this.lastEvidenceSeal = this.evidenceLedger?.seal(ar) ?? null;
+    }
+    return rep;
+  }
+  // ---- Ω-P6: sensory plane ----
+  /** Lazily build the plane over the live rung geometry. */
+  ensurePlane() {
+    if (!this.plane) {
+      this.plane = new SensoryPlane(this.engine.engines.map((e) => e.nodes));
+      this.engine.attachSensory(this.plane);
+    }
+    return this.plane;
+  }
+  declareChannel(id, modality, nodes, gain = 1) {
+    const plane = this.ensurePlane();
+    const n = nodes ?? this.nodes[0];
+    plane.declare({ id, modality, nodes: n, gain });
+    this.channelMeta.set(id, { modality, nodes: n, gain, report: null, updatedAt: -1 });
+  }
+  /**
+   * Encode raw modality data and push it into a channel. The host owns the
+   * encoders so the worker boundary only ever carries plain arrays.
+   */
+  pushChannel(id, data, opts = {}) {
+    const meta = this.channelMeta.get(id);
+    if (!meta) throw new Error(`EngineHost: channel "${id}" is not declared`);
+    const plane = this.ensurePlane();
+    const f = senseField(meta.nodes);
+    let report;
+    switch (meta.modality) {
+      case "text":
+        report = encodeText(typeof data === "string" ? data : String(data), f);
+        break;
+      case "grid":
+        report = encodeGrid(
+          typeof data === "string" ? [] : data,
+          opts.width ?? 0,
+          opts.height ?? 0,
+          f
+        );
+        break;
+      case "audio":
+        report = encodeAudio(typeof data === "string" ? [] : data, f);
+        break;
+      default:
+        report = encodeScalars(typeof data === "string" ? [] : data, f);
+        break;
+    }
+    plane.push(id, f, this.engine.currentTick());
+    meta.report = report;
+    meta.updatedAt = this.engine.currentTick();
+    return report;
+  }
+  muteChannel(id) {
+    this.plane?.mute(id);
+    const meta = this.channelMeta.get(id);
+    if (meta) meta.report = null;
+  }
+  /** Set the actuator loop gain (throws above φ⁻², Law L-S2). */
+  setSenseGain(g2) {
+    return this.ensurePlane().setLoopGain(g2);
+  }
+  sense() {
+    const plane = this.ensurePlane();
+    const channels = [...this.channelMeta.entries()].map(([id, m]) => ({
+      id,
+      modality: m.modality,
+      nodes: m.nodes,
+      gain: m.gain,
+      peak: m.report?.peak ?? 0,
+      energy: m.report?.energy ?? 0,
+      support: m.report?.support ?? 0,
+      updatedAt: m.updatedAt
+    }));
+    channels.sort((a, b) => a.id < b.id ? -1 : 1);
+    return { channels, report: plane.report() };
+  }
+  // ---- Ω-P6: braid memory ----
+  ensureBraid() {
+    if (!this.braid) {
+      const nodes = this.nodes[0] ?? 144;
+      this.braid = new TorusBraid({ nodes, capacity: ratedCapacity(nodes) });
+      this.scratchField = createField(nodes);
+    }
+    return this.braid;
+  }
+  /**
+   * Fold the rank-0 field into the braid on the memory stride, behind a
+   * novelty gate: a field the braid already recognises is *not* re-stored, so
+   * capacity buys distinct experience rather than repetition. The recall that
+   * decides this is the same cascade the UI reads as `familiarity`.
+   */
+  foldMemory(tick) {
+    if (tick % MEMORY_STRIDE !== 0 || tick === this.lastFoldTick) return;
+    const braid = this.ensureBraid();
+    const snap = this.engine.engines[0].snapshot();
+    const probe = this.scratchField;
+    const n = Math.min(probe.n, snap.z.n);
+    probe.re.fill(0);
+    probe.im.fill(0);
+    for (let i = 0; i < n; i++) {
+      probe.re[i] = snap.z.re[i];
+      probe.im[i] = snap.z.im[i];
+    }
+    const r = braid.recall(probe);
+    this.lastRecall = r;
+    this.lastFoldTick = tick;
+    if (r.accepted && r.similarity >= braid.accept) {
+      this.skipped++;
+    } else {
+      braid.store(snap.digest.slice(0, 16), probe, tick);
+      this.stored++;
+    }
+  }
+  // ---- Ω-P7: cognition ----
+  ensureMind() {
+    if (!this.mind) {
+      const perRung = this.injectAnalysis ? 10 : 6;
+      const dim = Math.max(perRung, this.engine.rungs.length * perRung);
+      this.mind = new Mind({ dim, capacity: 610, seed: `${this.seed}-mind` });
+      this.obs = new Float64Array(dim);
+    }
+    return this.mind;
+  }
+  /**
+   * One cognitive fold per MIND_STRIDE ticks. The observation is the engine's
+   * own per-rung telemetry — coherence, energy, obstruction, clamp pressure —
+   * so a concept is literally a recurring shape of the ladder's behaviour, and
+   * surprise is measured against that same vector. Nothing here is synthesised.
+   */
+  foldMind(rep) {
+    if (rep.tick % MIND_STRIDE !== 0 || rep.tick === this.lastMindTick) return;
+    const mind = this.ensureMind();
+    const v = this.obs;
+    const perRung = this.injectAnalysis ? 10 : 6;
+    const xr = this.injectAnalysis ? this.analysisService?.report()?.xcorr ?? null : null;
+    for (let i = 0; i < this.engine.rungs.length; i++) {
+      const t = rep.rungs[i];
+      const o = i * perRung;
+      v[o] = t?.coherence ?? 0;
+      v[o + 1] = dlog1p(Math.max(0, t?.energy ?? 0));
+      v[o + 2] = t?.closureDefect ?? 0;
+      v[o + 3] = t?.clamped ?? 0;
+      v[o + 4] = t?.realizedGain ?? 0;
+      v[o + 5] = t?.skill ?? 0;
+      if (perRung === 10) {
+        v[o + 6] = xr && Number.isFinite(xr.fusedCoherence) ? xr.fusedCoherence : 0;
+        v[o + 7] = xr && Number.isFinite(xr.meanPlv) ? xr.meanPlv : 0;
+        v[o + 8] = xr && Number.isFinite(xr.maxLag) ? xr.maxLag : 0;
+        v[o + 9] = xr && Number.isFinite(xr.surprise) ? xr.surprise : 0;
+      }
+    }
+    let norm2 = 0;
+    for (let i = 0; i < v.length; i++) norm2 += v[i] * v[i];
+    if (!(norm2 > 1e-18) || !Number.isFinite(norm2)) {
+      this.quiescentFolds++;
+      this.lastMindTick = rep.tick;
+      return;
+    }
+    this.lastThought = mind.observe(v, rep.tick, rep.digest.slice(0, 16));
+    this.lastMindTick = rep.tick;
+  }
+  cognition() {
+    return this.ensureMind().report();
+  }
+  // ---- Ω-P8 perception ----
+  /**
+   * Lazily build the perceptual Mind once the sensory array's band plan is
+   * known. The layout is per-channel over every declared channel (sorted id, so
+   * the block index is stable), sized from the rung-0 array's band count.
+   */
+  ensureSensoryMind() {
+    if (!this.sensoryMind) {
+      const array = this.engine.engines[0]?.sensors ?? null;
+      if (!array) return null;
+      const channels = this.plane ? this.plane.channelIds() : [];
+      if (channels.length === 0) return null;
+      this.perceptLayout = perceptionLayout(array.bands, channels.length);
+      this.sensoryMind = new Mind({
+        dim: this.perceptLayout.dim,
+        capacity: 610,
+        seed: `${this.seed}-percept`
+      });
+      this.perceptObs = new Float64Array(this.perceptLayout.dim);
+    }
+    return this.sensoryMind;
+  }
+  /**
+   * One perceptual fold per MIND_STRIDE ticks, after the cognitive fold. The
+   * observation is the sensory meaning-vector (Ω-P8): per-channel φ-band
+   * profile, spatial energy moments, and the fused-field projection. A silent
+   * world carries no experience, so — exactly like the cognitive fold — a
+   * zero-norm observation is skipped rather than minting a degenerate concept.
+   *
+   * Pure observation: it reads the array and the plane's staged channel fields,
+   * never writes the dynamics, so the determinism oracle is untouched.
+   */
+  foldPerception(rep) {
+    if (rep.tick % MIND_STRIDE !== 0 || rep.tick === this.lastPerceptTick) return;
+    this.lastPerceptTick = rep.tick;
+    const mind = this.ensureSensoryMind();
+    if (!mind || !this.perceptLayout || !this.perceptObs) return;
+    const array = this.engine.engines[0]?.sensors ?? null;
+    const ids = this.plane ? this.plane.channelIds() : [];
+    const fused = ids.map((id) => this.plane.channelField(id));
+    const norm2 = perceive(this.perceptObs, array, fused, this.perceptLayout);
+    if (!(norm2 > 1e-18) || !Number.isFinite(norm2)) {
+      this.quiescentPercepts++;
+      return;
+    }
+    this.lastPercept = mind.observe(this.perceptObs, rep.tick, `p${rep.tick}`);
+  }
+  /** The perceptual Mind's report — what the senses have learned. */
+  perception() {
+    return this.sensoryMind ? this.sensoryMind.report() : null;
+  }
+  /** Nearest perceptual concepts to the live sensory observation. */
+  perceiveReflect(k = 5) {
+    if (!this.sensoryMind) return { hits: [], exactOps: 0, pqOps: 0, hops: 0 };
+    return this.sensoryMind.recall(this.perceptObs ?? new Float64Array(this.sensoryMind.dim), k);
+  }
+  /** Nearest concepts to the live observation — the read side of the store. */
+  reflect(k = 5) {
+    const mind = this.ensureMind();
+    return mind.recall(this.obs ?? new Float64Array(mind.dim), k);
+  }
+  memory() {
+    const braid = this.ensureBraid();
+    return {
+      load: braid.load,
+      capacity: braid.capacity,
+      beta: braid.beta(),
+      stride: MEMORY_STRIDE,
+      lastFoldTick: this.lastFoldTick,
+      stored: this.stored,
+      skipped: this.skipped,
+      familiarity: this.lastRecall?.similarity ?? 0,
+      lastRecall: this.lastRecall,
+      patterns: braid.patterns().slice(-13)
+    };
+  }
+  /**
+   * Run as many ticks as fit in the slice budget, capped by the target rate.
+   * `nowMs` is the frame timeline (injected, so the rate window is testable);
+   * the slice budget is measured on the host's own monotonic clock — mixing
+   * the two would compare an injected timeline against real time.
+   */
+  pump(nowMs, elapsedMs) {
+    if (!this.running) return 0;
+    this.debt = Math.min(this.debt + this.targetHz * elapsedMs / 1e3, this.targetHz);
+    const wanted = Math.floor(this.debt);
+    if (wanted < 1) return 0;
+    const t0 = this.clock();
+    let done = 0;
+    for (let i = 0; i < wanted; i++) {
+      this.stepOnce();
+      done++;
+      if (this.clock() - t0 >= this.sliceBudgetMs) break;
+    }
+    this.debt -= done;
+    const spent = this.clock() - t0;
+    this.lastLoad = spent / this.sliceBudgetMs;
+    if (done < wanted || this.lastLoad > 1) {
+      this.overruns++;
+      this.busHz = Math.max(MIN_HZ, this.busHz / 1.618033988749895);
+    } else if (this.lastLoad < 0.5) {
+      this.busHz = Math.min(this.targetHz, this.busHz * 1.1);
+    }
+    if (this.rateWindowStart === 0) this.rateWindowStart = nowMs;
+    this.rateWindowTicks += done;
+    const span = nowMs - this.rateWindowStart;
+    if (span >= 1e3) {
+      this.tickRate = this.rateWindowTicks * 1e3 / span;
+      this.rateWindowStart = nowMs;
+      this.rateWindowTicks = 0;
+    }
+    return done;
+  }
+  clock() {
+    const p = globalThis.performance;
+    return p?.now ? p.now() : Date.now();
+  }
+  /** Exact web-wide checkpoint (rung state + web tick + digest chain). */
+  checkpoint() {
+    const cp = this.engine.checkpoint();
+    this.checkpointTick = cp.tick;
+    return cp;
+  }
+  restore(cp) {
+    this.engine.restore(cp);
+    this.last = null;
+    this.checkpointTick = cp.tick;
+  }
+  snapshot() {
+    const rep = this.last;
+    const cost = profileCost(this.profile);
+    const rungs = this.engine.rungs.map((r, i) => {
+      const t = rep?.rungs[i];
+      return {
+        n: r.n,
+        nodes: this.nodes[i],
+        coherence: t?.coherence ?? 0,
+        warm: t?.coherenceWarm ?? false,
+        energy: t?.energy ?? 0,
+        regime: t?.regime ?? "IDLE",
+        clamped: t?.clamped ?? 0,
+        obstruction: t?.obstruction ?? 0,
+        closureDefect: t?.closureDefect ?? 0,
+        closureQuality: t?.closureQuality ?? 0,
+        skill: t?.skill ?? 0
+      };
+    });
+    return {
+      running: this.running,
+      profile: this.profile.id,
+      seed: this.seed,
+      tick: this.engine.currentTick(),
+      tickRate: this.tickRate,
+      busHz: this.busHz,
+      coherence: rep?.coherence ?? 0,
+      coherenceWarm: rep?.coherenceWarm ?? NaN,
+      warmRungs: rep?.warmRungsTotal ?? 0,
+      energy: rungs.reduce((s, r) => s + r.energy, 0),
+      fluxMoved: rep?.fluxMoved ?? 0,
+      fluxImbalance: rep?.fluxImbalance ?? 0,
+      orderingViolations: rep?.orderingViolations ?? 0,
+      rowSumDefect: rep?.rowSumDefect ?? this.engine.coupling.rowSumDefect,
+      worstEnergyRatio: rep?.worstEnergyRatio ?? 1,
+      digest: rep?.digest ?? this.engine.digest(),
+      finite: rep?.finite ?? true,
+      stepped: rep?.stepped ?? [],
+      rungs,
+      nodes: this.nodes.slice(),
+      totalNodes: cost.nodes,
+      predictedBytes: cost.bytes,
+      checkpointTick: this.checkpointTick,
+      ledgerMarks: this.ledger.size(),
+      load: this.lastLoad,
+      senseChannels: this.plane?.report().channels ?? 0,
+      sensePeak: this.plane?.report().maxPeak ?? 0,
+      senseGain: this.plane?.currentLoopGain() ?? 0,
+      memoryLoad: this.braid?.load ?? 0,
+      memoryCapacity: this.braid?.capacity ?? 0,
+      familiarity: this.lastRecall?.similarity ?? 0,
+      memoryStage: this.lastRecall?.stage ?? "idle",
+      concepts: this.mind?.store.size ?? 0,
+      novelty: this.lastThought?.novelty ?? 0,
+      surprise: this.lastThought?.surprise ?? 0,
+      selfModel: this.mind?.self.enabled ?? false,
+      selfMargin: this.mind?.self.margin() ?? 0,
+      quiescentFolds: this.quiescentFolds,
+      perceptConcepts: this.sensoryMind?.store.size ?? 0,
+      perceptNovelty: this.lastPercept?.novelty ?? 0,
+      perceptSurprise: this.lastPercept?.surprise ?? 0,
+      quiescentPercepts: this.quiescentPercepts,
+      ...this.organSnapshot(),
+      chords: this.engine.coupling.chords,
+      tapeOccupancy: this.engine.tape?.occupied() ?? 0,
+      tapeCapacity: this.engine.tape?.capacity ?? 0,
+      tapeHead: this.engine.tape?.position() ?? 0
+    };
+  }
+  /**
+   * Ladder-wide organ rollup. Organ coverage is counted, not assumed: a rung
+   * without an organ bank contributes 0 nodes, so `organNodes < totalNodes`
+   * is visible in the UI instead of being papered over.
+   */
+  organSnapshot() {
+    let nodes = 0;
+    let res = 0;
+    let part = 0;
+    let rungs = 0;
+    for (const e of this.engine.engines) {
+      const r = e.organReport();
+      if (!r) continue;
+      nodes += e.nodes;
+      res += r.meanEigenResidual;
+      part += r.meanParticipation;
+      rungs++;
+    }
+    return {
+      organNodes: nodes,
+      organResidual: rungs > 0 ? res / rungs : 0,
+      organParticipation: rungs > 0 ? part / rungs : 0
+    };
+  }
+  overrunCount() {
+    return this.overruns;
+  }
+  // ---- Ω-P5 on-demand views (never on the snapshot bus) ----
+  /** Static topology: ladder rungs, clocks, channel matrix. */
+  describe() {
+    return describeEngine(this.engine);
+  }
+  /** One rung's live field, decimated for rendering. */
+  field(rank2, maxSamples = 610) {
+    return fieldFrame(this.engine, rank2, maxSamples);
+  }
+  /** Ledger positions and the tail of the double-entry journal. */
+  web(tail = 24) {
+    return webView(this.engine, tail);
+  }
+  /** N1 — six-section sensory scan of one toroid. */
+  scan(rank2) {
+    return rungScan(this.engine, rank2);
+  }
+  /** Ω-REAL P9 — latest analysis report (heartbeat + xcorr), or null when built without the service. */
+  analysis() {
+    return this.analysisService?.report() ?? null;
+  }
+  /** Ω-REAL P9 — append-only evidence ledger state, or null when analysis is off. */
+  evidence() {
+    if (!this.evidenceLedger) return null;
+    return {
+      size: this.evidenceLedger.size,
+      sealCount: this.evidenceLedger.sealCount,
+      rootHex: this.evidenceLedger.rootHex(),
+      lastSeal: this.lastEvidenceSeal
+    };
+  }
+  /** Measured spectral roundtrip on the shell and radial planes. */
+  spectral(rank2) {
+    return spectralView(this.engine, rank2);
+  }
+  /** Structure-preserving defect of one octave-transport edge (read-only). */
+  morphism(sourceRank = 0, targetRank = 1) {
+    return morphismView(this.engine, sourceRank, targetRank);
+  }
+  // ---- Ω-P8: learning ----
+  /**
+   * Run the held-out battery for the learnable cell against this host's seed.
+   * Synchronous and off the bus by design: it is an explicit operator action,
+   * not something the tick loop does behind the user's back. The engine state
+   * is untouched — the battery builds its own private SingleTorusEngine.
+   */
+  learn(opts = {}) {
+    const t0 = Date.now();
+    const traj = sampleTrajectory({
+      nodes: opts.nodes ?? Math.min(89, this.nodes[this.nodes.length - 1] ?? 55),
+      seed: `${this.seed}-learn`,
+      warmup: opts.warmup ?? 89,
+      trainTicks: opts.trainTicks ?? 233,
+      holdTicks: opts.holdTicks ?? 89
+    });
+    const { cell, report } = runBattery(traj, {
+      iterations: opts.iterations ?? 240,
+      seed: `${this.seed}-spsa`
+    });
+    this.learnCell = cell;
+    this.lastLearn = {
+      report,
+      elapsedMs: Date.now() - t0,
+      certificates: cell.certificates().map((c) => ({ ...c })),
+      nodes: traj.nodes
+    };
+    return this.lastLearn;
+  }
+  /** Last battery result, or null when learning has never been run. */
+  learnState() {
+    return this.lastLearn;
+  }
+  /** Ω-P8 — probe the four execution tiers live (T0 is always the floor). */
+  probeLearningTiers(opts = {}) {
+    return probeTiers(opts);
+  }
+};
+
+// ../omega/packages/trnn-core/src/cognition/fieldSelfModel.ts
+var FieldSelfModel = class {
+  constructor(rungs, dim, window) {
+    this.rungs = rungs;
+    this.dim = dim;
+    this.models = Array.from({ length: rungs }, () => new SelfModel(dim, window));
+  }
+  models;
+  /**
+   * Train on the current signatures and return, per rung, the prediction of the
+   * NEXT signature (from the predictor in force). Returned buffers are internal
+   * and reused — copy before the next call if you keep them.
+   */
+  predict(signatures, tick) {
+    const out = [];
+    for (let i = 0; i < signatures.length; i++) {
+      out.push(this.models[i].observe(signatures[i], tick));
+    }
+    return out;
+  }
+  /** Aggregate self-model report across all rungs. */
+  report() {
+    const per = this.models.map((m) => m.report());
+    const mean3 = (f) => per.reduce((s, r) => s + f(r), 0) / per.length;
+    return {
+      rungs: per.length,
+      ssmMse: mean3((r) => r.ssmMse),
+      rlsMse: mean3((r) => r.rlsMse),
+      persistenceMse: mean3((r) => r.persistenceMse),
+      enabled: per.every((r) => r.enabled),
+      per
+    };
+  }
+  reset() {
+    for (const m of this.models) m.reset();
+  }
 };
 
 // ../omega/packages/trnn-core/src/sweeps/tenSweep.ts
@@ -13681,7 +15117,7 @@ function sweep5PrototypeConsolidation(corpus, ledger, opts) {
       id: protoId,
       kind: "Prototype",
       vector: hv,
-      trust: Math.max(finite(target.trust), finite(it.trust)),
+      trust: Math.max(finite2(target.trust), finite2(it.trust)),
       contradicts: [],
       recordedAt: opts.now,
       validFrom: opts.now,
@@ -13709,7 +15145,7 @@ function sweep5PrototypeConsolidation(corpus, ledger, opts) {
     residualCos: keep.length > 1 ? residual : null
   };
 }
-function finite(x) {
+function finite2(x) {
   return Number.isFinite(x) ? x : 0;
 }
 function sweep6CausalAttribution(estimates = {}, minPaired = MIN_PAIRED) {
@@ -13919,6 +15355,644 @@ var TenSweepProtocol = class {
 };
 function check(ok, reason) {
   return { ok, reason: ok ? null : reason };
+}
+
+// ../omega/packages/trnn-core/src/cognition/consolidation.ts
+var IgnitionConsolidator = class {
+  constructor(ledger, cfg = {}) {
+    this.ledger = ledger;
+    this.batch = cfg.batch ?? 13;
+    this.dim = cfg.dim ?? 512;
+    this.protocol = new TenSweepProtocol(ledger, cfg.owner);
+  }
+  qualia = new QualiaTracker();
+  corpus = new Corpus();
+  protocol;
+  batch;
+  dim;
+  prevIgnited = false;
+  pending = 0;
+  cycles = 0;
+  get corpusSize() {
+    return this.corpus.items.length;
+  }
+  get cycleCount() {
+    return this.cycles;
+  }
+  /**
+   * Feed one qualia observation. On each up-crossing a moment is recorded; once
+   * `batch` moments accumulate, a ten-sweep cycle seals them into the ledger.
+   */
+  observe(psi, coherence, closureGamma, tick) {
+    const q = this.qualia.observe(psi, coherence, closureGamma);
+    const upCrossing = q.ignited && !this.prevIgnited;
+    this.prevIgnited = q.ignited;
+    if (!upCrossing) {
+      return { ignited: q.ignited, upCrossing: false, ignitions: q.ignitions, pending: this.pending, cycled: false };
+    }
+    this.corpus.add({
+      id: `moment:${tick}`,
+      kind: "Ignition",
+      vector: randomHv(this.dim, `moment:${tick}`),
+      trust: q.Cphi,
+      contradicts: [],
+      recordedAt: tick,
+      validFrom: tick,
+      validTo: null,
+      supersededBy: null
+    });
+    this.pending++;
+    let cycled = false;
+    if (this.pending >= this.batch) {
+      this.protocol.run(this.corpus, { now: tick });
+      this.pending = 0;
+      this.cycles++;
+      cycled = true;
+    }
+    return { ignited: q.ignited, upCrossing: true, ignitions: q.ignitions, pending: this.pending, cycled };
+  }
+};
+
+// ../omega/packages/trnn-core/src/sense/textFingerprint.ts
+var TEXT_FINGERPRINT_BINS = 13;
+function textToField(text, nodes) {
+  const f = senseField(nodes);
+  encodeText(text, f);
+  return f;
+}
+function textFingerprint(text, nodes, bins = TEXT_FINGERPRINT_BINS) {
+  const f = textToField(text, nodes);
+  const spec = fft(f.re, f.im, false);
+  const M = Math.min(bins, nodes - 1);
+  const pow3 = new Float64Array(M);
+  let rawNorm = 0;
+  for (let m = 1; m <= M; m++) {
+    const p = spec.re[m] * spec.re[m] + spec.im[m] * spec.im[m];
+    pow3[m - 1] = p;
+    rawNorm += p * p;
+  }
+  const out = new Float64Array(M);
+  if (rawNorm > 1e-300) {
+    const rawInv = 1 / Math.sqrt(rawNorm);
+    let s2 = 0;
+    for (let m = 0; m < M; m++) {
+      const v = dlog1p(pow3[m] * rawInv);
+      out[m] = v;
+      s2 += v * v;
+    }
+    const inv = s2 > 1e-300 ? 1 / Math.sqrt(s2) : 0;
+    for (let m = 0; m < M; m++) out[m] *= inv;
+  }
+  return out;
+}
+
+// ../omega/packages/trnn-core/src/memory/persistence.ts
+function serializeBrain(lexicon, relations, genome) {
+  return canonicalJson({
+    lexicon: lexicon.serialize(),
+    relations: relations.serialize(),
+    genome: genome.serialize()
+  });
+}
+function restoreBrain(doc, keys) {
+  const s = JSON.parse(doc);
+  return {
+    lexicon: Lexicon.restore(s.lexicon),
+    relations: RelationGraph.restore(s.relations),
+    genome: GenomeLedger.restore(s.genome, keys.master, keys.signer)
+  };
+}
+
+// ../omega/packages/trnn-core/src/learn/spectralFilter.ts
+var FILTER_RHO_MAX = PHI_INV;
+var SpectralFilter = class {
+  kind = "SpectralFilter";
+  size;
+  /** raw layout: [mag_0..mag_{K-1}, phase_0..phase_{K-1}] */
+  raw;
+  rhoMax;
+  out;
+  constructor(modes, rhoMax = FILTER_RHO_MAX) {
+    if (!Number.isInteger(modes) || modes <= 0) throw new RangeError(`SpectralFilter: modes must be a positive integer, got ${modes}`);
+    if (!(rhoMax > 0) || !(rhoMax < 1)) throw new RangeError(`SpectralFilter: rhoMax must lie in (0,1), got ${rhoMax}`);
+    this.size = modes;
+    this.rhoMax = rhoMax;
+    this.raw = new Float64Array(2 * modes);
+    this.out = new Float64Array(2 * modes);
+  }
+  /** ρ_k ∈ [0, ρ_max]. |s(x)| is used so the map covers the closed lower end. */
+  magnitude(k) {
+    return this.rhoMax * Math.abs(algSigmoid(this.raw[k]));
+  }
+  /** ψ_k ∈ (−π, π). */
+  phase(k) {
+    return Math.PI * algSigmoid(this.raw[this.size + k]);
+  }
+  /** Interleaved [Re α_0, Im α_0, …]. Owned buffer; no allocation. */
+  values() {
+    for (let k = 0; k < this.size; k++) {
+      const r = this.magnitude(k);
+      const p = this.phase(k);
+      this.out[2 * k] = r * dcos(p);
+      this.out[2 * k + 1] = r * dsin(p);
+    }
+    return this.out;
+  }
+  /** c ← α ⊙ c, in place on an interleaved coefficient buffer. */
+  apply(coeffs) {
+    if (coeffs.length < 2 * this.size) {
+      throw new RangeError(`SpectralFilter.apply: buffer holds ${coeffs.length / 2} modes, filter needs ${this.size}`);
+    }
+    const a = this.values();
+    for (let k = 0; k < this.size; k++) {
+      const cr = coeffs[2 * k];
+      const ci = coeffs[2 * k + 1];
+      const ar = a[2 * k];
+      const ai = a[2 * k + 1];
+      coeffs[2 * k] = ar * cr - ai * ci;
+      coeffs[2 * k + 1] = ar * ci + ai * cr;
+    }
+    return coeffs;
+  }
+  /** The induced ℓ² gain of the filter: max_k |α_k|. */
+  gain() {
+    let m = 0;
+    for (let k = 0; k < this.size; k++) m = Math.max(m, this.magnitude(k));
+    return m;
+  }
+  certificate() {
+    const g2 = this.gain();
+    return {
+      kind: this.kind,
+      statement: `\u2016diag(\u03B1)\u2016\u2082 = max_k|\u03B1_k| \u2264 \u03C1_max = ${this.rhoMax} < 1 for every raw \u2208 R^${2 * this.size}`,
+      bound: this.rhoMax,
+      measured: g2,
+      holds: g2 <= this.rhoMax * (1 + 8 * Number.EPSILON)
+    };
+  }
+  /**
+   * One deterministic gradient step on E = ½ Σ_k (ρ_k − target_k)².
+   *
+   *   dE/draw_k = (ρ_k − t_k) · ρ_max · sign(s) · s'(raw_k)
+   *
+   * Targets above ρ_max are honestly unreachable; the step drives ρ_k to the
+   * ceiling and the residual it returns says so rather than pretending to fit.
+   */
+  stepMagnitudes(target, rate) {
+    if (target.length < this.size) throw new RangeError(`stepMagnitudes: need ${this.size} targets, got ${target.length}`);
+    let sse = 0;
+    for (let k = 0; k < this.size; k++) {
+      const x = this.raw[k];
+      const s = algSigmoid(x);
+      const rho = this.rhoMax * Math.abs(s);
+      const err = rho - target[k];
+      sse += err * err;
+      const sgn = s >= 0 ? 1 : -1;
+      this.raw[k] = x - rate * err * this.rhoMax * sgn * algSigmoidPrime(x);
+    }
+    return Math.sqrt(sse / this.size);
+  }
+  /** Run `iters` deterministic steps; returns the final RMS magnitude error. */
+  fitMagnitudes(target, rate = 1, iters = 512) {
+    let rms = Infinity;
+    for (let i = 0; i < iters; i++) rms = this.stepMagnitudes(target, rate);
+    return rms;
+  }
+};
+function diffusionTarget(lambda, dt, out) {
+  const o = out ?? new Float64Array(lambda.length);
+  for (let k = 0; k < lambda.length; k++) o[k] = dexp(-lambda[k] * dt);
+  return o;
+}
+
+// ../omega/packages/trnn-core/src/learn/mixer.ts
+var BIAS_TOTAL = PHI_INV;
+var SuperpositionMixer = class {
+  basis;
+  modes;
+  /** Learnable bias *field*, held as its own eigencoefficients β_k. */
+  bias;
+  spatial;
+  scratch;
+  constructor(basis, biasTotal = BIAS_TOTAL) {
+    this.basis = basis;
+    this.modes = basis.vectors.length;
+    this.spatial = createField(basis.n);
+    this.scratch = new Float64Array(2 * this.modes);
+    this.bias = new SimplexGain(this.modes, biasTotal);
+  }
+  /**
+   * c ← analyze( σ( synth(c) ) ) + β. In place on an interleaved buffer.
+   * Zero allocation after construction.
+   */
+  apply(coeffs) {
+    if (coeffs.length < 2 * this.modes) {
+      throw new RangeError(`SuperpositionMixer.apply: buffer holds ${coeffs.length / 2} modes, basis has ${this.modes}`);
+    }
+    let inE = 0;
+    const occupied = new Uint8Array(this.modes);
+    for (let k = 0; k < this.modes; k++) {
+      const e = coeffs[2 * k] ** 2 + coeffs[2 * k + 1] ** 2;
+      inE += e;
+      if (e > 0) occupied[k] = 1;
+    }
+    synthesize(this.basis, coeffs, this.spatial);
+    let peak = 0;
+    for (let i = 0; i < this.spatial.n; i++) {
+      const re = this.spatial.re[i];
+      const im = this.spatial.im[i];
+      const a = dmag(re, im);
+      if (a > peak) peak = a;
+      const g2 = algSigmoid(a);
+      this.spatial.re[i] = re * g2;
+      this.spatial.im[i] = im * g2;
+    }
+    analyze(this.basis, this.spatial, this.scratch);
+    const beta = this.bias.values();
+    let outE = 0;
+    let newE = 0;
+    for (let k = 0; k < this.modes; k++) {
+      const r = this.scratch[2 * k] + beta[k];
+      const i = this.scratch[2 * k + 1];
+      coeffs[2 * k] = r;
+      coeffs[2 * k + 1] = i;
+      const e = r * r + i * i;
+      outE += e;
+      if (!occupied[k]) newE += e;
+    }
+    return {
+      gain: inE > 0 ? Math.sqrt(outE / inE) : 0,
+      transfer: outE > 0 ? newE / outE : 0,
+      peak
+    };
+  }
+  /** The certified ℓ² bound of this mixer at its current parameters. */
+  bound(inputNorm) {
+    return inputNorm + this.bias.total;
+  }
+};
+
+// ../omega/packages/trnn-core/src/learn/spectralAttention.ts
+function deinterleave(coeffs, modes) {
+  const re = new Float64Array(modes);
+  const im = new Float64Array(modes);
+  for (let k = 0; k < modes; k++) {
+    re[k] = coeffs[2 * k];
+    im[k] = coeffs[2 * k + 1];
+  }
+  return { re, im };
+}
+function applySpectralAttention(coeffs, memory, modes, strength = 1) {
+  if (coeffs.length < 2 * modes || memory.length < 2 * modes) {
+    throw new RangeError("applySpectralAttention: buffers shorter than the declared mode count");
+  }
+  const s = Math.min(1, Math.max(0, strength));
+  const q = deinterleave(coeffs, modes);
+  const m = deinterleave(memory, modes);
+  const c = crossCorrelate(q, m);
+  let lag = 0;
+  let peak = -1;
+  let sumRot = 0;
+  for (let k = 0; k < modes; k++) {
+    const mag = dmag(c.re[k], c.im[k]);
+    if (mag > peak) {
+      peak = mag;
+      lag = k;
+    }
+  }
+  let eq = 0;
+  let em = 0;
+  for (let k = 0; k < modes; k++) {
+    eq += q.re[k] ** 2 + q.im[k] ** 2;
+    em += m.re[k] ** 2 + m.im[k] ** 2;
+  }
+  const denom = Math.sqrt(eq * em);
+  if (s > 0) {
+    for (let k = 0; k < modes; k++) {
+      const theta = s * datan2(c.im[k], c.re[k]);
+      sumRot += Math.abs(theta);
+      const ct = dcos(theta);
+      const st = dsin(theta);
+      const cr = coeffs[2 * k];
+      const ci = coeffs[2 * k + 1];
+      coeffs[2 * k] = cr * ct - ci * st;
+      coeffs[2 * k + 1] = cr * st + ci * ct;
+    }
+  }
+  return {
+    lag,
+    alignment: denom > 0 ? peak / denom : 0,
+    meanRotation: modes > 0 ? sumRot / modes : 0
+  };
+}
+
+// ../omega/packages/trnn-core/src/substrate/plasticity.ts
+function ojaStep(w, x, eta) {
+  const n = Math.min(w.length, x.length);
+  let y = 0;
+  for (let i = 0; i < n; i++) y += w[i] * x[i];
+  let drift = 0, sq = 0;
+  for (let i = 0; i < n; i++) {
+    const d = eta * y * (x[i] - y * w[i]);
+    w[i] += d;
+    drift += Math.abs(d);
+    sq += w[i] * w[i];
+  }
+  return { y, norm: Math.sqrt(sq), drift };
+}
+function sangerStep(W, k, d, x, eta) {
+  const y = new Float64Array(k);
+  for (let a = 0; a < k; a++) {
+    let s = 0;
+    const off = a * d;
+    for (let i = 0; i < d; i++) s += W[off + i] * x[i];
+    y[a] = s;
+  }
+  for (let a = 0; a < k; a++) {
+    const off = a * d;
+    for (let i = 0; i < d; i++) {
+      let back = 0;
+      for (let b = 0; b <= a; b++) back += y[b] * W[b * d + i];
+      W[off + i] += eta * y[a] * (x[i] - back);
+    }
+  }
+  return y;
+}
+function joglekarWindow(w, wMin = 0, wMax = 1, p = 1) {
+  if (!(wMax > wMin)) return NaN;
+  const wh = (w - wMin) / (wMax - wMin);
+  if (wh <= 0 || wh >= 1) return 0;
+  const u = 2 * wh - 1;
+  const f = 1 - dpow(u * u, p);
+  return f < 0 ? 0 : f > 1 ? 1 : f;
+}
+function memristiveStep(w, s, params) {
+  const wMin = params.wMin ?? 0;
+  const wMax = params.wMax ?? 1;
+  const p = params.p ?? 1;
+  if (!Number.isFinite(w) || !Number.isFinite(s)) return w;
+  const eta = s >= 0 ? params.etaSet : params.etaReset ?? params.etaSet * PHI_INV;
+  const f = joglekarWindow(w, wMin, wMax, p);
+  const next = w + eta * f * s;
+  return next < wMin ? wMin : next > wMax ? wMax : next;
+}
+function memristiveVector(w, drive, params) {
+  const n = Math.min(w.length, drive.length);
+  let drift = 0;
+  for (let i = 0; i < n; i++) {
+    const before = w[i];
+    w[i] = memristiveStep(before, drive[i], params);
+    drift += Math.abs(w[i] - before);
+  }
+  return drift;
+}
+var BcmThreshold = class {
+  constructor(tau, initial = 0) {
+    this.tau = tau;
+    this.theta = initial;
+  }
+  theta;
+  get value() {
+    return this.theta;
+  }
+  /** Update θ with a new post-synaptic activity and return the drive factor. */
+  observe(y) {
+    if (!Number.isFinite(y)) return 0;
+    this.theta += (y * y - this.theta) / Math.max(1, this.tau);
+    return y - this.theta;
+  }
+};
+
+// ../omega/packages/trnn-core/src/substrate/emd.ts
+var EMD_MIN_SAMPLES = 34;
+var EMD_MAX_SIFTS = 20;
+var EMD_IMF_TOL = 1e-6;
+function extrema(x) {
+  const maxima = [];
+  const minima = [];
+  for (let i = 1; i < x.length - 1; i++) {
+    if (x[i] > x[i - 1] && x[i] > x[i + 1]) maxima.push(i);
+    else if (x[i] < x[i - 1] && x[i] < x[i + 1]) minima.push(i);
+  }
+  return { maxima, minima };
+}
+function maxAbs(x) {
+  let m = 0;
+  for (let i = 0; i < x.length; i++) {
+    const a = Math.abs(x[i]);
+    if (a > m) m = a;
+  }
+  return m;
+}
+function splineSecondDerivs(xs, ys) {
+  const m = xs.length;
+  const M = new Float64Array(m);
+  const n = m - 2;
+  if (n <= 0) return M;
+  const h = new Float64Array(m - 1);
+  for (let i = 0; i < m - 1; i++) h[i] = xs[i + 1] - xs[i];
+  const diag = new Float64Array(n);
+  const lower = new Float64Array(n - 1);
+  const upper = new Float64Array(n - 1);
+  const rhs = new Float64Array(n);
+  for (let k = 0; k < n; k++) {
+    const hp = h[k];
+    const hn = h[k + 1];
+    diag[k] = 2 * (hp + hn);
+    rhs[k] = 6 * ((ys[k + 2] - ys[k + 1]) / hn - (ys[k + 1] - ys[k]) / hp);
+    if (k > 0) lower[k - 1] = hp;
+    if (k < n - 1) upper[k] = hn;
+  }
+  const u = thomas(lower, diag, upper, rhs);
+  for (let k = 0; k < n; k++) M[k + 1] = u[k];
+  return M;
+}
+function thomas(lower, diag, upper, rhs) {
+  const n = diag.length;
+  const cp = new Float64Array(n);
+  const dp = new Float64Array(n);
+  cp[0] = upper[0] / diag[0];
+  dp[0] = rhs[0] / diag[0];
+  for (let i = 1; i < n; i++) {
+    const den = diag[i] - lower[i - 1] * cp[i - 1];
+    cp[i] = (i < n - 1 ? upper[i] : 0) / den;
+    dp[i] = (rhs[i] - lower[i - 1] * dp[i - 1]) / den;
+  }
+  const x = new Float64Array(n);
+  x[n - 1] = dp[n - 1];
+  for (let i = n - 2; i >= 0; i--) x[i] = dp[i] - cp[i] * x[i + 1];
+  return x;
+}
+function splineEval(xs, ys, M, t) {
+  const m = xs.length;
+  if (t <= xs[0]) return ys[0];
+  if (t >= xs[m - 1]) return ys[m - 1];
+  let i = 0;
+  while (i < m - 2 && t > xs[i + 1]) i++;
+  const h = xs[i + 1] - xs[i];
+  const A = (xs[i + 1] - t) / h;
+  const B = (t - xs[i]) / h;
+  const c = ((A * A * A - A) * M[i] + (B * B * B - B) * M[i + 1]) * (h * h) / 6;
+  return A * ys[i] + B * ys[i + 1] + c;
+}
+function envelope(x, idx, n) {
+  const ys = idx.map((i) => x[i]);
+  const M = splineSecondDerivs(idx, ys);
+  const out = new Float64Array(n);
+  for (let i = 0; i < n; i++) out[i] = splineEval(idx, ys, M, i);
+  return out;
+}
+function emd(x, opts = {}) {
+  const n = x.length;
+  const src = Float64Array.from(x);
+  if (n < EMD_MIN_SAMPLES) {
+    return { length: n, imfs: [], residual: src, siftCounts: [], abstained: true, reason: `need ${EMD_MIN_SAMPLES} samples, have ${n}` };
+  }
+  for (let i = 0; i < n; i++) {
+    if (!Number.isFinite(src[i])) {
+      return { length: n, imfs: [], residual: src, siftCounts: [], abstained: true, reason: "non-finite sample" };
+    }
+  }
+  const tol = opts.tol ?? EMD_IMF_TOL;
+  const maxSifts = opts.maxSifts ?? EMD_MAX_SIFTS;
+  const maxImfs = opts.maxImfs ?? Infinity;
+  const r = Float64Array.from(src);
+  const imfs = [];
+  const siftCounts = [];
+  while (imfs.length < maxImfs) {
+    const { maxima, minima } = extrema(r);
+    if (maxima.length < 2 || minima.length < 2) break;
+    let h = Float64Array.from(r);
+    let sifts = 0;
+    for (sifts = 0; sifts < maxSifts; sifts++) {
+      const { maxima: mx, minima: mn } = extrema(h);
+      if (mx.length < 2 || mn.length < 2) break;
+      const upper = envelope(h, mx, n);
+      const lower = envelope(h, mn, n);
+      let meanMax = 0;
+      for (let i = 0; i < n; i++) {
+        const m = (upper[i] + lower[i]) / 2;
+        h[i] -= m;
+        const a = Math.abs(m);
+        if (a > meanMax) meanMax = a;
+      }
+      const scale = maxAbs(h);
+      if (scale === 0 || meanMax <= tol * scale) break;
+    }
+    if (maxAbs(h) <= 1e-12) break;
+    imfs.push(h);
+    siftCounts.push(sifts);
+    for (let i = 0; i < n; i++) r[i] -= h[i];
+  }
+  if (imfs.length === 0) {
+    return { length: n, imfs, residual: r, siftCounts, abstained: true, reason: "no IMF extracted (fewer than two extrema)" };
+  }
+  return { length: n, imfs, residual: r, siftCounts, abstained: false };
+}
+function unwrap(phase) {
+  const out = new Float64Array(phase.length);
+  out[0] = phase[0];
+  for (let i = 1; i < phase.length; i++) {
+    const d = phase[i] - phase[i - 1];
+    out[i] = out[i - 1] + datan2(dsin(d), dcos(d));
+  }
+  return out;
+}
+function meanInstantaneousFrequency(phase, dt = 1) {
+  const n = phase.length;
+  if (n < 3) return null;
+  const u = unwrap(Float64Array.from(phase));
+  let sum = 0;
+  for (let i = 1; i < n - 1; i++) sum += (u[i + 1] - u[i - 1]) / (2 * dt);
+  return sum / (n - 2) / (2 * Math.PI);
+}
+function hilbertHuang(x, opts = {}) {
+  const e = emd(x, opts);
+  if (e.abstained) {
+    return { length: e.length, imfs: e.imfs, residual: e.residual, components: [], abstained: true, reason: e.reason };
+  }
+  const components = e.imfs.map((imf) => {
+    const an = hilbertAnalytic(imf);
+    const amplitude = new Float64Array(imf.length);
+    const phase = new Float64Array(imf.length);
+    for (let i = 0; i < imf.length; i++) {
+      const re = an.re[i];
+      const im = an.im[i];
+      amplitude[i] = Math.sqrt(re * re + im * im);
+      phase[i] = datan2(im, re);
+    }
+    return { imf, amplitude, phase, meanFrequency: meanInstantaneousFrequency(phase) };
+  });
+  return { length: e.length, imfs: e.imfs, residual: e.residual, components, abstained: false };
+}
+
+// ../omega/packages/trnn-core/src/substrate/pseudospectrum.ts
+function sigmaMinAt(A, n, re, im) {
+  const N = 2 * n;
+  const M = new Float64Array(N * N);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const a = A[i * n + j];
+      const real = (i === j ? re : 0) - a;
+      const imag = i === j ? im : 0;
+      M[i * N + j] = real;
+      M[i * N + j + n] = -imag;
+      M[(i + n) * N + j] = imag;
+      M[(i + n) * N + j + n] = real;
+    }
+  }
+  const { S } = oneSidedJacobi(M, N, N);
+  return S[N - 1];
+}
+function pseudospectrum(A, n, reGrid, imGrid) {
+  const out = [];
+  for (const im of imGrid) {
+    for (const re of reGrid) {
+      out.push({ re, im, sigmaMin: sigmaMinAt(A, n, re, im) });
+    }
+  }
+  return out;
+}
+
+// ../omega/packages/trnn-core/src/substrate/floquet.ts
+function identityMatrix(n) {
+  const I = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) I[i * n + i] = 1;
+  return I;
+}
+function matMul(A, B, n) {
+  const C = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      let s = 0;
+      for (let k = 0; k < n; k++) s += A[i * n + k] * B[k * n + j];
+      C[i * n + j] = s;
+    }
+  }
+  return C;
+}
+function monodromy(maps, n) {
+  if (maps.length === 0) return identityMatrix(n);
+  let M = identityMatrix(n);
+  for (const A of maps) M = matMul(A, M, n);
+  return M;
+}
+function floquet(M, n, period) {
+  const { re, im } = generalEigenvalues(Float64Array.from(M), n);
+  const modes = [];
+  let radius = 0;
+  for (let j = 0; j < n; j++) {
+    const mag = Math.sqrt(re[j] * re[j] + im[j] * im[j]);
+    radius = Math.max(radius, mag);
+    modes.push({
+      lambdaRe: re[j],
+      lambdaIm: im[j],
+      magnitude: mag,
+      growth: mag > 0 ? dlog(mag) / period : Number.NEGATIVE_INFINITY,
+      frequency: datan2(im[j], re[j]) / (2 * Math.PI * period)
+    });
+  }
+  return { period, multipliers: modes, spectralRadius: radius };
 }
 
 // ../omega/packages/trnn-core/src/harness/golden.ts
@@ -14170,153 +16244,6 @@ function abstentionGate(r, target = ABSTENTION_TARGET) {
   }
   if (r.threw.length > 0) reasons.push(`threw: ${r.threw.join(", ")}`);
   return { pass: reasons.length === 0, rate: r.rate, reasons };
-}
-
-// ../omega/packages/trnn-core/src/harness/conformal.ts
-var ACI_ALPHA = 0.1;
-var ACI_GAMMA = PHI_INV / 16;
-var ACI_WINDOW = 233;
-var COVERAGE_TARGET = 0.85;
-var RECOVERY_BUDGET = 100;
-function quantileSorted(sorted, level) {
-  const n = sorted.length;
-  const k = Math.ceil((n + 1) * level);
-  if (k <= 0) return sorted[0];
-  if (k >= n) return sorted[n - 1];
-  return sorted[k - 1];
-}
-var AdaptiveConformal = class {
-  alpha;
-  gamma;
-  window;
-  floor;
-  alphaT;
-  scores = [];
-  log = [];
-  constructor(opts = {}) {
-    const alpha = opts.alpha ?? ACI_ALPHA;
-    if (!(alpha > 0 && alpha < 1)) throw new RangeError("AdaptiveConformal: alpha must be in (0,1)");
-    const gamma = opts.gamma ?? ACI_GAMMA;
-    if (!(gamma > 0)) throw new RangeError("AdaptiveConformal: gamma must be > 0");
-    this.alpha = alpha;
-    this.gamma = gamma;
-    this.window = Math.max(1, Math.floor(opts.window ?? ACI_WINDOW));
-    this.floor = Math.max(1, Math.floor(opts.floor ?? STAT_FLOOR));
-    this.alphaT = alpha;
-  }
-  /** Current adaptive miscoverage level. */
-  currentAlpha() {
-    return this.alphaT;
-  }
-  /** Calibration scores currently in the window. */
-  calibrationSize() {
-    return this.scores.length;
-  }
-  /**
-   * Half-width for the next quote, or null when the window is under floor.
-   * Pure — calling it does not advance the recursion.
-   */
-  halfWidth() {
-    if (this.scores.length < this.floor) return null;
-    const sorted = [...this.scores].sort((a, b) => a - b);
-    const q = quantileSorted(sorted, 1 - this.alphaT);
-    return Number.isFinite(q) ? q : null;
-  }
-  /**
-   * Score one event: quote an interval around `prediction`, compare to
-   * `truth`, then advance αₜ and the calibration window.
-   */
-  observe(prediction, truth) {
-    const nCalib = this.scores.length;
-    const alphaT = this.alphaT;
-    const hw = this.halfWidth();
-    const score2 = Number.isFinite(prediction) && Number.isFinite(truth) ? Math.abs(truth - prediction) : NaN;
-    let covered = null;
-    let lo = null;
-    let hi = null;
-    if (hw !== null && Number.isFinite(score2)) {
-      lo = prediction - hw;
-      hi = prediction + hw;
-      covered = score2 <= hw;
-      const err = covered ? 0 : 1;
-      const next = alphaT + this.gamma * (this.alpha - err);
-      this.alphaT = Math.min(1 - 1e-9, Math.max(1e-9, next));
-    }
-    if (Number.isFinite(score2)) {
-      this.scores.push(score2);
-      if (this.scores.length > this.window) this.scores.shift();
-    }
-    const obs = {
-      prediction,
-      truth,
-      score: score2,
-      halfWidth: hw,
-      lo,
-      hi,
-      covered,
-      alphaT,
-      nCalib
-    };
-    this.log.push(obs);
-    return obs;
-  }
-  observations() {
-    return this.log;
-  }
-  /** Coverage over a suffix of the log (`from` inclusive, default all). */
-  report(from = 0) {
-    let scored = 0, covered = 0, abstained = 0, widthSum = 0;
-    for (let i = Math.max(0, from); i < this.log.length; i++) {
-      const o = this.log[i];
-      if (o.covered === null) {
-        abstained++;
-        continue;
-      }
-      scored++;
-      if (o.covered) covered++;
-      if (o.halfWidth !== null) widthSum += o.halfWidth;
-    }
-    return {
-      scored,
-      covered,
-      abstained,
-      coverage: scored > 0 ? covered / scored : null,
-      meanWidth: scored > 0 ? widthSum / scored : null,
-      alphaFinal: this.alphaT
-    };
-  }
-};
-function recoveryAfterShift(observations, shiftAt, target = COVERAGE_TARGET, budget = RECOVERY_BUDGET, probe = 55) {
-  const tail = [];
-  let recoveredAfter = null;
-  let settledFrom = -1;
-  for (let i = Math.max(0, shiftAt); i < observations.length; i++) {
-    const o = observations[i];
-    if (o.covered === null) continue;
-    tail.push(o.covered);
-    if (recoveredAfter === null && tail.length >= probe) {
-      const w = tail.slice(tail.length - probe);
-      const cov = w.reduce((a, b) => a + (b ? 1 : 0), 0) / probe;
-      if (cov >= target) {
-        recoveredAfter = tail.length;
-        settledFrom = tail.length;
-      }
-    }
-  }
-  const tailCoverage = tail.length > 0 ? tail.reduce((a, b) => a + (b ? 1 : 0), 0) / tail.length : null;
-  let settledCoverage = null;
-  if (settledFrom >= 0 && settledFrom < tail.length) {
-    const rest = tail.slice(settledFrom);
-    settledCoverage = rest.reduce((a, b) => a + (b ? 1 : 0), 0) / rest.length;
-  }
-  return {
-    shiftAt,
-    scored: tail.length,
-    recoveredAfter,
-    withinBudget: recoveredAfter !== null && recoveredAfter <= budget,
-    tailCoverage,
-    settledCoverage
-  };
 }
 
 // ../omega/packages/trnn-core/src/harness/latency.ts
@@ -14592,6 +16519,34 @@ function abstentionBattery() {
   });
   return cases;
 }
+
+// ../omega/packages/trnn-core/src/harness/recall.ts
+function recallNearest(entries, query, cfg) {
+  if (entries.length === 0) {
+    return { label: null, distance: Infinity, margin: Infinity, verdict: "abstain" };
+  }
+  let best = entries[0];
+  let bestD = fingerprintDistance(best.vector, query);
+  let secondD = Infinity;
+  for (let i = 1; i < entries.length; i++) {
+    const d = fingerprintDistance(entries[i].vector, query);
+    if (d < bestD) {
+      secondD = bestD;
+      bestD = d;
+      best = entries[i];
+    } else if (d < secondD) {
+      secondD = d;
+    }
+  }
+  const margin = secondD - bestD;
+  const abstain2 = bestD > cfg.maxDistance || margin < cfg.minMargin;
+  return {
+    label: abstain2 ? null : best.label,
+    distance: bestD,
+    margin,
+    verdict: abstain2 ? "abstain" : "report"
+  };
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ABSTENTION_TARGET,
@@ -14600,6 +16555,7 @@ function abstentionBattery() {
   ACI_GAMMA,
   ACI_WINDOW,
   AdaptiveConformal,
+  AnalysisService,
   BIAS_TOTAL,
   BLADES,
   BLADE_NAMES,
@@ -14633,21 +16589,28 @@ function abstentionBattery() {
   DEFAULT_HEADROOM,
   DENSE_CORE,
   DENSE_CORE_COUNT,
+  DMD_WINDOW,
   DRIVE_SLOTS,
   DiagonalRLS,
   DiagonalSSM,
   Digest,
   DigestChain,
+  EMD_IMF_TOL,
+  EMD_MAX_SIFTS,
+  EMD_MIN_SAMPLES,
   EMPIRICAL_CONSTANTS,
   ENV,
   EngineHost,
+  EvidenceLedger,
   FIB_SPINE,
   FIELD_PROJ,
   FILTER_RHO_MAX,
+  FINGERPRINT_CHANNELS,
   FLUX_CLOSURE_TOLERANCE,
   FLUX_SINK,
   FLUX_WINDOW_HI,
   FLUX_WINDOW_LO,
+  FieldSelfModel,
   FluxLedger,
   FractalPool,
   GENOME_VERSION,
@@ -14660,6 +16623,7 @@ function abstentionBattery() {
   ISS_GAIN,
   ISS_INPUT_SUM,
   ISS_SLACK,
+  IgnitionConsolidator,
   InputGain,
   JURY_GAIN,
   JURY_GAIN_REFERENCE,
@@ -14675,6 +16639,7 @@ function abstentionBattery() {
   LONG_GAP_SWEEPS,
   LUCAS_MOD13_PERIOD,
   LearnableCell,
+  Lexicon,
   MAX_DEPTH,
   MAX_HZ,
   MAX_LOOP_GAIN,
@@ -14709,11 +16674,18 @@ function abstentionBattery() {
   PSI,
   PhiCoherenceKernel,
   QUADRATIC_CAP,
+  QUALIA_GOLDEN_DELAY,
+  QUALIA_IGNITION_WINDOW,
+  QualiaTracker,
   RADIAL_GAIN_MAX,
   RECOVERY_BUDGET,
+  REFLECT_GAIN,
+  RELATION_WEIGHTS,
   RESIDUAL_FACTOR,
   RESONANCE_FLOOR,
+  RING_DEPTH,
   RegressionForest,
+  RelationGraph,
   RunLedger,
   SENSE_BOUND,
   SHIP_MARGIN,
@@ -14727,6 +16699,7 @@ function abstentionBattery() {
   SUSTAIN_TICKS,
   SWEEP_NAMES,
   SeedStream,
+  SelfMeasureTracker,
   SelfModel,
   SensoryNodeArray,
   SensoryPlane,
@@ -14739,11 +16712,16 @@ function abstentionBattery() {
   TABLE,
   TAPE_BOUND,
   TAPE_WRITE_WEIGHT,
+  TEXT_FINGERPRINT_BINS,
   TEXT_MODES,
   TenSweepProtocol,
   TorusBraid,
   TranscriptionTape,
   TuringTape,
+  WAVELET_DB4_MIN,
+  WAVELET_HAAR_MIN,
+  XCORR_BAND,
+  XCORR_FS,
   abstentionBattery,
   abstentionGate,
   algSigmoid,
@@ -14808,6 +16786,7 @@ function abstentionBattery() {
   createLattice,
   createMultiVectorField,
   crossCorrelate,
+  crossScaleDrift,
   decimate,
   decodePosition,
   decodeRole,
@@ -14820,6 +16799,7 @@ function abstentionBattery() {
   distance,
   distanceCorrelation,
   dmlPartialLinear,
+  emd,
   emittedMass,
   emptyRoot,
   encodeAudio,
@@ -14840,8 +16820,11 @@ function abstentionBattery() {
   fibBig,
   fibonacciShell,
   fibonacciStrides,
+  fieldFingerprint,
   fieldFrame,
+  fingerprintDistance,
   fitDmd,
+  floquet,
   fluxFirstInWindow,
   fromHex,
   fromUtf8,
@@ -14849,6 +16832,7 @@ function abstentionBattery() {
   fuseResonance,
   gaussianMI,
   gccPhat,
+  gematriaAtom,
   generalEigenvalues,
   geometricProduct,
   get,
@@ -14866,9 +16850,12 @@ function abstentionBattery() {
   heartbeatSchedule,
   hessenberg,
   hilbertAnalytic,
+  hilbertHuang,
   hsic,
   identityHv,
+  informationDensity,
   inner,
+  instantaneousQualia,
   invNormalCdf,
   isFibonacci,
   isFiniteField,
@@ -14881,6 +16868,7 @@ function abstentionBattery() {
   kendallTauB,
   kernelRoots,
   keyPairFromSeed,
+  ladderDmd,
   lanczosEigenpairs,
   largestFibonacciAtMost,
   latencyGate,
@@ -14894,6 +16882,7 @@ function abstentionBattery() {
   magneticPhase,
   magnitude,
   maxNorm,
+  meanInstantaneousFrequency,
   measureFootprint,
   measureLatency,
   measureSpectrum,
@@ -14906,6 +16895,8 @@ function abstentionBattery() {
   metatronSpectrum,
   minSeparation,
   modeLadder,
+  monodromy,
+  morphismView,
   newField,
   nodesForRank,
   normalCdf,
@@ -14914,6 +16905,7 @@ function abstentionBattery() {
   octaveTransport,
   ojaStep,
   olsFit,
+  oneSidedJacobi,
   organBytes,
   ouInnovation,
   pair,
@@ -14938,6 +16930,7 @@ function abstentionBattery() {
   profileNodes,
   project,
   prolong,
+  pseudospectrum,
   qrfAttenuation,
   qualifies,
   radialAnalyze,
@@ -14952,9 +16945,12 @@ function abstentionBattery() {
   rawVector,
   readState,
   realSH,
+  recallNearest,
   recoveryAfterShift,
   regIncBeta,
   residualEnergy,
+  resonantRecall,
+  restoreBrain,
   restrict,
   reverse,
   rotorFromPlane,
@@ -14965,18 +16961,23 @@ function abstentionBattery() {
   safeLog,
   sampleTrajectory,
   sangerStep,
+  scaleEntropy,
   scaleField,
+  scaleSignature,
   scanRung,
   scoreAbstention,
   selectProfile,
   senseField,
   sensoryNodeBytes,
+  serializeBrain,
   setRawVector,
   shtAnalyze,
   shtSynthesize,
+  sigmaMinAt,
   signTreeHead,
   signature,
   similarity,
+  similarityPct,
   sns,
   sosFilt,
   sosFiltFilt,
@@ -14988,6 +16989,7 @@ function abstentionBattery() {
   strideSet,
   substrateParity,
   substrateParityHolds,
+  summarize,
   sweep10Reflection,
   sweep1IntakeReplay,
   sweep2HdcBinding,
@@ -15000,6 +17002,8 @@ function abstentionBattery() {
   sweep9GovernorCompression,
   sweepSchedule,
   synthesize,
+  textFingerprint,
+  textToField,
   thermalLambda,
   tickWorkUnits,
   tier0,
@@ -15013,17 +17017,23 @@ function abstentionBattery() {
   verifyFootprint,
   verifyInclusion,
   verifyTreeHead,
+  waveletDwt,
   webView,
   welchMSC,
   windowByTopNodes,
   windowWork,
   wrapAt,
   wrapPhase,
+  xcorrStack,
   zeckendorf,
   zeckendorfOrder,
-  zeroField
+  zeroField,
+  zeroQualia
 });
 /*! Bundled license information:
+
+@noble/ciphers/utils.js:
+  (*! noble-ciphers - MIT License (c) 2023 Paul Miller (paulmillr.com) *)
 
 @noble/curves/utils.js:
   (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
@@ -15039,7 +17049,4 @@ function abstentionBattery() {
 
 @noble/curves/ed25519.js:
   (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
-
-@noble/ciphers/utils.js:
-  (*! noble-ciphers - MIT License (c) 2023 Paul Miller (paulmillr.com) *)
 */

@@ -197,6 +197,23 @@ export function angularDistance(a: Hypervector, b: Hypervector): number {
   return Number.isFinite(s) ? dacos(Math.max(-1, Math.min(1, s))) : NaN;
 }
 
+/**
+ * Refined similarity as a φ-anchored percentage ∈ [0,1].
+ *
+ * Raw cosine is a ratio in [−1,1]; "similar enough to recall" only begins above
+ * the φ⁻¹ floor (the same corridor the braid uses for partial acceptance). This
+ * remaps the band [floor, 1] linearly onto [0,1], so a recall can compare two
+ * matches on a fine-grained, comparable percentage instead of a binary
+ * accept/miss. Below the floor it is 0 — honestly not similar, not a small
+ * confident number.
+ */
+export function similarityPct(a: Hypervector, b: Hypervector, floor = PHI_INV): number {
+  const s = similarity(a, b);
+  if (!Number.isFinite(s)) return 0;
+  const p = (s - floor) / (1 - floor);
+  return p < 0 ? 0 : p > 1 ? 1 : p;
+}
+
 /* ── cleanup memory ───────────────────────────────────────────────────────── */
 
 export interface CleanupHit {

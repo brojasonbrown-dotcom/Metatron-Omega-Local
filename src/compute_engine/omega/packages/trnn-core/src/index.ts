@@ -23,12 +23,17 @@ export * from './torus/superposition';
 export * from './measure/coherence';
 export * from './measure/state';
 export * from './measure/transcription';
+export * from './measure/scaleSignature';
+export * from './measure/fieldFingerprint';
+export * from './measure/qualia';
+export * from './measure/selfMeasure';
 
 export * from './spectral/sphere';
 export * from './spectral/radial';
 export * from './spectral/site';
 export * from './spectral/laplacian';
 export * from './spectral/fft';
+export * from './spectral/wavelet';
 
 // Ω-DEPTH — demand-driven fractal nesting + geometric-algebra channels.
 export * from './fractal/nest';
@@ -71,6 +76,10 @@ export { ConceptStore } from './cognition/concepts';
 export type { ConceptRecord, ConceptStats, SearchHit, SearchTrace } from './cognition/concepts';
 export { SelfModel, DiagonalSSM, DiagonalRLS, LAMBDA_MAX } from './cognition/selfModel';
 export type { SelfModelReport, PredictionEntry } from './cognition/selfModel';
+export * from './cognition/fieldSelfModel';
+export * from './cognition/consolidation';
+export * from './cognition/lexicon';
+export * from './cognition/relations';
 
 // Ω-P6 — sensory plane + braid memory.
 export * from './sense/encode';
@@ -79,8 +88,10 @@ export * from './sense/plane';
 export * from './sense/nodeArray';
 export * from './sense/scan';
 export * from './sense/perception';
+export * from './sense/textFingerprint';
 export * from './memory/braid';
 export * from './memory/turingTape';
+export * from './memory/persistence';
 
 // Ω-P8 — learning tiers.
 export * from './learn/params';
@@ -101,6 +112,15 @@ export * from './substrate/resonanceBus';
 export * from './substrate/vsa';
 export * from './substrate/plasticity';
 export * from './substrate/dmd';
+export * from './substrate/emd';
+export * from './substrate/pseudospectrum';
+export * from './substrate/floquet';
+
+/* Ω-REAL P9: live analysis service — heartbeat scheduler, rings, xcorr stack. */
+export * from './analysis/service';
+export * from './analysis/xcorrStack';
+export * from './analysis/dmdModes';
+export * from './analysis/evidenceLedger';
 
 /* Ω-REAL P6: append-only evidence — RFC-6962 ledger and sealed Genome v2. */
 export * from './ledger/canonical';
@@ -118,3 +138,4 @@ export * from './harness/conformal';
 export * from './harness/latency';
 export * from './harness/certify';
 export * from './harness/battery';
+export * from './harness/recall';

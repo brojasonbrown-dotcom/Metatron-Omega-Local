@@ -39,6 +39,7 @@ import {
 } from '../sense/perception';
 import { createField, type CField } from '../core/complex';
 import { runBattery, sampleTrajectory, type BatteryReport } from '../learn/battery';
+import { probeTiers, type TierMap, type TierProbeOptions } from '../learn/tiers';
 import type { LearnableCell } from '../learn/cell';
 import type { Certificate } from '../learn/params';
 import {
@@ -47,6 +48,7 @@ import {
   rungScan,
   spectralView,
   webView,
+  morphismView,
   type EngineDescription,
   type FieldFrame,
   type RungScanReport,
@@ -55,6 +57,8 @@ import {
 } from './views';
 import { dlog1p } from '../core/dmath';
 import { largestFibonacciAtMost } from '../core/fibonacci';
+import { AnalysisService, type AnalysisOptions, type AnalysisReport } from '../analysis/service';
+import { EvidenceLedger, type EvidenceSeal } from '../analysis/evidenceLedger';
 import type { OrganOptions } from '../cell/organs';
 import type { SensoryNodeOptions } from '../sense/nodeArray';
 import type { ChordKind } from '../web/coupling';
@@ -97,6 +101,13 @@ export const DEFAULT_CHORDS: ChordKind[] = ['fibonacci', 'lucas', 'spiral'];
 /** Default chord strength — φ⁻¹. */
 export const DEFAULT_CHORD_GAIN = 1 / 1.618033988749895;
 
+/**
+ * Ω-REAL P9 — default analysis plan: service on, observe-only. The rings and
+ * the heartbeat scheduler run, the xcorr stack computes on long heartbeats,
+ * and every injection flag is off, so nothing reaches back into cognition.
+ */
+export const DEFAULT_ANALYSIS: AnalysisOptions = {};
+
 /** Default vacuum drive setpoint for a hosted run — φ⁻¹. */
 export const DEFAULT_DRIVE = 1 / 1.618033988749895;
 
@@ -137,6 +148,13 @@ export interface HostOptions {
   readonly chordGain?: number;
   /** N4 — permanent tape. Default: on, sized to the ladder. Pass null for off. */
   readonly tape?: TuringTapeOptions | null;
+  /**
+   * Ω-REAL P9 — live analysis service. Default: on, observe-only (heartbeat
+   * scheduler + rings + long-heartbeat xcorr; every injection flag off). The
+   * service only ever reads reports, so digests are identical either way.
+   * Pass `null` to build without it at all.
+   */
+  readonly analysis?: AnalysisOptions | null;
 }
 
 export interface HostSnapshot {
@@ -323,6 +341,14 @@ export class EngineHost {
   /** Perception folds skipped because every sense was silent. */
   private quiescentPercepts = 0;
 
+  // ---- Ω-REAL P9 analysis (observe-only) ----
+  private analysisService: AnalysisService | null = null;
+  /** Opt-in: append the xcorr telemetry dims to the foldMind observation. */
+  private readonly injectAnalysis: boolean;
+  /** Append-only evidence path: seals long-heartbeat findings. Observe-only. */
+  private evidenceLedger: EvidenceLedger | null = null;
+  private lastEvidenceSeal: EvidenceSeal | null = null;
+
 
   constructor(opts: HostOptions) {
     this.profile = typeof opts.profile === 'string' ? profileById(opts.profile) : opts.profile;
@@ -352,6 +378,13 @@ export class EngineHost {
           ? undefined
           : (opts.tape ?? { capacity: tapeCapacityFor(this.nodes.reduce((a, b) => a + b, 0)) }),
     });
+
+    const analysisOpts = opts.analysis === null ? null : (opts.analysis ?? DEFAULT_ANALYSIS);
+    this.injectAnalysis = analysisOpts?.injectToMind ?? false;
+    this.analysisService = analysisOpts
+      ? new AnalysisService({ rungs: this.engine.rungs.length, xcorr: analysisOpts.xcorr ?? true })
+      : null;
+    this.evidenceLedger = analysisOpts ? new EvidenceLedger(this.seed) : null;
 
     this.ledger = new RunLedger(
       {
@@ -403,6 +436,15 @@ export class EngineHost {
     this.foldMemory(rep.tick);
     this.foldMind(rep);
     this.foldPerception(rep);
+    // Ω-REAL P9 — pure observation: the service reads the tick + sense reports
+    // after every fold and can never write back into the dynamics.
+    this.analysisService?.observe(rep, this.plane ? this.plane.report() : null);
+    // Seal long-heartbeat findings into the append-only evidence ledger. Reads
+    // the report only — never the engine — so the digest is unchanged.
+    const ar = this.analysisService?.report();
+    if (ar && ar.kind === 'long' && ar.tick === rep.tick && ar.xcorr) {
+      this.lastEvidenceSeal = this.evidenceLedger?.seal(ar) ?? null;
+    }
     return rep;
   }
 
@@ -534,7 +576,10 @@ export class EngineHost {
 
   private ensureMind(): Mind {
     if (!this.mind) {
-      const dim = Math.max(6, this.engine.rungs.length * 6);
+      // 6 telemetry features per rung; the P9 injectToMind opt-in appends 4
+      // xcorr dims (fusedCoherence, meanPlv, maxLag, xcorrSurprise) per rung.
+      const perRung = this.injectAnalysis ? 10 : 6;
+      const dim = Math.max(perRung, this.engine.rungs.length * perRung);
       this.mind = new Mind({ dim, capacity: 610, seed: `${this.seed}-mind` });
       this.obs = new Float64Array(dim);
     }
@@ -551,9 +596,11 @@ export class EngineHost {
     if (rep.tick % MIND_STRIDE !== 0 || rep.tick === this.lastMindTick) return;
     const mind = this.ensureMind();
     const v = this.obs!;
+    const perRung = this.injectAnalysis ? 10 : 6;
+    const xr = this.injectAnalysis ? (this.analysisService?.report()?.xcorr ?? null) : null;
     for (let i = 0; i < this.engine.rungs.length; i++) {
       const t = rep.rungs[i];
-      const o = i * 6;
+      const o = i * perRung;
       v[o] = t?.coherence ?? 0;
       v[o + 1] = dlog1p(Math.max(0, t?.energy ?? 0));
       // bounded, amplitude-invariant closure feature — the raw obstruction
@@ -562,6 +609,15 @@ export class EngineHost {
       v[o + 3] = t?.clamped ?? 0;
       v[o + 4] = t?.realizedGain ?? 0;
       v[o + 5] = t?.skill ?? 0;
+      if (perRung === 10) {
+        // Ladder-wide xcorr readings, identical on every rung slot — the values
+        // are global, the layout stays per-rung. Unmeasured reads 0, exactly
+        // like a cold rung's coherence above.
+        v[o + 6] = xr && Number.isFinite(xr.fusedCoherence) ? xr.fusedCoherence : 0;
+        v[o + 7] = xr && Number.isFinite(xr.meanPlv) ? xr.meanPlv : 0;
+        v[o + 8] = xr && Number.isFinite(xr.maxLag) ? xr.maxLag : 0;
+        v[o + 9] = xr && Number.isFinite(xr.surprise) ? xr.surprise : 0;
+      }
     }
     // A quiescent field carries no experience. Folding a zero observation would
     // mint a degenerate concept and report novelty 1 forever, so an idle ladder
@@ -852,9 +908,35 @@ export class EngineHost {
     return rungScan(this.engine, rank);
   }
 
+  /** Ω-REAL P9 — latest analysis report (heartbeat + xcorr), or null when built without the service. */
+  analysis(): AnalysisReport | null {
+    return this.analysisService?.report() ?? null;
+  }
+
+  /** Ω-REAL P9 — append-only evidence ledger state, or null when analysis is off. */
+  evidence(): {
+    size: number;
+    sealCount: number;
+    rootHex: string;
+    lastSeal: EvidenceSeal | null;
+  } | null {
+    if (!this.evidenceLedger) return null;
+    return {
+      size: this.evidenceLedger.size,
+      sealCount: this.evidenceLedger.sealCount,
+      rootHex: this.evidenceLedger.rootHex(),
+      lastSeal: this.lastEvidenceSeal,
+    };
+  }
+
   /** Measured spectral roundtrip on the shell and radial planes. */
   spectral(rank: number): SpectralView {
     return spectralView(this.engine, rank);
+  }
+
+  /** Structure-preserving defect of one octave-transport edge (read-only). */
+  morphism(sourceRank = 0, targetRank = 1) {
+    return morphismView(this.engine, sourceRank, targetRank);
   }
 
   // ---- Ω-P8: learning ----
@@ -891,6 +973,11 @@ export class EngineHost {
   /** Last battery result, or null when learning has never been run. */
   learnState(): LearnRun | null {
     return this.lastLearn;
+  }
+
+  /** Ω-P8 — probe the four execution tiers live (T0 is always the floor). */
+  probeLearningTiers(opts: TierProbeOptions = {}): Promise<TierMap> {
+    return probeTiers(opts);
   }
 }
 

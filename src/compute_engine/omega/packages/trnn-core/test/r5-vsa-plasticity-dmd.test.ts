@@ -14,7 +14,7 @@ import {
   conjugateHv, phiWeights, CleanupMemory, CLEANUP_FAN_IN, encodeRecord, decodeRole,
   encodeSequence, decodePosition, wrapPhase, angularDistance,
   ojaStep, sangerStep, memristiveStep, joglekarWindow, memristiveVector, BcmThreshold,
-  fitDmd, MIN_SNAPSHOTS, generalEigenvalues,
+  fitDmd, MIN_SNAPSHOTS, generalEigenvalues, oneSidedJacobi, jacobiEigen,
 } from '../src/index';
 
 const D = 1024;
@@ -407,5 +407,41 @@ describe('R5.7 DMD', () => {
     const { re, im } = generalEigenvalues(Float64Array.from([0, -1, 1, 0]), 2);
     expect(re[0]).toBeCloseTo(0, 9);
     expect(Math.abs(im[0])).toBeCloseTo(1, 9);
+  });
+});
+
+describe('R5.8 one-sided Jacobi SVD (de-conditioning parity)', () => {
+  it('reconstructs X and its singular values match the Gram eigenvalues', () => {
+    const D = 5;
+    const n = 4;
+    const X = new Float64Array(D * n);
+    for (let i = 0; i < D; i++) {
+      for (let k = 0; k < n; k++) {
+        X[i * n + k] = Math.sin(i * 0.7 + k * 1.3) * (i + 1) + Math.cos(i * 2.1 - k);
+      }
+    }
+    const { U, S, V } = oneSidedJacobi(X, D, n);
+    // singular values descending
+    for (let j = 1; j < n; j++) expect(S[j - 1]).toBeGreaterThanOrEqual(S[j]);
+    // reconstruction X ≈ U·diag(S)·Vᵀ
+    for (let i = 0; i < D; i++) {
+      for (let k = 0; k < n; k++) {
+        let acc = 0;
+        for (let j = 0; j < n; j++) acc += U[i * n + j] * S[j] * V[k * n + j];
+        expect(acc).toBeCloseTo(X[i * n + k], 8);
+      }
+    }
+    // S² matches the Gram eigenvalues (the old XᵀX route's σ²)
+    const G = new Float64Array(n * n);
+    for (let a = 0; a < n; a++) {
+      for (let b = 0; b < n; b++) {
+        let g = 0;
+        for (let i = 0; i < D; i++) g += X[i * n + a] * X[i * n + b];
+        G[a * n + b] = g;
+      }
+    }
+    const { values } = jacobiEigen(Float64Array.from(G), n);
+    const svSq = Array.from(values).sort((a, b) => b - a);
+    for (let j = 0; j < n; j++) expect(S[j] * S[j]).toBeCloseTo(svSq[j], 8);
   });
 });

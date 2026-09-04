@@ -107,6 +107,93 @@ export function jacobiEigen(A: Float64Array, n: number, sweeps = 60): { values: 
 }
 
 /**
+ * One-sided Jacobi SVD of a real D×n matrix stored row-major, computed on the
+ * columns DIRECTLY — never through the Gram XᵀX — so the condition number is not
+ * squared and the smallest singular values stay trustworthy to ~eps rather than
+ * ~√eps. Returns X ≈ U·diag(S)·Vᵀ with U orthonormal columns (D×n), S the
+ * singular values (n, descending), and V orthogonal (n×n, row-major).
+ *
+ * Hestenes' method: orthogonalise the columns of a working copy W with Givens
+ * rotations, accumulating the same rotations into V. After convergence the
+ * column norms of W ARE the singular values — exactly the quantities the Gram
+ * route only recovered as square roots of a squared condition number.
+ */
+export function oneSidedJacobi(
+  X: Float64Array,
+  D: number,
+  n: number,
+  sweeps = 60,
+): { U: Float64Array; S: Float64Array; V: Float64Array } {
+  const W = Float64Array.from(X);
+  const V = new Float64Array(n * n);
+  for (let i = 0; i < n; i++) V[i * n + i] = 1;
+
+  const tol = 1e-13;
+  for (let s = 0; s < sweeps; s++) {
+    let maxOff = 0;
+    for (let p = 0; p < n; p++) {
+      for (let q = p + 1; q < n; q++) {
+        let a = 0;
+        let b = 0;
+        let g = 0;
+        for (let i = 0; i < D; i++) {
+          const wp = W[i * n + p];
+          const wq = W[i * n + q];
+          a += wp * wp;
+          b += wq * wq;
+          g += wp * wq;
+        }
+        const rel = a > 0 && b > 0 ? Math.abs(g) / Math.sqrt(a * b) : 0;
+        if (rel > maxOff) maxOff = rel;
+        if (rel <= tol || g === 0) continue;
+        const zeta = (b - a) / (2 * g);
+        const t = (zeta >= 0 ? 1 : -1) / (Math.abs(zeta) + Math.sqrt(zeta * zeta + 1));
+        const c = 1 / Math.sqrt(t * t + 1);
+        const sn = t * c;
+        for (let i = 0; i < D; i++) {
+          const wp = W[i * n + p];
+          const wq = W[i * n + q];
+          W[i * n + p] = c * wp - sn * wq;
+          W[i * n + q] = sn * wp + c * wq;
+        }
+        for (let k = 0; k < n; k++) {
+          const vp = V[k * n + p];
+          const vq = V[k * n + q];
+          V[k * n + p] = c * vp - sn * vq;
+          V[k * n + q] = sn * vp + c * vq;
+        }
+      }
+    }
+    if (maxOff <= tol) break;
+  }
+
+  // singular values = column norms of the orthogonalised W
+  const S = new Float64Array(n);
+  const U = new Float64Array(D * n);
+  for (let j = 0; j < n; j++) {
+    let norm2 = 0;
+    for (let i = 0; i < D; i++) norm2 += W[i * n + j] * W[i * n + j];
+    const sv = Math.sqrt(norm2);
+    S[j] = sv;
+    const inv = sv > 1e-300 ? 1 / sv : 0;
+    for (let i = 0; i < D; i++) U[i * n + j] = W[i * n + j] * inv;
+  }
+
+  // sort descending by singular value, reordering U and V columns together
+  const order = [...S.keys()].sort((p, q) => S[q] - S[p]);
+  const So = new Float64Array(n);
+  const Uo = new Float64Array(D * n);
+  const Vo = new Float64Array(n * n);
+  for (let j = 0; j < n; j++) {
+    const src = order[j];
+    So[j] = S[src];
+    for (let i = 0; i < D; i++) Uo[i * n + j] = U[i * n + src];
+    for (let k = 0; k < n; k++) Vo[k * n + j] = V[k * n + src];
+  }
+  return { U: Uo, S: So, V: Vo };
+}
+
+/**
  * Reduce a general real matrix to upper Hessenberg form by Gaussian
  * elimination with pivoting (elmhes). In place, row-major n×n.
  */
@@ -287,53 +374,36 @@ export function fitDmd(snapshots: readonly ArrayLike<number>[], opts: DmdOptions
     for (let i = 0; i < D; i++) if (!Number.isFinite(s[i])) return null;
   }
 
-  // Gram matrix G = XᵀX (cols×cols)
-  const G = new Float64Array(cols * cols);
-  for (let a = 0; a < cols; a++) {
-    for (let b = a; b < cols; b++) {
-      let s = 0;
-      const xa = snapshots[a], xb = snapshots[b];
-      for (let i = 0; i < D; i++) s += xa[i] * xb[i];
-      G[a * cols + b] = s; G[b * cols + a] = s;
-    }
+  // Build X (D×cols) row-major: column k = snapshot k.
+  const X = new Float64Array(D * cols);
+  for (let k = 0; k < cols; k++) {
+    const sk = snapshots[k];
+    for (let i = 0; i < D; i++) X[i * cols + k] = sk[i];
   }
-  const { values, vectors } = jacobiEigen(Float64Array.from(G), cols);
-  // sort descending by eigenvalue
-  const order = [...values.keys()].sort((p, q) => values[q] - values[p]);
-  const sv: number[] = order.map((i) => (values[i] > 0 ? Math.sqrt(values[i]) : 0));
-  const s0 = sv[0] ?? 0;
+
+  // One-sided Jacobi SVD on X directly — no Gram XᵀX squaring, so the
+  // singular values stay trustworthy to ~eps rather than ~√eps.
+  const { U, S, V } = oneSidedJacobi(X, D, cols);
+
+  const s0 = S[0] ?? 0;
   if (s0 <= 0) return null;
   let r = 0;
   const maxRank = Math.min(opts.maxRank ?? cols, cols);
-  while (r < maxRank && sv[r] > rankTol * s0) r++;
+  while (r < maxRank && S[r] > rankTol * s0) r++;
   if (r === 0) return null;
-
-  // U (D×r) = X · V · Σ⁻¹
-  const U = new Float64Array(D * r);
-  for (let j = 0; j < r; j++) {
-    const col = order[j];
-    const inv = 1 / sv[j];
-    for (let k = 0; k < cols; k++) {
-      const vk = vectors[k * cols + col] * inv;
-      if (vk === 0) continue;
-      const xk = snapshots[k];
-      for (let i = 0; i < D; i++) U[i * r + j] += vk * xk[i];
-    }
-  }
 
   // Ã = Uᵀ Y V Σ⁻¹  (r×r)
   const At = new Float64Array(r * r);
   for (let a = 0; a < r; a++) {
     for (let b = 0; b < r; b++) {
-      const colB = order[b];
-      const invB = 1 / sv[b];
+      const invB = 1 / S[b];
       let acc = 0;
       for (let k = 0; k < cols; k++) {
-        const vk = vectors[k * cols + colB] * invB;
+        const vk = V[k * cols + b] * invB;
         if (vk === 0) continue;
         const yk = snapshots[k + 1];
         let dot = 0;
-        for (let i = 0; i < D; i++) dot += U[i * r + a] * yk[i];
+        for (let i = 0; i < D; i++) dot += U[i * cols + a] * yk[i];
         acc += dot * vk;
       }
       At[a * r + b] = acc;
@@ -341,7 +411,7 @@ export function fitDmd(snapshots: readonly ArrayLike<number>[], opts: DmdOptions
   }
 
   const { re, im } = generalEigenvalues(At, r);
-  const energyTotal = sv.slice(0, r).reduce((s, v) => s + v * v, 0);
+  const energyTotal = Array.from(S).slice(0, r).reduce((s, v) => s + v * v, 0);
   const modes: DmdMode[] = [];
   let radius = 0;
   for (let j = 0; j < r; j++) {
@@ -351,7 +421,7 @@ export function fitDmd(snapshots: readonly ArrayLike<number>[], opts: DmdOptions
       lambdaRe: re[j], lambdaIm: im[j], magnitude: mag,
       growth: mag > 0 ? dlog(mag) / dt : Number.NEGATIVE_INFINITY,
       frequency: datan2(im[j], re[j]) / (2 * Math.PI * dt),
-      energy: energyTotal > 0 ? (sv[j] * sv[j]) / energyTotal : NaN,
+      energy: energyTotal > 0 ? (S[j] * S[j]) / energyTotal : NaN,
     });
   }
 
@@ -361,7 +431,7 @@ export function fitDmd(snapshots: readonly ArrayLike<number>[], opts: DmdOptions
     const z = new Float64Array(r);
     for (let a = 0; a < r; a++) {
       let s = 0;
-      for (let i = 0; i < D; i++) s += U[i * r + a] * x[i];
+      for (let i = 0; i < D; i++) s += U[i * cols + a] * x[i];
       z[a] = s;
     }
     const w = new Float64Array(r);
@@ -373,7 +443,7 @@ export function fitDmd(snapshots: readonly ArrayLike<number>[], opts: DmdOptions
     const out = new Float64Array(D);
     for (let i = 0; i < D; i++) {
       let s = 0;
-      for (let a = 0; a < r; a++) s += U[i * r + a] * w[a];
+      for (let a = 0; a < r; a++) s += U[i * cols + a] * w[a];
       out[i] = s;
     }
     return out;
@@ -387,7 +457,7 @@ export function fitDmd(snapshots: readonly ArrayLike<number>[], opts: DmdOptions
   return {
     rank: r,
     modes,
-    singularValues: sv.slice(0, r),
+    singularValues: Array.from(S).slice(0, r),
     relError: den > 0 ? Math.sqrt(num / den) : NaN,
     spectralRadius: radius,
     predict: predictFrom,

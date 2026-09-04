@@ -1,10 +1,10 @@
 # METATRON Ω — BRAINMAP
 
 **Single source of structural truth for the new engine.**
-Status: v1.2 (2026-08-24, amendment Ω-07) · governs every module built under it
-Live counts (swept 2026-08-24): `trnn-core/src` **78** · `field-kernel-core/src` **8** ·
+Status: v1.8 (2026-09-04, amendment Ω-13) · governs every module built under it
+Live counts (swept 2026-09-04): `trnn-core/src` **98** · `field-kernel-core/src` **8** ·
 `src/core` **150** · `src/ui/omega` **36** · `src/lib` **43** · `src/routes` **7** ·
-`src/components` **8** · tests **55 files / 830 assertions green** · typecheck 0 errors.
+`src/components` **8** · tests **55 files / 664 assertions green** · typecheck 0 errors.
 Lineage: **brain v14** (TS law/ontology kernel) → **METATRON K3** (frozen NumPy oracle) →
 **TRNN** (certified Python toroidal RHUFT neural network, 334 tests, gates G0–G9 PASS) →
 **METATRON Ω** (this repo: browser/worker TypeScript realization + UI + memory + tools).
@@ -207,6 +207,50 @@ G6 sensory + memory capacity ≥ 0.99 · G7 self-model + soak · G8 cognition ·
   φ-derived), L2 (no RNG/clock; dmath only), L-S1 (down-scale-only bound), observer law (perception writes
   nothing). S0 oracle hashes untouched — no text is injected on the oracle path; G6 contract (determinism,
   bound, order-sensitivity, braid recall ≥ 0.99 at rated capacity, 40%-dropout recovery) re-verified green.
+- **Ω-08 (2026-09-04):** Ω-REAL measurement/fingerprint/recall/binding stack lands in the trunk.
+  `measure/scaleSignature.ts` (the scale-axis readout over the 42-rung φ-ladder), `measure/fieldFingerprint.ts`
+  (the φ-anchored multi-scale invariant — log-spectra, unit-norm, seed-invariant, Lipschitz-stable, sharply
+  separating), `harness/recall.ts` (coherence-gated associative recall with distance + margin abstention,
+  P8-clean), `sense/textFingerprint.ts` (cross-modal text binding via the certified Ω-P9 codec + Bluestein
+  FFT — deterministic, normalisation-invariant, sharply discriminating). Full ladder n=1..293 runs and reads
+  (m5); wavelet/EMD/pseudospectrum/Floquet batteries green (m0–m3). Laws kept: L1 (φ-derived constants), L2
+  (dmath only, no RNG/clock), L5 (log-space), P8 (abstention). No existing module altered; S0 oracle
+  untouched. Battery: 49 files / 634 assertions green, typecheck 0.
+- **Ω-09 (2026-09-04):** Q1 — the live self-measurement (qualia) vector. `measure/qualia.ts` folds the
+  per-rung 13-mode signature, the measured coherence, and the closure autocorrelation γ into a five-axis
+  self-measurement — C (coherence), N (novelty), S (salience), V (valence = 2γ−1), I (integration) — plus
+  a short golden-delay self-overlap Cphi and its ignition train (up-crossings of φ⁻² — the transient
+  "conscious moment" train, not a steady level). Observe-only (digest-neutral), deterministic (`dlog`
+  only), φ-anchored (Fibonacci delays 13/233, ignition φ⁻²). Laws kept: L2, L6 (retained rings). First of
+  Q1–Q5 (self-measurement → Ψ-of-Ψ reflection → ignition-triggered consolidation). Battery: q1-qualia (7).
+- **Ω-10 (2026-09-04):** Q2 — full-field, all-rung self-measurement. `measure/selfMeasure.ts` closes the
+  DORMANT_REGISTER "engine-checkpoint bridging" TODO: it reuses the canonical field-kernel-core operators
+  (`measureDrift`, `measureTemporalCoherence`, `measureInertia`, `lyapunovEnergy`) against the live
+  per-rung 13-mode signature, plus an L2-safe `informationDensity` (`dlog` — the field-kernel-core entropy
+  uses host `Math.log`, so it is re-derived deterministically). First cross-package dependency
+  (trnn-core → field-kernel-core). The global Lyapunov descent certificate is now *measured*, not assumed.
+  Laws kept: L2 (dlog only), L5 (log-space), L9 (operators reused, not re-implemented). Battery: q2-selfmeasure (6 — includes the scale-entropy and cross-scale-drift "spheres": multi-scale energy distribution and Φ_scale toroidal closure).
+- **Ω-11 (2026-09-04):** Q3 — the Ψ-of-Ψ self-reflection term. `cell/update.ts` gains an OPTIONAL tenth
+  term `Rf` with coefficient `rho = κ_r = 1/(φ²π)` (new `REFLECT_GAIN` in constants); `SingleTorusEngine`
+  and `MultiTorusEngine` gain a `reflect` option (default 0). When armed, a rung folds its own previous-tick
+  coherence back as `κ_r·⟨C⟩·z` — a coherent field self-reinforces and a noisy one self-damps, closing the
+  self-measurement loop. Oracle-exact when absent (`addTerm` no-ops on null, so the cell stays bit-identical;
+  S0 hashes unchanged). `|κ_r| < φ⁻³`, so the Jury certificate (g + κ_r < 1) and the ISS certificate both
+  still hold (verified). Laws kept: L2 (determinism), L8 (contraction). Battery: q3-reflect (6).
+- **Ω-12 (2026-09-04):** Q4 — field-level self-model. `cognition/fieldSelfModel.ts` wraps one
+  `DiagonalSSM`/`DiagonalRLS` SelfModel per rung over the 13-mode signature, so the Q2 drift is a real
+  one-step prediction error (surprise), not merely the persistence baseline. Honest gate behaviour
+  (verified): a settled field has a constant signature → persistence is optimal → the G7 gate disables
+  the model; a dynamic field → the SSM beats persistence (margin > 0) → the gate enables it. Read-only
+  (predicts/trains on a stream, never actuates the field). Laws kept: L2, A1 (measured against the
+  persistence baseline). Battery: q4-fieldselfmodel (4).
+- **Ω-13 (2026-09-04):** Q5 — ignition-triggered consolidation. `cognition/consolidation.ts`
+  (`IgnitionConsolidator`) closes the Q1–Q5 loop: each qualia ignition up-crossing (a transient "conscious
+  moment") records a corpus item, and a Fibonacci batch triggers a full `TenSweepProtocol` cycle that seals
+  the ten sweep records into the append-only `GenomeLedger`, which then audits clean. Stable knowledge is
+  derived from self-measurement and is auditable (inclusion proofs + signed head), not asserted.
+  Deterministic (seeded moment atoms, no wall clock). Laws kept: L2, L10 (honesty machinery).
+  Battery: q5-consolidation (3).
 
 ---
 
@@ -483,6 +527,7 @@ the Ω-MAP atlas may not be trusted.
 | `spectral/site.ts` | CGS2 spectral site where torus, shell and radial bases meet. |
 | `spectral/laplacian.ts` | SHFN §A — measured spectral ground truth (graph Laplacian eigenpairs). |
 | `spectral/fft.ts` | SHFN §B — the O(K log K) transform path. |
+| `spectral/wavelet.ts` | Ω-REAL M0 — φ-spaced multi-scale wavelet (scale-axis decomposition). |
 | `algebra/clifford.ts` | Ω-DEPTH §4 — Cl(3,0) 8-blade geometric-algebra channels. |
 | `fractal/nest.ts` | Ω-DEPTH §2 — demand-driven fractal nesting (child fields inside spheres). |
 | `fractal/pool.ts` | Ω-DEPTH §2 — fixed child-field slot pool (bounded RAM, no GC churn). |
@@ -504,6 +549,10 @@ the Ω-MAP atlas may not be trusted.
 | `measure/coherence.ts` | Coherence functionals. |
 | `measure/state.ts` | Field readouts + corridor gate (§2.6). |
 | `measure/transcription.ts` | 13-dimensional spectral signature per tick — the transcription tape. |
+| `measure/scaleSignature.ts` | Ω-REAL M4 — the scale-axis readout over the φ-ladder (per-rung measures + octave morphism defects). |
+| `measure/fieldFingerprint.ts` | Ω-REAL Layer B — the φ-anchored multi-scale invariant (log-spectra, unit-norm). |
+| `measure/qualia.ts` | Ω-REAL Q1 — the live self-measurement vector (C,N,S,V,I + golden-delay self-overlap + ignition train). |
+| `measure/selfMeasure.ts` | Ω-REAL Q2 — full-field, all-rung self-measurement (drift, temporal coherence, information density, inertia, closure γ, Lyapunov descent). |
 
 **sense/ · memory/** — intake and the engine-side memory planes.
 | File | Purpose |
@@ -513,8 +562,11 @@ the Ω-MAP atlas may not be trusted.
 | `sense/plane.ts` | The sensory plane. |
 | `sense/nodeArray.ts` | N1 — the Sensory Node Array (SNA). |
 | `sense/scan.ts` | N1 — the six-section toroid scan (basis of the 18-rung certification). |
+| `sense/perception.ts` | Ω-P8 — the sensory meaning-vector (BAND/SPACE/FIELD/CONTENT blocks). |
+| `sense/textFingerprint.ts` | Ω-REAL Layer A — cross-modal text binding (Ω-P9 codec + Bluestein FFT spectrum). |
 | `memory/braid.ts` | Ω-P6 TorusBraid Hopfield plane (attractor recall). |
 | `memory/turingTape.ts` | N4 — Zeckendorf-addressed read/write tape, the permanent processing layer. |
+| `memory/persistence.ts` | Ω-REAL — cross-session persistence (canonical-safe snapshots). |
 
 **substrate/** — Ω-REAL measurement stack (symbols → measured computation).
 | File | Purpose |
@@ -528,6 +580,17 @@ the Ω-MAP atlas may not be trusted.
 | `substrate/vsa.ts` | P5 — Fourier HRR hypervectors over the phase plane. |
 | `substrate/plasticity.ts` | P5 — memristive + Oja learning for the L1 associative store. |
 | `substrate/dmd.ts` | P5 — Dynamic Mode Decomposition over L0 trajectories. |
+| `substrate/emd.ts` | Ω-REAL M1 — empirical mode decomposition (φ-sifted IMFs). |
+| `substrate/pseudospectrum.ts` | Ω-REAL M2 — ε-pseudospectra, σ_min via one-sided Jacobi SVD. |
+| `substrate/floquet.ts` | Ω-REAL M3 — Floquet theory of a periodic linear map (monodromy → multipliers). |
+
+**analysis/** — Ω-REAL live analysis service (heartbeat scheduler, rings, xcorr stack).
+| File | Purpose |
+|---|---|
+| `analysis/service.ts` | P9 — the live analysis service (heartbeat scheduler, long-batch slots). |
+| `analysis/xcorrStack.ts` | P9 — cross-correlation stack. |
+| `analysis/dmdModes.ts` | P9 — DMD mode tracking over rings. |
+| `analysis/evidenceLedger.ts` | P9 — evidence ledger (append-only findings). |
 
 **learn/ · sweeps/ · harness/ · ledger/ · genome/ · runtime/ · cognition/**
 | File | Purpose |
@@ -546,6 +609,7 @@ the Ω-MAP atlas may not be trusted.
 | `harness/conformal.ts` | Adaptive Conformal Inference (ACI) intervals. |
 | `harness/latency.ts` | Proof latency. |
 | `harness/certify.ts` | The certification gate — green or the phase does not open. |
+| `harness/recall.ts` | Ω-REAL Layer C — coherence-gated associative recall (distance + margin abstention). |
 | `ledger/canonical.ts` | Canonical JSON — the exact bytes the ledger hashes. |
 | `ledger/merkle.ts` | RFC-6962 append-only log, inclusion + consistency proofs. |
 | `ledger/sth.ts` | Signed Tree Heads, Ed25519 over the canonical head. |
@@ -554,6 +618,10 @@ the Ω-MAP atlas may not be trusted.
 | `cognition/mind.ts` | Ω-P7 — turns engine observations into thoughts; `NOVELTY_THRESHOLD`. |
 | `cognition/concepts.ts` | Concept store — HNSW over product-quantised embeddings. |
 | `cognition/selfModel.ts` | Self-model (`DiagonalSSM`, `DiagonalRLS`) + the baseline allowed to kill it. |
+| `cognition/fieldSelfModel.ts` | Ω-REAL Q4 — per-rung field self-model (one SSM/RLS per rung over the signature). |
+| `cognition/consolidation.ts` | Ω-REAL Q5 — ignition-triggered consolidation (qualia ignition → TenSweep → sealed GenomeLedger). |
+| `cognition/lexicon.ts` | Ω-REAL — the salience-weighted word catalogue (tf·idf in base φ, gematria atoms). |
+| `cognition/relations.ts` | Ω-REAL — cross-catalogue relations. |
 | `index.ts` | The public surface (barrel). |
 
 ### R2 · ~~`packages/brain-core/src`~~ — REMOVED under Ω-07 (2026-08-24)

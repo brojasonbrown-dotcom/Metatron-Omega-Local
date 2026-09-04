@@ -95,6 +95,15 @@ export interface EngineOptions {
    */
   readonly drive?: number;
   /**
+   * Ω-REAL Q3 — self-reflection gain κ_r. When > 0 the rung folds its own
+   * previous-tick coherence back as a contraction-bounded self-term
+   * κ_r·⟨C⟩·z (the Ψ-of-Ψ reflection): a coherent field self-reinforces and a
+   * noisy one self-damps. |κ_r| = 1/(φ²π) < φ⁻³ keeps the contraction
+   * certificate intact. 0 (the default) leaves the map exactly at the S0
+   * oracle, bit-for-bit.
+   */
+  readonly reflect?: number;
+  /**
    * N0 — per-node organ bank (eigenmode residual, radial φ-ladder transform,
    * local superposition, per-node receptor). Absent means the rung carries no
    * organs at all and behaves exactly as before; present with radialGain 0
@@ -192,6 +201,12 @@ export class SingleTorusEngine {
   private senseBuffer: CField | null = null;
   /** Vacuum-drive staging buffer (allocated only when the drive is armed). */
   private driveBuffer: CField | null = null;
+  /** Q3 self-reflection gain (0 = off / oracle-exact). */
+  readonly reflectGain: number;
+  /** Q3 self-reflection staging buffer (allocated only when armed). */
+  private reflectBuffer: CField | null = null;
+  /** Previous tick's coherence — the delayed self-measurement the reflection reads. */
+  private lastCoherence = 0;
 
 
   constructor(opts: EngineOptions) {
@@ -214,6 +229,11 @@ export class SingleTorusEngine {
     this.lambda = lambda;
     this.modePhase = modePhase;
     this.drive = drive;
+    const reflect = opts.reflect ?? 0;
+    if (!Number.isFinite(reflect) || reflect < 0) {
+      throw new RangeError(`SingleTorusEngine: reflect gain must be ≥ 0, got ${reflect}`);
+    }
+    this.reflectGain = reflect;
 
     const th = 2 * Math.PI * PHI_INV + modePhase;
     this.cth = dcos(th);
@@ -322,6 +342,20 @@ export class SingleTorusEngine {
    * Deterministic (tick + node index only), allocation-free after the first
    * armed tick, and bounded by φ so Law L-S1 and the ISS certificate hold.
    */
+  /** Q3 — the Ψ-of-Ψ self-reflection: κ_r·⟨C_prev⟩·z, or null when disarmed. */
+  private resolveReflect(): CField | null {
+    if (this.reflectGain <= 0) return null;
+    if (!this.reflectBuffer) this.reflectBuffer = createField(this.nodes);
+    const c = this.lastCoherence;
+    const rb = this.reflectBuffer;
+    const z = this.z;
+    for (let i = 0; i < this.nodes; i++) {
+      rb.re[i] = c * z.re[i];
+      rb.im[i] = c * z.im[i];
+    }
+    return rb;
+  }
+
   private resolveInput(): CField | null {
     if (this.drive <= 0) return this.inputBuffer;
     let peak = 0;
@@ -392,6 +426,7 @@ export class SingleTorusEngine {
       U: this.resolveInput(),
       V: this.webBuffer,
       S: this.senseBuffer,
+      Rf: this.resolveReflect(),
     };
     const cell = cellStep(this.z, this.zNext, terms);
     const finite = isFiniteField(this.zNext);
@@ -429,6 +464,7 @@ export class SingleTorusEngine {
 
     // 8 — measurement (read-only).
     const coh = this.meter.push(this.z);
+    this.lastCoherence = coh.c;
     const st: FieldState = readState(this.z);
     // The gate reads the phase-aligned closure defect, never the extensive
     // obstruction — see closure.ts for why the two are not interchangeable.
