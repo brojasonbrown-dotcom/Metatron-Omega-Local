@@ -47,6 +47,7 @@ export function coverageGate(
 }
 
 export interface CertificationInput {
+  readonly golden?: GoldenGate;
   readonly abstention: AbstentionReport;
   readonly observations: readonly AciObservation[];
   readonly coverage: CoverageReport;
@@ -65,7 +66,7 @@ export interface CertificationReport {
 }
 
 export function certify(input: CertificationInput): CertificationReport {
-  const golden = goldenGate();
+  const golden = input.golden ?? goldenGate();
   const abst = abstentionGate(input.abstention);
   const cov = coverageGate(input.observations, input.coverage, input.shiftAt);
   const lat = latencyGate(input.proofLatency);

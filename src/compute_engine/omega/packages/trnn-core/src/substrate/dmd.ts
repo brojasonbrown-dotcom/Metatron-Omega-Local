@@ -60,6 +60,8 @@ export interface DmdFit {
   readonly relError: number;
   /** Spectral radius max|λ| — >1 means the fitted dynamics grow. */
   readonly spectralRadius: number;
+  /** The reduced DMD operator Ã (rank×rank, row-major) — for pseudospectrum/Floquet. */
+  readonly operator: Float64Array;
   /** Predict the next snapshot from the last one. */
   predict(x: ArrayLike<number>): Float64Array;
 }
@@ -460,6 +462,7 @@ export function fitDmd(snapshots: readonly ArrayLike<number>[], opts: DmdOptions
     singularValues: Array.from(S).slice(0, r),
     relError: den > 0 ? Math.sqrt(num / den) : NaN,
     spectralRadius: radius,
+    operator: At,
     predict: predictFrom,
   };
 }

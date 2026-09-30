@@ -26,6 +26,8 @@ import type { SensePlaneReport } from '../sense/plane';
 import { xcorrStack, type NamedSeries, type XcorrReport } from './xcorrStack';
 import { ladderDmd, type DmdLadderReport } from './dmdModes';
 import { AdaptiveConformal } from '../harness/conformal';
+import { waveletDwt } from '../spectral/wavelet';
+import { emd } from '../substrate/emd';
 
 /** Ring depth — F13 = 233 ticks of history per series (Fibonacci). */
 export const RING_DEPTH = 233;
@@ -55,6 +57,18 @@ export interface AnalysisReport {
   readonly dmd: DmdLadderReport | null;
   /** ACI half-width for the fused-coherence forecast, or null when abstained. */
   readonly conformalHalfWidth: number | null;
+  /** M2 wave analysis (DWT + EMD) of the base rung's coherence series. */
+  readonly wave: WaveAnalysis | null;
+}
+
+/** Ω-REAL M2 — time-frequency decomposition of the base rung's coherence. */
+export interface WaveAnalysis {
+  /** DWT (db4) levels produced, or 0 when the series abstained. */
+  readonly waveletLevels: number;
+  readonly waveletAbstained: boolean;
+  /** Intrinsic mode functions found by EMD, or 0 when the series abstained. */
+  readonly emdImfs: number;
+  readonly emdAbstained: boolean;
 }
 
 /**
@@ -120,6 +134,7 @@ export class AnalysisService {
   private lastReport: AnalysisReport | null = null;
   private lastXcorr: XcorrReport | null = null;
   private lastDmd: DmdLadderReport | null = null;
+  private lastWave: WaveAnalysis | null = null;
   private readonly conformal: AdaptiveConformal | null;
   private conformalHalfWidth: number | null = null;
 
@@ -170,7 +185,7 @@ export class AnalysisService {
     }
     if (kind === null) return;
     if (kind === 'long' && this.xcorrEnabled) this.runXcorr(rep.tick);
-    this.lastReport = { tick: rep.tick, kind, xcorr: this.lastXcorr, dmd: this.lastDmd, conformalHalfWidth: this.conformalHalfWidth };
+    this.lastReport = { tick: rep.tick, kind, xcorr: this.lastXcorr, dmd: this.lastDmd, conformalHalfWidth: this.conformalHalfWidth, wave: this.lastWave };
   }
 
   /**
@@ -202,6 +217,27 @@ export class AnalysisService {
       if (ring.filled && ring.finite) rungSeries.push(ring.linearize());
     }
     this.lastDmd = ladderDmd(rungSeries, tick);
+
+    // M2 wave — DWT + EMD over the base rung's coherence series (observe-only).
+    // Both abstain below their own floors; a partial/dirty ring yields null.
+    const baseCoh = this.rungCoherenceRings[0];
+    if (baseCoh && baseCoh.filled && baseCoh.finite) {
+      const series = baseCoh.linearize();
+      // The DWT halves length per level, so an odd-length window abstains (233
+      // is Fibonacci-odd). Feed it an even window (drop the last sample — a
+      // view, no copy) so the transform actually runs; EMD takes the full ring.
+      const even = series.length % 2 === 0 ? series : series.subarray(0, series.length - 1);
+      const w = waveletDwt(even, { kind: 'db4' });
+      const e = emd(series);
+      this.lastWave = {
+        waveletLevels: w.levels.length,
+        waveletAbstained: w.abstained,
+        emdImfs: e.imfs.length,
+        emdAbstained: e.abstained,
+      };
+    } else {
+      this.lastWave = null;
+    }
 
     // ACI: the previous fused coherence is the forecast, the current one the
     // truth. The half-width returned is the calibrated interval for THIS event.

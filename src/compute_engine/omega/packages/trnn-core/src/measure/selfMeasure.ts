@@ -34,6 +34,7 @@ import {
 import { lyapunovEnergy } from '../../../field-kernel-core/src/lyapunov';
 import { createFieldStateN, type FieldStateN } from '../../../field-kernel-core/src/state';
 import { dlog } from '../core/dmath';
+import { phiPow } from '../core/constants';
 
 const LOG2 = dlog(2);
 
@@ -91,6 +92,23 @@ export function crossScaleDrift(signatures: readonly Float64Array[]): number {
   return s;
 }
 
+/**
+ * Burden — the rung's information mass, deterministically re-derived (L2):
+ * Σ|signature| · φ^rank. The field-kernel-core `measureBurden` used host
+ * `Math.pow` (libm → engine-dependent, kept audit-only); this uses the
+ * canonical `phiPow` (exact binary exponentiation) so the same rung yields the
+ * same burden on every engine. Rank (not ladder index n) is the weight exponent
+ * so the result stays in a sane range (φ^0 … φ^17 across the dense core).
+ */
+export function burden(signature: Float64Array, rank: number): number {
+  let l1 = 0;
+  for (let i = 0; i < signature.length; i++) {
+    const a = signature[i];
+    l1 += a < 0 ? -a : a;
+  }
+  return l1 * phiPow(rank);
+}
+
 export interface RungSelfMeasure {
   readonly rank: number;
   /** Ladder index n (the scale). */
@@ -106,6 +124,8 @@ export interface RungSelfMeasure {
   readonly informationDensity: number;
   /** ‖sig − prev‖; 0 before a history exists. */
   readonly inertia: number;
+  /** Σ|sig| · φ^rank — the rung's deterministic information mass. */
+  readonly burden: number;
 }
 
 export interface SelfMeasureReport {
@@ -116,6 +136,8 @@ export interface SelfMeasureReport {
   readonly scaleEntropy: number;
   /** Cross-scale spectral drift Φ_scale (0 = smooth ladder). */
   readonly scaleDrift: number;
+  /** Σ_rung burden — the ladder's total information mass. */
+  readonly burden: number;
 }
 
 /** Stateful full-field self-measurement (persistence predictor = last signature). */
@@ -167,17 +189,21 @@ export class SelfMeasureTracker {
         temporalCoherence,
         informationDensity: informationDensity(sig),
         inertia,
+        burden: burden(sig, i),
       });
       states.push(state);
     }
 
     const lyapunov = lyapunovEnergy(states, undefined, undefined);
     this.prev = signatures.map((s) => Float64Array.from(s));
+    let totalBurden = 0;
+    for (const r of rungs) totalBurden += r.burden;
     return {
       rungs,
       lyapunov,
       scaleEntropy: scaleEntropy(energies),
       scaleDrift: crossScaleDrift(signatures),
+      burden: totalBurden,
     };
   }
 }

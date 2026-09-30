@@ -119,8 +119,9 @@ function setModel(m) {
 /** One honest round-trip to the selected provider's OpenAI-compatible API.
  * Never throws — returns { ok, ... }. `brainContext`, when given, is the Ω
  * brain's live state digest — the instrument answers WITH knowledge of the
- * field, not in a vacuum. */
-async function ask(text, brainContext) {
+ * field, not in a vacuum. `opts.tools` (OpenAI function schema) enables
+ * tool-calling; `opts.extraMessages` appends prior tool results for the loop. */
+async function ask(text, brainContext, opts = {}) {
   const cfg = PROVIDERS[provider()];
   if (!hasKey()) {
     return { ok: false, error: `no ${cfg.keyVar} — paste one in the Σ panel` };
@@ -128,35 +129,44 @@ async function ask(text, brainContext) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
+    const body = {
+      model: model(),
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are the external instrument coupled to the METATRON Ω toroidal brain — a deterministic 18-rung toroidal RHUFT engine whose constants derive from φ: memory kernel λ=φ⁻²≈0.381966 (present/past balance point; characteristic roots exactly {1, −φ⁻²}), vacuum drive setpoint φ⁻¹≈0.618034, closure coupling κ=1/(φπ)≈0.196726, Jury contraction gain 0.750776. Answer concisely and honestly; say when you don't know. When you need live or external information, call one of the available tools and base your answer on the tool result." +
+            (brainContext ? `\n\n${String(brainContext).slice(0, 4000)}` : ""),
+        },
+        { role: "user", content: String(text).slice(0, 8000) },
+        ...(opts.extraMessages ?? []),
+      ],
+      temperature: 0.3,
+    };
+    if (opts.tools && opts.tools.length) {
+      body.tools = opts.tools;
+      body.tool_choice = "auto";
+    }
+
     const res = await fetch(cfg.url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${String(process.env[cfg.keyVar]).trim()}`,
       },
-      body: JSON.stringify({
-        model: model(),
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are the external instrument coupled to the METATRON Ω toroidal brain — a deterministic 18-rung toroidal RHUFT engine whose constants derive from φ: memory kernel λ=φ⁻²≈0.381966 (present/past balance point; characteristic roots exactly {1, −φ⁻²}), vacuum drive setpoint φ⁻¹≈0.618034, closure coupling κ=1/(φπ)≈0.196623, Jury contraction gain 0.750776. Answer concisely and honestly; say when you don't know." +
-              (brainContext ? `\n\n${String(brainContext).slice(0, 4000)}` : ""),
-          },
-          { role: "user", content: String(text).slice(0, 8000) },
-        ],
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     });
     if (!res.ok) {
-      const body = (await res.text()).slice(0, 200);
-      return { ok: false, error: `llm API ${res.status}: ${body}` };
+      const errBody = (await res.text()).slice(0, 200);
+      return { ok: false, error: `llm API ${res.status}: ${errBody}` };
     }
     const data = await res.json();
-    const answer = data?.choices?.[0]?.message?.content?.trim();
-    if (!answer) return { ok: false, error: "llm returned an empty answer" };
-    return { ok: true, answer };
+    const msg = data?.choices?.[0]?.message;
+    const answer = (msg?.content ?? "").trim();
+    const toolCalls = msg?.tool_calls ?? [];
+    if (!answer && toolCalls.length === 0) return { ok: false, error: "llm returned an empty answer" };
+    return { ok: true, answer, toolCalls };
   } catch (err) {
     const msg =
       err && err.name === "AbortError"

@@ -115,7 +115,9 @@ function ingestDocument(filePath) {
         return { ok: false, error: "PDF has no extractable text layer (it is a scanned image)" };
       }
     } else if (kind === "image") {
-      return { ok: false, error: "image file — only text-bearing documents are read" };
+      // Images are OCR'd on the async path (ocrImage below); this sync path
+      // only signals the kind so the caller can route it correctly.
+      return { ok: false, kind: "image", error: "image file — OCR required" };
     } else if (kind === "binary") {
       return { ok: false, error: "binary file — only text-bearing documents are read" };
     } else {
@@ -142,4 +144,111 @@ function ingestDocument(filePath) {
   }
 }
 
-module.exports = { ingestDocument, MAX_BYTES, MAX_TEXT };
+/**
+ * OCR an image file on-device via tesseract.js (WASM, no GPU, nothing uploaded).
+ * Async because Tesseract.recognise is a Promise. The english language data is
+ * fetched once on first use and cached, so the first OCR is slower than the rest.
+ * Returns the same plain, IPC-safe verdict shape as ingestDocument — never throws.
+ */
+async function ocrImage(filePath) {
+  try {
+    if (typeof filePath !== "string" || filePath.trim() === "") {
+      return { ok: false, error: "no path" };
+    }
+    const resolved = path.resolve(filePath);
+    const stat = fs.statSync(resolved);
+    if (!stat.isFile()) return { ok: false, error: "not a file" };
+    if (stat.size === 0) return { ok: false, error: "empty file" };
+    if (stat.size > MAX_BYTES) {
+      return { ok: false, error: `too large (${(stat.size / 1e6).toFixed(1)} MB > ${MAX_BYTES / 1e6} MB cap)` };
+    }
+    const buf = fs.readFileSync(resolved);
+    const kind = sniffType(buf);
+    if (kind !== "image") return { ok: false, error: `not an image (sniffed ${kind})` };
+
+    // Lazy-load so text/PDF ingestion never pays Tesseract's startup cost.
+    const Tesseract = require("tesseract.js");
+    const out = await Tesseract.recognize(resolved, "eng", {});
+    const text = String(out?.data?.text ?? "").replace(/\s+/g, " ").trim();
+    if (!text) return { ok: false, kind: "image", error: "OCR found no legible text" };
+
+    const name = path.basename(resolved);
+    const truncated = text.length > MAX_TEXT;
+    const body = truncated ? text.slice(0, MAX_TEXT) : text;
+    return {
+      ok: true,
+      name,
+      kind: "image",
+      ocr: true,
+      bytes: stat.size,
+      chars: text.length,
+      truncated,
+      text: body,
+    };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  }
+}
+
+/**
+ * OCR via the self-hosted GPU sidecar (Unlimited-OCR, transformers path). Tried
+ * BEFORE the on-device Tesseract tier for higher-quality document parsing.
+ * Honest: an unreachable sidecar is a failure, never a silent fallback — the
+ * caller decides whether to fall back to ocrImage. Read-only; nothing leaves the
+ * machine unless the sidecar URL points at a remote host.
+ */
+const SIDECAR_URL = (process.env.METATRON_OCR_SIDECAR || "http://127.0.0.1:10000").replace(/\/+$/, "");
+
+async function sidecarReady() {
+  try {
+    const res = await fetch(SIDECAR_URL + "/health", { signal: AbortSignal.timeout(3000) });
+    const body = await res.json().catch(() => ({}));
+    return res.ok && body.ok === true;
+  } catch {
+    return false;
+  }
+}
+
+async function sidecarOcr(filePath) {
+  try {
+    if (typeof filePath !== "string" || filePath.trim() === "") return { ok: false, error: "no path" };
+    const resolved = path.resolve(filePath);
+    const stat = fs.statSync(resolved);
+    if (!stat.isFile()) return { ok: false, error: "not a file" };
+    if (stat.size === 0) return { ok: false, error: "empty file" };
+    if (stat.size > MAX_BYTES) {
+      return { ok: false, error: `too large (${(stat.size / 1e6).toFixed(1)} MB > ${MAX_BYTES / 1e6} MB cap)` };
+    }
+    const buf = fs.readFileSync(resolved);
+    if (sniffType(buf) !== "image") return { ok: false, error: "not an image" };
+
+    const res = await fetch(SIDECAR_URL + "/ocr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: "data:image/png;base64," + buf.toString("base64"), image_mode: "base" }),
+      signal: AbortSignal.timeout(120000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) {
+      return { ok: false, kind: "image", error: body.error || `sidecar HTTP ${res.status}` };
+    }
+    const text = String(body.text || "").trim();
+    if (!text) return { ok: false, kind: "image", error: "sidecar OCR produced no text" };
+    const name = path.basename(resolved);
+    const truncated = text.length > MAX_TEXT;
+    return {
+      ok: true,
+      name,
+      kind: "image",
+      ocr: "sidecar",
+      bytes: stat.size,
+      chars: text.length,
+      truncated,
+      text: truncated ? text.slice(0, MAX_TEXT) : text,
+    };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  }
+}
+
+module.exports = { ingestDocument, ocrImage, sidecarOcr, sidecarReady, MAX_BYTES, MAX_TEXT };

@@ -51,6 +51,7 @@ import { TranscriptionTape } from '../measure/transcription';
 import { dcos, dsin } from '../core/dmath';
 import { NodeOrgans, type OrganOptions, type OrganReport } from '../cell/organs';
 import { SensoryNodeArray, type SensoryNodeOptions, type SensoryNodeReport } from '../sense/nodeArray';
+import { LearnableCell } from '../learn/cell';
 
 /** Local mirror of the sensory injection bound (Law L-S1) — φ. Declared here
  *  rather than imported from ../sense so the engine keeps zero dependency on
@@ -120,6 +121,14 @@ export interface EngineOptions {
    * built without. Absent means no array and no cost.
    */
   readonly sensors?: SensoryNodeOptions;
+  /**
+   * Ω-P8 — the learnable cell correction (bounded additive term after the nine
+   * certified terms). Absent or `gate = 0` is bit-identical to the S0 oracle.
+   * When present with gate > 0, the engine applies `LearnableCell.step` instead
+   * of `cellStep` — the certified contraction survives every parameter value
+   * (total homogeneous gain stays < 1 by construction).
+   */
+  readonly learnable?: LearnableCell;
 }
 
 
@@ -207,6 +216,8 @@ export class SingleTorusEngine {
   private reflectBuffer: CField | null = null;
   /** Previous tick's coherence — the delayed self-measurement the reflection reads. */
   private lastCoherence = 0;
+  /** Ω-P8 learnable cell correction, or null (certified nine-term cell only). */
+  private learnableCell: LearnableCell | null = null;
 
 
   constructor(opts: EngineOptions) {
@@ -234,6 +245,7 @@ export class SingleTorusEngine {
       throw new RangeError(`SingleTorusEngine: reflect gain must be ≥ 0, got ${reflect}`);
     }
     this.reflectGain = reflect;
+    this.learnableCell = opts.learnable ?? null;
 
     const th = 2 * Math.PI * PHI_INV + modePhase;
     this.cth = dcos(th);
@@ -416,7 +428,7 @@ export class SingleTorusEngine {
       this.zhat.im[i] = this.m.im[i] + (this.m.im[i] - this.z.im[i]) * PHI_INV;
     }
 
-    // 6 — the cell.
+    // 6 — the cell (Ω-P8: the learnable correction rides on top when armed).
     const terms: CellTerms = {
       G: this.G,
       P: this.P,
@@ -428,7 +440,9 @@ export class SingleTorusEngine {
       S: this.senseBuffer,
       Rf: this.resolveReflect(),
     };
-    const cell = cellStep(this.z, this.zNext, terms);
+    const cell = this.learnableCell
+      ? this.learnableCell.step(this.z, this.zNext, terms)
+      : cellStep(this.z, this.zNext, terms);
     const finite = isFiniteField(this.zNext);
     if (!finite) {
       // rollback rather than propagate NaN
@@ -518,6 +532,14 @@ export class SingleTorusEngine {
     };
   }
 
+  /**
+   * Ω-P8 — arm/disarm the learnable cell correction on this rung. Setting null
+   * (or a cell at gate 0) restores the certified nine-term cell bit-for-bit.
+   */
+  setLearnable(cell: LearnableCell | null): void {
+    this.learnableCell = cell;
+  }
+
   run(ticks: number): TickReport {
     let last = this.step();
     for (let i = 1; i < ticks; i++) last = this.step();
@@ -525,12 +547,13 @@ export class SingleTorusEngine {
   }
 
   /** Immutable read of the live field (copy — never hand out the buffers). */
-  snapshot(): { tick: number; z: CField; m: CField; signature: Float64Array; digest: string } {
+  snapshot(): { tick: number; z: CField; m: CField; signature: Float64Array; coeffs: Float64Array; digest: string } {
     return {
       tick: this.tick,
       z: cloneField(this.z),
       m: cloneField(this.m),
       signature: Float64Array.from(this.sig),
+      coeffs: Float64Array.from(this.coeffs),
       digest: this.chain.head(),
     };
   }

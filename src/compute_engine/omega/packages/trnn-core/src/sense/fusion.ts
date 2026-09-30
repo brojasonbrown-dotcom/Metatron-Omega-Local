@@ -25,6 +25,10 @@ export interface FusionInput {
 export interface ChannelReport {
   readonly id: string;
   readonly gain: number;
+  /** Mean pairwise cosine with the other channels, in [-1, 1]. */
+  readonly coherence: number;
+  /** Applied fusion weight (gain × coherence, L2-normalised so Σw² = 1). */
+  readonly weight: number;
   readonly peak: number;
   readonly energy: number;
   /** Cosine alignment with the fused result, in [-1, 1]. */
@@ -79,24 +83,54 @@ export function fuseChannels(inputs: readonly FusionInput[], out: CField, bound 
     };
   }
   const w = 1 / Math.sqrt(k);
+  // Coherence-weighted fusion: each channel's weight is its measured pairwise
+  // coherence with the others (cosine, [-1,1] → [eps,1]) times its gain, then
+  // L2-normalised so Σ w_i² = 1 — which preserves the √k peak bound exactly
+  // while letting a coherent channel reinforce and an incoherent outlier be
+  // damped. A lone channel (k=1) carries unit coherence, so the result is the
+  // plain (gain-scaled) channel, identical to the old uniform path.
+  // Consensus reference = unweighted mean of the live channels. Aligning each
+  // channel to this mean (rather than to each other) is what correctly rewards
+  // the *majority* and damps the outlier: in a 2-vs-1 split the two agreeing
+  // channels read alignment +1 and the outlier −1, whereas mean pairwise cosine
+  // would give the two agreeing channels a neutral 0.
+  const mRe = new Float64Array(out.n);
+  const mIm = new Float64Array(out.n);
   for (const c of live) {
-    const g = Math.min(1, Math.max(0, c.gain ?? 1)) * w;
     const n = Math.min(out.n, c.field.n);
-    for (let i = 0; i < n; i++) {
-      out.re[i] += g * c.field.re[i];
-      out.im[i] += g * c.field.im[i];
+    for (let j = 0; j < n; j++) {
+      mRe[j] += c.field.re[j];
+      mIm[j] += c.field.im[j];
+    }
+  }
+  const meanField = { n: out.n, re: mRe, im: mIm };
+  const coherence = live.map((c) => (k === 1 ? 1 : alignmentOf(c.field, meanField)));
+  const rawW = live.map((c, i) => Math.min(1, Math.max(0, c.gain ?? 1)) * Math.max(1e-6, (coherence[i] + 1) / 2));
+  const wnorm = Math.sqrt(rawW.reduce((s, x) => s + x * x, 0));
+  const wgt = rawW.map((x) => (wnorm > 0 ? x / wnorm : 0));
+
+  for (let i = 0; i < k; i++) {
+    const g = wgt[i];
+    if (g === 0) continue;
+    const c = live[i];
+    const n = Math.min(out.n, c.field.n);
+    for (let j = 0; j < n; j++) {
+      out.re[j] += g * c.field.re[j];
+      out.im[j] += g * c.field.im[j];
     }
   }
   const b = boundField(out, bound);
   let energy = 0;
   for (let i = 0; i < out.n; i++) energy += out.re[i] * out.re[i] + out.im[i] * out.im[i];
 
-  const channels: ChannelReport[] = live.map((c) => {
+  const channels: ChannelReport[] = live.map((c, i) => {
     let e = 0;
-    for (let i = 0; i < c.field.n; i++) e += c.field.re[i] * c.field.re[i] + c.field.im[i] * c.field.im[i];
+    for (let j = 0; j < c.field.n; j++) e += c.field.re[j] * c.field.re[j] + c.field.im[j] * c.field.im[j];
     return {
       id: c.id,
       gain: Math.min(1, Math.max(0, c.gain ?? 1)),
+      coherence: coherence[i],
+      weight: wgt[i],
       peak: maxNorm(c.field),
       energy: e,
       alignment: alignmentOf(c.field, out),

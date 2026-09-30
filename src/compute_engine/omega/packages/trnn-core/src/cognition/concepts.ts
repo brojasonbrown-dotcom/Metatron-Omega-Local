@@ -36,6 +36,8 @@ export interface ConceptRecord {
   readonly tick: number;
   /** How many searches have returned this concept as their best hit. */
   readonly hits: number;
+  /** Depth/importance weight (default 1; deep concepts weigh more). */
+  readonly weight: number;
   /** L2 norm of the embedding before normalisation (0 ⇒ degenerate input). */
   readonly rawNorm: number;
   readonly level: number;
@@ -114,6 +116,7 @@ export class ConceptStore {
     label?: string;
     tick: number;
     hits: number;
+    weight: number;
     rawNorm: number;
     level: number;
   }[] = [];
@@ -177,6 +180,7 @@ export class ConceptStore {
       label: m.label,
       tick: m.tick,
       hits: m.hits,
+      weight: m.weight,
       rawNorm: m.rawNorm,
       level: m.level,
     }));
@@ -206,12 +210,14 @@ export class ConceptStore {
    * its embedding in place and keeps its graph position: a concept that drifts
    * is the same concept, and re-linking it would churn the graph for nothing.
    */
-  add(key: string, vec: ArrayLike<number>, tick: number, label?: string): number {
+  add(key: string, vec: ArrayLike<number>, tick: number, label?: string, weight = 1): number {
+    const w = Number.isFinite(weight) && weight > 0 ? weight : 1;
     const existing = this.byKey.get(key);
     if (existing !== undefined) {
       const raw = this.writeVector(existing, vec);
       this.meta[existing].tick = tick;
       this.meta[existing].rawNorm = raw;
+      this.meta[existing].weight = w;
       if (label !== undefined) this.meta[existing].label = label;
       if (this.codebook) this.encodeOne(existing);
       return existing;
@@ -220,14 +226,14 @@ export class ConceptStore {
     let id: number;
     if (this.meta.length < this.capacity) {
       id = this.meta.length;
-      this.meta.push({ key, label, tick, hits: 0, rawNorm: 0, level: 0 });
+      this.meta.push({ key, label, tick, hits: 0, weight: w, rawNorm: 0, level: 0 });
     } else {
       // Evict the least-used, oldest concept and take its slot. Its links stay
       // valid as graph edges (same slot id), which keeps the graph connected;
       // the neighbourhood re-converges as the new vector is re-linked below.
       id = this.evictSlot();
       this.byKey.delete(this.meta[id].key);
-      this.meta[id] = { key, label, tick, hits: 0, rawNorm: 0, level: this.meta[id].level };
+      this.meta[id] = { key, label, tick, hits: 0, weight: w, rawNorm: 0, level: this.meta[id].level };
       this.evictions++;
     }
     this.byKey.set(key, id);

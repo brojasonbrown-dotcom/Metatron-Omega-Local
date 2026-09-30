@@ -27,6 +27,9 @@ export * from './measure/scaleSignature';
 export * from './measure/fieldFingerprint';
 export * from './measure/qualia';
 export * from './measure/selfMeasure';
+export * from './measure/friction';
+export * from './measure/resonanceIndex';
+export * from './measure/depth';
 
 export * from './spectral/sphere';
 export * from './spectral/radial';
@@ -77,8 +80,12 @@ export type { ConceptRecord, ConceptStats, SearchHit, SearchTrace } from './cogn
 export { SelfModel, DiagonalSSM, DiagonalRLS, LAMBDA_MAX } from './cognition/selfModel';
 export type { SelfModelReport, PredictionEntry } from './cognition/selfModel';
 export * from './cognition/fieldSelfModel';
+export * from './cognition/rhufTransport';
 export * from './cognition/consolidation';
+export * from './cognition/affectModel';
 export * from './cognition/lexicon';
+export * from './cognition/project';
+export * from './cognition/relationDag';
 export * from './cognition/relations';
 
 // Ω-P6 — sensory plane + braid memory.
@@ -92,6 +99,8 @@ export * from './sense/textFingerprint';
 export * from './memory/braid';
 export * from './memory/turingTape';
 export * from './memory/persistence';
+export * from './memory/crossSection';
+export * from './memory/taxonomy';
 
 // Ω-P8 — learning tiers.
 export * from './learn/params';
@@ -115,6 +124,7 @@ export * from './substrate/dmd';
 export * from './substrate/emd';
 export * from './substrate/pseudospectrum';
 export * from './substrate/floquet';
+export * from './substrate/persistence';
 
 /* Ω-REAL P9: live analysis service — heartbeat scheduler, rings, xcorr stack. */
 export * from './analysis/service';

@@ -19,12 +19,13 @@
 import { PHI, PHI_INV } from '../core/constants';
 import { createField, energy, maxNorm, scaleField, type CField } from '../core/complex';
 import { SeedStream } from '../core/determinism';
-import { dcos, datan2, dpow, dsin } from '../core/dmath';
+import { dcos, datan2, dlog, dpow, dsin } from '../core/dmath';
+import { fft } from '../spectral/fft';
 
 /** [DEFINED] hard injection bound on any sensory field (Law: |v| ≤ φ). */
 export const SENSE_BOUND = PHI;
 
-export type Modality = 'scalar' | 'text' | 'grid' | 'audio';
+export type Modality = 'scalar' | 'text' | 'grid' | 'audio' | 'touch';
 
 export interface EncodeReport {
   readonly modality: Modality;
@@ -329,19 +330,100 @@ export function gematriaAtom(text: string, dim: number): Float64Array {
       re += modeRe[k] * c - modeIm[k] * s;
       im += modeRe[k] * s + modeIm[k] * c;
     }
+    // Binary channel — the literal character-code sequence folded into the
+    // phase space via the golden angle, position-weighted φ^(−p), mixed at φ⁻¹.
+    // This is the "binary of the word" aligned with the φ-power meaning channel:
+    // every term has a mathematical function (meaning) AND a binary (its codes).
+    let br = 0;
+    let bi = 0;
+    for (let p = 0; p < L; p++) {
+      const code = alphabetIndex(cps[p].codePointAt(0) ?? 0);
+      const ang = goldenPhase(code) + goldenPhase(p) + goldenPhase(j);
+      const w = dpow(PHI, -p);
+      br += w * dcos(ang);
+      bi += w * dsin(ang);
+    }
+    re += PHI_INV * br;
+    im += PHI_INV * bi;
     atom[j] = datan2(im, re);
   }
   return atom;
 }
 
+/** floor(log2(x)) for x ≥ 1, exact integer op. */
+function floorLog2(x: number): number {
+  return 31 - Math.clz32(x | 0);
+}
+
+/** One 2-D Haar level: LL (approx) + LH/H L/HH (horizontal/vertical/diagonal detail). */
+interface HaarBand {
+  readonly data: Float64Array;
+  readonly w: number;
+  readonly h: number;
+}
+
+/** Dyadic 2-D Haar pyramid — edge content at each scale and orientation. */
+function haarPyramid(
+  src: Float64Array,
+  width: number,
+  height: number,
+  levels: number,
+): { scales: HaarBand[][]; approx: HaarBand } {
+  let cur = src;
+  let cw = width;
+  let ch = height;
+  const scales: HaarBand[][] = [];
+  for (let l = 0; l < levels && cw >= 2 && ch >= 2; l++) {
+    const nw = cw >> 1;
+    const nh = ch >> 1;
+    const lh = new Float64Array(nw * nh);
+    const hl = new Float64Array(nw * nh);
+    const hh = new Float64Array(nw * nh);
+    const ll = new Float64Array(nw * nh);
+    for (let y = 0; y < nh; y++) {
+      const r0 = 2 * y * cw;
+      const r1 = (2 * y + 1) * cw;
+      for (let x = 0; x < nw; x++) {
+        const a = cur[r0 + 2 * x];
+        const b = cur[r0 + 2 * x + 1];
+        const c = cur[r1 + 2 * x];
+        const d = cur[r1 + 2 * x + 1];
+        const k = 0.25;
+        const i = y * nw + x;
+        ll[i] = (a + b + c + d) * k;
+        lh[i] = (a + b - c - d) * k;
+        hl[i] = (a - b + c - d) * k;
+        hh[i] = (a - b - c + d) * k;
+      }
+    }
+    scales.push([
+      { data: lh, w: nw, h: nh },
+      { data: hl, w: nw, h: nh },
+      { data: hh, w: nw, h: nh },
+    ]);
+    cur = ll;
+    cw = nw;
+    ch = nh;
+  }
+  return { scales, approx: { data: cur, w: cw, h: ch } };
+}
+
 /**
- * 2-D grid (image / spectrogram tile) → field.
+ * 2-D grid (image / spectrogram tile) → field (multi-scale, orientation-aware).
  *
- * Pixel (x, y) lands on node ⌊(x·φ⁻¹ + y·φ⁻²)·n⌋ mod n — a two-axis golden
- * mapping whose discrepancy is the Hurwitz optimum, so neighbouring pixels
- * spread across the ring instead of piling into one arc. Amplitude is the mean
- * of the pixels that share a node; phase encodes the pixel's position, which is
- * what lets the braid distinguish two images with identical histograms.
+ * A dyadic Haar pyramid decomposes the grid into, at each scale, three oriented
+ * edge bands — horizontal (LH), vertical (HL), diagonal (HH). Those bands are
+ * exactly the gradient content at that spatial frequency and orientation: the
+ * "physics" that lives at each stable scale. Each (scale, orientation) band is
+ * folded onto its own segment of the ring by the golden-angle mapping, so
+ *   • different scales land on different ring segments — the octave transport
+ *     then carries them to different rungs of the φ-ladder;
+ *   • different orientations land on different sub-segments;
+ *   • the spatial layout within a band is preserved (phase = position + edge
+ *     sign), so two images with identical histograms but different structure
+ *     separate.
+ * This replaces the old pixel-hash: raw luminance was position-insensitive by
+ * construction; edge energy at scale+orientation is the real structural signal.
  */
 export function encodeGrid(data: ArrayLike<number>, width: number, height: number, out: CField): EncodeReport {
   const n = out.n;
@@ -350,20 +432,84 @@ export function encodeGrid(data: ArrayLike<number>, width: number, height: numbe
   if (width <= 0 || height <= 0 || data.length === 0) {
     return finishReport('grid', out, { rawPeak: 0, peak: 0, scale: 1 });
   }
+
+  const src = new Float64Array(width * height);
+  for (let i = 0; i < src.length; i++) {
+    const v = data[i] ?? 0;
+    src[i] = Number.isFinite(v) ? v : 0;
+  }
+
+  // Cap the number of dyadic scales so every band still owns at least one ring
+  // cell. Eight oriented gradient bands per scale plus one approximation band
+  // (the coarsest scale — DC/brightness).
+  const ORIENT = 8;
+  const maxLevels = Math.max(1, Math.min(floorLog2(width), floorLog2(height)));
+  const levels = Math.max(1, Math.min(maxLevels, Math.floor((n - 1) / (ORIENT + 1))));
+  const totalBands = levels * (ORIENT + 1) + 1;
+  const seg = Math.max(1, Math.floor(n / totalBands));
   const counts = new Float64Array(n);
   const phi2 = PHI_INV * PHI_INV;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const v = data[y * width + x] ?? 0;
-      if (!Number.isFinite(v)) continue;
-      const u = (x * PHI_INV + y * phi2) % 1;
-      const idx = Math.min(n - 1, Math.floor(u * n));
-      const th = 2 * Math.PI * (((x / width) * PHI_INV + (y / height) * phi2) % 1);
-      out.re[idx] += v * dcos(th);
-      out.im[idx] += v * dsin(th);
-      counts[idx] += 1;
+
+  const foldApprox = (band: HaarBand, base: number) => {
+    for (let y = 0; y < band.h; y++) {
+      for (let x = 0; x < band.w; x++) {
+        const v = band.data[y * band.w + x];
+        if (v === 0) continue;
+        const u = (x * PHI_INV + y * phi2) % 1;
+        const idx = base + Math.min(seg - 1, Math.floor(u * seg));
+        const th = 2 * Math.PI * (((x / band.w) * PHI_INV + (y / band.h) * phi2) % 1);
+        out.re[idx] += v * dcos(th);
+        out.im[idx] += v * dsin(th);
+        counts[idx] += 1;
+      }
+    }
+  };
+
+  const { scales, approx } = haarPyramid(src, width, height, levels);
+  // Gabor-style orientation: at each scale the Haar LH/HL are the two gradient
+  // components (∂x, ∂y), so θ = atan2(HL, LH) bins into 8 orientations and the
+  // gradient magnitude √(LH²+HL²) is the orientation energy. The HH (mixed
+  // derivative) is folded as a 9th "diagonal/corner" band — the content the
+  // first-order gradient misses at Nyquist (e.g. a checkerboard's diagonal
+  // edges), so no orientation is dropped. O(W·H) per scale.
+  for (let l = 0; l < scales.length; l++) {
+    const lh = scales[l][0].data;
+    const hl = scales[l][1].data;
+    const hh = scales[l][2].data;
+    const w = scales[l][0].w;
+    const h = scales[l][0].h;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const gx = lh[y * w + x];
+        const gy = hl[y * w + x];
+        const m = Math.sqrt(gx * gx + gy * gy);
+        if (m > 0) {
+          const bin = Math.min(ORIENT - 1, Math.floor(((datan2(gy, gx) + Math.PI) / (2 * Math.PI)) * ORIENT));
+          const base = (l * (ORIENT + 1) + bin) * seg;
+          const u = (x * PHI_INV + y * phi2) % 1;
+          const idx = base + Math.min(seg - 1, Math.floor(u * seg));
+          const th = 2 * Math.PI * (((x / w) * PHI_INV + (y / h) * phi2) % 1);
+          out.re[idx] += m * dcos(th);
+          out.im[idx] += m * dsin(th);
+          counts[idx] += 1;
+        }
+        const dd = Math.abs(hh[y * w + x]);
+        if (dd > 0) {
+          const base = (l * (ORIENT + 1) + ORIENT) * seg;
+          const u = (x * PHI_INV + y * phi2) % 1;
+          const idx = base + Math.min(seg - 1, Math.floor(u * seg));
+          const th = 2 * Math.PI * (((x / w) * PHI_INV + (y / h) * phi2) % 1);
+          out.re[idx] += dd * dcos(th);
+          out.im[idx] += dd * dsin(th);
+          counts[idx] += 1;
+        }
+      }
     }
   }
+  // The coarsest scale — the approximation (DC/brightness) — owns the final
+  // segment, so illumination is a first-class measurement at the coarsest rung.
+  foldApprox(approx, levels * (ORIENT + 1) * seg);
+
   for (let i = 0; i < n; i++) {
     if (counts[i] > 0) {
       out.re[i] /= counts[i];
@@ -374,14 +520,20 @@ export function encodeGrid(data: ArrayLike<number>, width: number, height: numbe
 }
 
 /**
- * Audio frame → field.
+ * Audio frame → field (spectral, constant-Q).
  *
- * A real PCM frame is first folded into `nodes` phase bins by the same circular
- * area weighting as `encodeScalars`, but the phase carries the *sign pattern*
- * of the waveform (the analytic-signal stand-in): amplitude from |x|, phase
- * advanced by the golden angle per zero crossing. This keeps the encoder O(L)
- * with no FFT while still separating two frames of equal RMS but different
- * pitch.
+ * A real PCM frame is transformed with the certified Bluestein FFT (O(L log L),
+ * primes included — the same transform the spectral column certifies), then its
+ * power spectrum is folded onto `nodes` constant-Q (log-frequency) bands: node j
+ * receives the mean squared magnitude of the FFT bins whose log-frequency maps
+ * to j. Phase is the golden phyllotaxis angle of the node; amplitude is the
+ * band's RMS (so a quiet band stays quiet and a loud one stays loud).
+ *
+ * This replaces the old zero-crossing encoder: two frames of equal RMS but
+ * different spectral content (a 100 Hz tone vs a 1000 Hz tone, or a vowel vs a
+ * consonant) now land in different φ-bands instead of collapsing onto one
+ * crossing count. Determinism (Law L2) is preserved — the FFT twiddles route
+ * through the deterministic dcos/dsin bank, and log binning is IEEE-exact.
  */
 export function encodeAudio(pcm: ArrayLike<number>, out: CField): EncodeReport {
   const n = out.n;
@@ -389,9 +541,74 @@ export function encodeAudio(pcm: ArrayLike<number>, out: CField): EncodeReport {
   out.re.fill(0);
   out.im.fill(0);
   if (L === 0) return finishReport('audio', out, { rawPeak: 0, peak: 0, scale: 1 });
+
+  // 1. Real-valued forward FFT (imaginary input is zero). Unnormalised, matching
+  //    the spectral column's `fft()`; deterministic twiddles.
+  const re = new Float64Array(L);
+  for (let i = 0; i < L; i++) {
+    const v = pcm[i] ?? 0;
+    re[i] = Number.isFinite(v) ? v : 0;
+  }
+  const im = new Float64Array(L);
+  const spec = fft(re, im, false);
+
+  // 2. Power spectrum |X_k|² over the positive frequencies (real input is
+  //    conjugate-symmetric, so bins 1..half-1 carry the full spectral content).
+  const half = Math.max(1, L >> 1);
+  const bandPower = new Float64Array(n);
+  const bandCount = new Float64Array(n);
+  const logHalf = dlog(Math.max(2, half));
+
+  // DC sits in node 0.
+  bandPower[0] += spec.re[0] * spec.re[0] + spec.im[0] * spec.im[0];
+  bandCount[0] += 1;
+  for (let k = 1; k < half; k++) {
+    const j = Math.min(n - 1, Math.floor((n * dlog(k)) / logHalf));
+    const p = spec.re[k] * spec.re[k] + spec.im[k] * spec.im[k];
+    bandPower[j] += p;
+    bandCount[j] += 1;
+  }
+
+  // 3. Band RMS amplitude × golden phase. The 1/L keeps the scale on the order
+  //    of the signal RMS (the old encoder's amplitude convention); boundField
+  //    then enforces ‖v‖_inf ≤ φ by uniform down-scaling, shape preserved.
+  for (let j = 0; j < n; j++) {
+    const a = bandCount[j] > 0 ? Math.sqrt(bandPower[j] / bandCount[j]) / L : 0;
+    const th = goldenPhase(j);
+    out.re[j] = a * dcos(th);
+    out.im[j] = a * dsin(th);
+  }
+  return finishReport('audio', out, boundField(out));
+}
+
+/**
+ * Touch / mechanical frame → field (slow envelope).
+ *
+ * Tactile information is the *slow* variation — pressure, temperature, contact
+ * force — its high-frequency content is noise. So this low-passes the series
+ * (box filter, window L/8) and folds the envelope onto the ring by the same
+ * golden phyllotaxis as the scalar path. Distinct from audio: audio keeps the
+ * full log-frequency spectrum; touch keeps only the sub-L/8 envelope — the two
+ * senses live at different ends of the same temporal axis.
+ */
+export function encodeTouch(pcm: ArrayLike<number>, out: CField): EncodeReport {
+  const n = out.n;
+  const L = pcm.length;
+  out.re.fill(0);
+  out.im.fill(0);
+  if (L === 0) return finishReport('touch', out, { rawPeak: 0, peak: 0, scale: 1 });
+
+  const W = Math.max(1, Math.floor(L / 8));
+  const env = new Float64Array(L);
+  let run = 0;
+  for (let i = 0; i < L; i++) {
+    const v = pcm[i] ?? 0;
+    run += Number.isFinite(v) ? v : 0;
+    if (i >= W) run -= pcm[i - W] ?? 0;
+    env[i] = run / Math.min(W, i + 1);
+  }
+
   const step = L / n;
-  let crossings = 0;
-  let prev = pcm[0] ?? 0;
   for (let k = 0; k < n; k++) {
     const lo = k * step;
     const hi = lo + step;
@@ -399,18 +616,16 @@ export function encodeAudio(pcm: ArrayLike<number>, out: CField): EncodeReport {
     let w = 0;
     for (let i = Math.floor(lo); i < Math.max(Math.floor(lo) + 1, Math.ceil(hi)); i++) {
       const wgt = Math.max(0, Math.min(hi, i + 1) - Math.max(lo, i)) || (step < 1 ? 1 : 0);
-      const s = pcm[((i % L) + L) % L] ?? 0;
-      if (prev < 0 !== s < 0) crossings++;
-      prev = s;
-      acc += wgt * Math.abs(s);
+      const s = env[((i % L) + L) % L] ?? 0;
+      acc += wgt * s;
       w += wgt;
     }
     const a = w > 0 ? acc / w : 0;
-    const th = goldenPhase(crossings) + goldenPhase(k);
+    const th = goldenPhase(k);
     out.re[k] = a * dcos(th);
     out.im[k] = a * dsin(th);
   }
-  return finishReport('audio', out, boundField(out));
+  return finishReport('touch', out, boundField(out));
 }
 
 /** Allocate a field sized for an encoder target. */

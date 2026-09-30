@@ -94,6 +94,48 @@ describe('G6.1 — encoders', () => {
     expect(ar.energy).toBeGreaterThan(0);
   });
 
+  it('grid encoder separates orientation and multi-scale structure', () => {
+    const W = 32;
+    const H = 32;
+    const dist = (a: { re: Float64Array; im: Float64Array }, b: { re: Float64Array; im: Float64Array }) => {
+      let d = 0;
+      for (let i = 0; i < a.re.length; i++) d += (a.re[i] - b.re[i]) ** 2 + (a.im[i] - b.im[i]) ** 2;
+      return Math.sqrt(d);
+    };
+
+    // Orientation: a vertical edge (left/right split → LH) vs a horizontal edge
+    // (top/bottom split → HL). Identical histograms, different orientation.
+    const vEdge = new Float64Array(W * H);
+    const hEdge = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        vEdge[y * W + x] = x < W / 2 ? 0 : 255;
+        hEdge[y * W + x] = y < H / 2 ? 0 : 255;
+      }
+    }
+    const a = senseField(N);
+    const b = senseField(N);
+    encodeGrid(vEdge, W, H, a);
+    encodeGrid(hEdge, W, H, b);
+    expect(dist(a, b)).toBeGreaterThan(0.05);
+
+    // Scale: a fine (2-px) checkerboard vs a coarse (8-px) checkerboard — same
+    // mean and histogram, energy lives at different wavelet scales.
+    const fine = new Float64Array(W * H);
+    const coarse = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        fine[y * W + x] = ((x >> 1) + (y >> 1)) % 2 === 0 ? 0 : 255;
+        coarse[y * W + x] = ((x >> 3) + (y >> 3)) % 2 === 0 ? 0 : 255;
+      }
+    }
+    const c = senseField(N);
+    const d = senseField(N);
+    encodeGrid(fine, W, H, c);
+    encodeGrid(coarse, W, H, d);
+    expect(dist(c, d)).toBeGreaterThan(0.05);
+  });
+
   it('boundField only ever scales down', () => {
     const f = senseField(8);
     f.re[0] = 0.1;
@@ -157,6 +199,34 @@ describe('G6.2 — fusion', () => {
     const rep = fuseChannels([], out);
     expect(rep.count).toBe(0);
     expect(maxNorm(out)).toBe(0);
+  });
+
+  it('coherence-weighting: a coherent channel reinforces, an outlier is damped', () => {
+    const base = senseField(N);
+    encodeScalars(ramp(N, 1), base);
+    const same = senseField(N);
+    same.re.set(base.re);
+    same.im.set(base.im);
+    const anti = senseField(N);
+    for (let i = 0; i < N; i++) {
+      anti.re[i] = -base.re[i];
+      anti.im[i] = -base.im[i];
+    }
+    const out = senseField(N);
+    const rep = fuseChannels([{ id: 'a', field: base }, { id: 'b', field: same }, { id: 'outlier', field: anti }], out);
+    const byId: Record<string, (typeof rep.channels)[number]> = {};
+    for (const c of rep.channels) byId[c.id] = c;
+
+    expect(rep.withinBound).toBe(true);
+    // two identical channels agree; the anti-correlated channel is an outlier
+    expect(byId.a.coherence).toBeGreaterThan(0.9);
+    expect(byId.b.coherence).toBeGreaterThan(0.9);
+    expect(byId.outlier.coherence).toBeLessThan(0);
+    expect(byId.outlier.weight).toBeLessThan(byId.a.weight);
+    // applied weights stay L2-normalised (Σ w² = 1) — the bound-preserving law
+    let w2 = 0;
+    for (const c of rep.channels) w2 += c.weight * c.weight;
+    expect(w2).toBeCloseTo(1, 12);
   });
 });
 

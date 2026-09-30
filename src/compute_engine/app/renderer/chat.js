@@ -50,7 +50,7 @@ async function send() {
   // the question and the answer). Meta-questions ABOUT the brain are always
   // answered by the brain itself. LLM answers get a visibly distinct bubble
   // (msg.omega.llm) so an API answer can never pass for a brain computation.
-  const META = /^(help|status|state|how are you|what can you do|commands|ladder|rungs|scales|web|flux|ledger|spectral|signature|spectrum|modes|memory|memories|remember|recall|mind|cognition|think|concepts|learn|learning|train|battery|tier)\b/i;
+  const META = /^(help|status|state|how are you|what can you do|commands|ladder|rungs|scales|web|flux|ledger|spectral|signature|spectrum|modes|memory|memories|remember|recall|mind|cognition|think|concepts|learn|learning|train|battery|tier|gematria|structure|report|reflect|seal|hardware|deepresolution)\b/i;
   let llmOn = false;
   try {
     llmOn = !META.test(text) && (await window.omega.llmStatus()).active;
@@ -62,7 +62,18 @@ async function send() {
     const r = llmOn ? await window.omega.llmAsk(text) : await window.omega.send(text);
     typing.classList.remove("typing");
     if (r.ok) {
+      // Surface the instrument's hands: each tool call the LLM made is shown as
+      // its own distinct bubble (still "omega llm", never a brain computation)
+      // so a user can see exactly what was searched/fetched/read before the answer.
+      for (const t of r.tools ?? []) {
+        const args = t.args && Object.keys(t.args).length ? `(${JSON.stringify(t.args)})` : "";
+        const summary = (typeof t.result === "string" ? t.result : "").slice(0, 140);
+        addBubble(`🔧 ${t.name}${args}\n↳ ${summary}`, "omega llm");
+      }
       typing.textContent = r.answer;
+      if (Number.isFinite(r.resonanceDelta)) {
+        typing.textContent += `\n\nΔcoherence ${r.resonanceDelta >= 0 ? "+" : ""}${r.resonanceDelta.toFixed(4)} — ${r.resonanceDelta >= 0 ? "resonant with the field" : "discordant with the field"}`;
+      }
     } else {
       typing.textContent = `${llmOn ? "llm" : "engine"} error: ${r.error}`;
       typing.classList.add("error");

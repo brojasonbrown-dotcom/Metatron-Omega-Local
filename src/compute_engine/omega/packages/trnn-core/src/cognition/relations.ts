@@ -50,11 +50,22 @@ export interface RelationGraphState {
 /** A typed relation graph: nodes are keys, edges are their "processes". */
 export class RelationGraph {
   private readonly out = new Map<string, RelationEdge[]>();
+  /** Structural epoch — bumps on every mutation so the host can cache the Merkle root. */
+  private _version = 0;
+
+  /** Monotonic structural version; the host keys its relation-digest cache on this. */
+  get version(): number { return this._version; }
 
   relate(source: string, type: RelationType, target: string, weight = RELATION_WEIGHTS[type]): void {
     const list = this.out.get(source) ?? [];
+    // Dedupe: an identical typed edge is already recorded — repetition must not
+    // grow the graph unbounded (a relation exists, it is not "counted").
+    for (const e of list) {
+      if (e.type === type && e.target === target) return;
+    }
     list.push({ type, target, weight });
     this.out.set(source, list);
+    this._version++;
   }
 
   /** The processes attached to a node (its outgoing typed relations). */
@@ -76,9 +87,12 @@ export class RelationGraph {
   /** Rebuild a relation graph from a saved state. */
   static restore(s: RelationGraphState): RelationGraph {
     const g = new RelationGraph();
+    let edgeCount = 0;
     for (const [src, list] of Object.entries(s.edges)) {
       g.out.set(src, list.map((e) => ({ type: e.type, target: e.target, weight: e.weight })));
+      edgeCount += list.length;
     }
+    g._version = edgeCount; // a restored graph differs from a fresh empty one
     return g;
   }
 }

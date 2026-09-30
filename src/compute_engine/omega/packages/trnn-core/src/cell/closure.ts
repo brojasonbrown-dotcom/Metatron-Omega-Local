@@ -8,7 +8,7 @@
  * the ledger.
  */
 
-import { KAPPA } from '../core/constants';
+import { KAPPA, PHI } from '../core/constants';
 import type { CField } from '../core/complex';
 import { dcos, dsin } from '../core/dmath';
 
@@ -51,7 +51,7 @@ export interface ClosureReport {
 export function closureTarget(z: CField, pi: CField, turn: number, shift: number): ClosureReport {
   const n = z.n;
   if (n === 0) return { obstruction: 0, residualFlux: 0, turn, defect: 0, closure: 1 };
-  const theta = 2 * Math.PI * ((turn * (1 / 1.618033988749895)) % 1);
+  const theta = 2 * Math.PI * ((turn * (1 / PHI)) % 1);
   const c = dcos(theta);
   const s = dsin(theta);
 

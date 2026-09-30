@@ -16,7 +16,8 @@
 import { describe, expect, it } from 'vitest';
 import { MultiTorusEngine } from '../src/engine/MultiTorusEngine';
 import { DENSE_CORE } from '../src/core/scaleLadder';
-import { SelfMeasureTracker, informationDensity, scaleEntropy, crossScaleDrift } from '../src/measure/selfMeasure';
+import { SelfMeasureTracker, informationDensity, scaleEntropy, crossScaleDrift, burden } from '../src/measure/selfMeasure';
+import { PHI } from '../src/core/constants';
 import { QualiaTracker } from '../src/measure/qualia';
 
 const F = (x: number[]): Float64Array => Float64Array.from(x);
@@ -36,6 +37,13 @@ describe('Q2 · full-field self-measurement', () => {
     // cross-scale drift: identical adjacent signatures → 0; shifted → Σ d²
     expect(crossScaleDrift([F([1, 2]), F([1, 2])])).toBe(0);
     expect(crossScaleDrift([F([1, 2]), F([3, 4])])).toBeCloseTo(8, 10);
+  });
+
+  it('computes burden deterministically (Σ|sig|·φ^rank)', () => {
+    expect(burden(F([1, -2, 3]), 0)).toBeCloseTo(6, 10); // Σ|sig| = 6, φ^0 = 1
+    expect(burden(F([1, 0, 0]), 1)).toBeCloseTo(PHI, 10); // Σ|sig| = 1, φ^1
+    expect(burden(F([0, 0, 0]), 5)).toBe(0); // dark rung → zero mass
+    expect(burden(F([1]), 17)).toBeCloseTo(Math.pow(PHI, 17), 10); // rank-weighted
   });
 
   it('reports zero history-dependent axes on the first observation', () => {

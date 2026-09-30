@@ -304,7 +304,7 @@ describe('P9 · evidence ledger (append-only transparency)', () => {
       ],
       { tick },
     );
-    return { tick, kind: 'long', xcorr, dmd: null, conformalHalfWidth: null };
+    return { tick, kind: 'long', xcorr, dmd: null, conformalHalfWidth: null, wave: null };
   }
 
   it('seals a finding, audits clean, and is deterministic across seeds', () => {
@@ -321,7 +321,7 @@ describe('P9 · evidence ledger (append-only transparency)', () => {
 
   it('abstains when there is no measurement to seal', () => {
     const led = new EvidenceLedger('r9/evidence-abstain');
-    const empty: AnalysisReport = { tick: 1, kind: 'long', xcorr: null, dmd: null, conformalHalfWidth: null };
+    const empty: AnalysisReport = { tick: 1, kind: 'long', xcorr: null, dmd: null, conformalHalfWidth: null, wave: null };
     expect(led.seal(empty)).toBeNull();
     expect(led.size).toBe(0);
     expect(led.sealCount).toBe(0);
@@ -345,7 +345,10 @@ describe('P9 · evidence ledger (append-only transparency)', () => {
         spectralRadius: 0.9055,
         relError: 0.01,
         abstained: false,
+        pseudoMinSigma: 0.1,
+        floquetRadius: 0.9055,
       },
+      wave: null,
     };
     const body = summarize(report) as {
       conformalHalfWidth: number | null;

@@ -49,3 +49,11 @@ src/compute_engine/app/.env
 # stale duplicate web export (vite/wrangler/bun build) — superseded by
 # src/compute_engine/omega/ (the certified trunk) and the Electron app
 src/compute_engine/Metatron Omega/
+
+# vendored OCR sidecar + Tesseract language data + Windows reserved-name artifact — never commit
+Unlimited-OCR-main/
+*.traineddata
+nul
+
+# python wheels / large model artifacts — never commit
+*.whl

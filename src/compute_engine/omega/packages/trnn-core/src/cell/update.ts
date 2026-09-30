@@ -100,11 +100,11 @@ export function cellStep(z: CField, out: CField, terms: CellTerms): CellStepRepo
   const { re, im } = out;
 
   let inMax = 0;
+  // alpha z, minus the two pull terms' z contribution (loop-invariant).
+  const c = CELL.alpha - CELL.epsilon - CELL.zeta;
   for (let i = 0; i < n; i++) {
     const a = Math.sqrt(z.re[i] * z.re[i] + z.im[i] * z.im[i]);
     if (a > inMax) inMax = a;
-    // alpha z, minus the two pull terms' z contribution
-    const c = CELL.alpha - CELL.epsilon - CELL.zeta;
     re[i] = c * z.re[i];
     im[i] = c * z.im[i];
   }

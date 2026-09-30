@@ -36,7 +36,23 @@
   /** Last rendered deck-body HTML — polls skip the DOM write when unchanged. */
   let lastBodyHtml = "";
 
-  const DECKS = ["brain", "ladder", "web", "spectral", "senses", "memory", "mind"];
+  /**
+   * Fast poll cadence (10 Hz). The poll is a GUARANTEED tick: it fires every
+   * POLL_MS regardless of whether a given number changed, so the UI can never
+   * appear frozen. Headline numbers (coherence/energy/ticks/flux/rungs) are
+   * recomputed by the main process on every poll, so they refresh at this rate;
+   * the medium (memory/cognition/lexicon/relations) and heavy (spectral/scan/
+   * perception) views are throttled server-side at 500 ms / 1000 ms and update
+   * on their own cadence. Each number therefore refreshes independently.
+   *
+   * POLL_TIMEOUT_MS guards the one thing that could otherwise kill the loop:
+   * if an IPC round-trip ever hangs (worker wedged, main busy), the poll resets
+   * instead of leaving `polling` stuck true forever, and the next tick retries.
+   */
+const POLL_MS = 1000; // metrics refresh once per second - never blocks UI interaction
+  const POLL_TIMEOUT_MS = 500;
+
+  const DECKS = ["brain", "ladder", "web", "spectral", "senses", "memory", "mind", "audit"];
 
   const flashError = (btn, reason) => {
     btn.classList.add("error");
@@ -154,6 +170,10 @@
       row("stored / skipped", `${m.stored ?? 0} / ${m.skipped ?? 0}`),
       row("last fold tick", String(m.lastFoldTick ?? "—")),
       row("familiarity", sci(s.familiarity)),
+      sec("RESONANCE INDEX (Ω-REAL R13)"),
+      row("resonance", sci(s.resonance)),
+      row("gated (C < φ⁻²)", String(s.resonanceGated ?? false)),
+      row("associative prototypes", String(s.associativeSize ?? 0)),
       ...(lr
         ? [
             sec("LAST RECALL"),
@@ -170,6 +190,15 @@
         : [row("patterns", "none consolidated yet — the brain is listening")]),
       sec("TAPE (permanent processing)"),
       row("tape occupancy", `${s.memory?.tapeOccupancy ?? "—"}`),
+      sec("DEEP MEMORY (exact phi-modes)"),
+      row("deep patterns", String(s.deepMemory?.size ?? 0)),
+      row("mean depth", sci(s.deepMemory?.meanDepth)),
+      row("strongest phi-modes", String(s.deepMemory?.strongestModes ?? 0)),
+      row("deep-resolution ring", String(s.deepResolution?.size ?? 0) + "/" + String(s.deepResolution?.capacity ?? 0)),
+      sec("MEMORY TAXONOMY (self-knowledge)"),
+      ...(s.memoryTaxonomy ?? []).map((t) =>
+        row(`${t.layer}. ${t.id}`, `${t.type} · ${t.retention}`)
+      ),
     ].join("");
   }
 
@@ -184,7 +213,21 @@
       row("mean novelty", sci(c.meanNovelty)),
       row("mean surprise", sci(c.meanSurprise)),
       row("novelty threshold", sci(c.noveltyThreshold)),
-      row("self-model", `${s.selfModel ? "ahead" : "behind"} baseline (${sci(s.selfMargin)})`),
+      row("self-model", `${s.selfModel ? "ahead" : "behind"} RLS (margin ${sci(s.selfMargin)})`),
+      row("skill vs persistence", `${((s.selfModelSkill ?? 0) * 100).toFixed(1)}%`),
+      row("SSM / RLS / persist MSE", `${sci(s.selfModelSsmMse)} / ${sci(s.selfModelRlsMse)} / ${sci(s.selfModelPersistenceMse)}`),
+      row("SSM spectral radius", sci(s.selfModelSpectralRadius)),
+      row("field self-model (Q4)", `${s.fieldSelfModelEnabled ? "ahead" : "behind"} persistence · SSM ${sci(s.fieldSelfModelSsmMse)} vs ${sci(s.fieldSelfModelPersistenceMse)}`),
+      sec("MEASURE STACK (Ω-REAL)"),
+      row("depth / importance", sci(s.depth)),
+      row("project", `${s.projectSize ?? 0} deep members · mean depth ${sci(s.projectMeanDepth)}`),
+      row("friction / flow", `${sci(s.friction)} / ${sci(s.flow)}`),
+      row("situation", sci(s.situation)),
+      row("qualia Cφ", `${sci(s.qualiaCphi)}${s.qualiaIgnited ? " · ignited" : ""}`),
+      row("lyapunov descent", sci(s.lyapunov)),
+      row("scale entropy / drift", `${sci(s.scaleEntropy)} / ${sci(s.scaleDrift)}`),
+      row("genome sealed", `${s.genomeSize ?? 0} · ${s.genomeCycles ?? 0} cycles`),
+      row("lexicon", `${s.lexiconSize ?? 0} words · ${s.lexiconTokens ?? 0} tokens`),
       sec("LEARN"),
       row("learn state", s.learn ? "run recorded" : "no learn run this session"),
       sec(`TOP CONCEPTS (${top.length})`),
@@ -247,7 +290,33 @@
     ].join("");
   }
 
-  const RENDER = { brain: deckBrain, ladder: deckLadder, web: deckWeb, spectral: deckSpectral, senses: deckSenses, memory: deckMemory, mind: deckMind };
+  function deckAudit(s) {
+    const a = s.selfAudit, d = s.depthExtensions;
+    const r = [];
+    if (d) r.push(
+      sec("DEPTH (geometric-algebra / fractal / plasticity)"),
+      row("clifford magnitude", sci(d.cliffordMagnitude)),
+      row("fractal occupied", String(d.fractalOccupied)),
+      row("fractal contribution", sci(d.fractalContribution)),
+      row("plasticity |w|", sci(d.plasticityNorm)),
+      row("plasticity drift", sci(d.plasticityDrift)),
+    );
+    r.push(sec("SELF-AUDIT (certification harness)"));
+    if (a) r.push(
+      row("golden set", a.goldenPass ? "PASS" : "DRIFT"),
+      row("abstention rate", sci(a.abstentionRate)),
+      row("false-confident", String(a.falseConfident)),
+      row("abstention gate", a.abstentionPass ? "PASS" : "FAIL"),
+      row("audit tick", String(a.auditTick)),
+      row("recall label", a.recallLabel == null ? "-" : a.recallLabel),
+      row("proof latency p95", a.proofP95 == null ? "-" : sci(a.proofP95) + " ms"),
+      row("certification", a.certifyPass ? "PASS" : "FAIL"),
+    );
+    else r.push(row("self-audit", "not run yet"));
+    return r.join("");
+  }
+
+  const RENDER = { brain: deckBrain, ladder: deckLadder, web: deckWeb, spectral: deckSpectral, senses: deckSenses, memory: deckMemory, mind: deckMind, audit: deckAudit };
 
   function renderTabs() {
     return `<div class="deck-tabs">${DECKS.map(
@@ -285,10 +354,26 @@
     void refreshState();
   });
 
+  let polling = false;
   async function refreshState() {
+    if (polling) return; // skip if the previous poll is still in flight
+    polling = true;
     try {
-      renderState(await window.omega.state());
-    } catch { /* main busy — next poll retries */ }
+      // Timeout guard: a hung round-trip must never leave `polling` stuck true
+      // (which would silently stop all future refreshes). Reject after
+      // POLL_TIMEOUT_MS so the next tick retries fresh. The timer is cleared on
+      // settlement so no per-poll timer leaks.
+      const s = await new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error("state timeout")), POLL_TIMEOUT_MS);
+        window.omega.state().then(
+          (v) => { clearTimeout(t); resolve(v); },
+          (e) => { clearTimeout(t); reject(e); },
+        );
+      });
+      renderState(s);
+    } catch { /* main busy or timeout — next poll retries */ } finally {
+      polling = false;
+    }
   }
 
   btnEngine.addEventListener("click", async () => {
@@ -306,7 +391,7 @@
     btnStab.classList.toggle("active", !collapsed);
     if (!collapsed) {
       void refreshState();
-      stabTimer = setInterval(refreshState, 500);
+      stabTimer = setInterval(refreshState, POLL_MS);
     } else if (stabTimer) {
       clearInterval(stabTimer);
       stabTimer = null;
@@ -455,6 +540,6 @@
   // sync the buttons with the true states at load; the telemetry column starts
   // OPEN (permanent right column), so the 500 ms poll starts immediately.
   void refreshState();
-  stabTimer = setInterval(refreshState, 500);
+  stabTimer = setInterval(refreshState, POLL_MS);
   void syncLlm();
 })();

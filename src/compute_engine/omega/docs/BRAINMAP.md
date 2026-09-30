@@ -1,10 +1,10 @@
 # METATRON Ω — BRAINMAP
 
 **Single source of structural truth for the new engine.**
-Status: v1.8 (2026-09-04, amendment Ω-13) · governs every module built under it
-Live counts (swept 2026-09-04): `trnn-core/src` **98** · `field-kernel-core/src` **8** ·
+Status: v1.10 (2026-09-04, amendment Ω-15) · governs every module built under it
+Live counts (swept 2026-09-04): `trnn-core/src` **100** · `field-kernel-core/src` **8** ·
 `src/core` **150** · `src/ui/omega` **36** · `src/lib` **43** · `src/routes` **7** ·
-`src/components` **8** · tests **55 files / 664 assertions green** · typecheck 0 errors.
+`src/components` **8** · tests **57 files / 673 assertions green** · typecheck 0 errors.
 Lineage: **brain v14** (TS law/ontology kernel) → **METATRON K3** (frozen NumPy oracle) →
 **TRNN** (certified Python toroidal RHUFT neural network, 334 tests, gates G0–G9 PASS) →
 **METATRON Ω** (this repo: browser/worker TypeScript realization + UI + memory + tools).
@@ -251,6 +251,295 @@ G6 sensory + memory capacity ≥ 0.99 · G7 self-model + soak · G8 cognition ·
   derived from self-measurement and is auditable (inclusion proofs + signed head), not asserted.
   Deterministic (seeded moment atoms, no wall clock). Laws kept: L2, L10 (honesty machinery).
   Battery: q5-consolidation (3).
+- **Ω-14 (2026-09-04):** R10 — the live friction reading. `measure/friction.ts` folds the per-tick
+  coherence and closure defect into one dimensionless "how smoothly is the field flowing" scalar:
+  `flow = coherence × (1 − defect/2)`, `friction = 1 − flow`, `situation = flow − friction`. Abstention
+  lifts the friction floor to ½ (refusal is friction in the evidence). Observe-only (digest-neutral) and
+  deterministic (L2). Laws kept: L2, L5. Battery: r10-friction (5).
+- **Ω-15 (2026-09-04):** R11 — the affect self-model. `cognition/affectModel.ts` (`AffectModel`) folds the
+  live friction reading and the six qualia axes into a fixed 9-dim "affect" observation and predicts it
+  with the same DiagonalSSM/RLS self-model (G7 margin gate), so the brain predicts its own felt state and
+  registers a friction spike as surprise. No named emotions — affect is the dimensionless felt state.
+  Observe-only, deterministic (L2). Laws kept: L2, A1. Battery: r11-affectmodel (4).
+
+- **Ω-16 (2026-09-04):** R12+R13+R14 — the unified memory plane and its weight. `memory/crossSection.ts`
+  (braid + tape + cleanup in one coherence-gated, coherence-weighted write/recall) and
+  `measure/resonanceIndex.ts` (the weighted resonance index — `fuseResonance([coherence, margin], γ)`) are
+  now WIRED into `EngineHost.foldMemory`: every memory stride computes the index (coherence gate + braid
+  margin + phase closure) and folds the field's golden-angle hypervector address into the associative
+  FHRR cleanup store, weighted by it. Exposed on the snapshot (`resonance`, `resonanceGated`,
+  `associativeSize`), the `MemoryView`, `OmegaLoop.state()`, and the MEMORY deck. Observe-only, digest-neutral.
+  Batteries: r12-crosssection (4), r13-resonanceindex (7), r14-host-memory (2). Wolfram review: `docs/WOLFRAM_REVIEW.wl` (R1–R8).
+
+- **Ω-17 (2026-09-04):** R14 — the observe-only measure stack + genome + lexicon, now folded EVERY tick in `EngineHost`:
+  `foldMeasure` runs the affect self-model (`cognition/affectModel`, friction + six qualia axes over the rank-0
+  signature), the full-field self-measure (`measure/selfMeasure`, drift/temporal-coherence/info-density/inertia/
+  Lyapunov descent/scale entropy/drift across the ladder), the ignition consolidation (`cognition/consolidation` →
+  sealed `GenomeLedger` with deterministic sha256 keys from the seed), and the φ-anchored multi-scale
+  fingerprint (`measure/fieldFingerprint`). The text channel tokenizes into the salience-weighted `Lexicon`, whose
+  mean weight feeds the resonance index's salience channel. Exposed on the snapshot (`friction`, `situation`,
+  `flow`, `qualiaCphi`, `qualiaIgnited`, `lyapunov`, `scaleEntropy`, `scaleDrift`, `genomeSize`, `genomeCycles`,
+  `lexiconSize`, `lexiconTokens`) + accessors (`affectReading`, `selfMeasureReading`, `genomeState`,
+  `lexiconView`, `fingerprint`) + `OmegaLoop.state()` + the MIND deck. Observe-only, digest-neutral.
+  Cross-session persistence: `serializeMemory()` / `restoreMemory(seed)` round-trip the durable memory
+  (lexicon + `RelationGraph` + genome) as one canonical, byte-identical document; keys re-derived from the seed.
+  Battery: r14-host-memory (5).
+
+- **Ω-18 (2026-09-04):** R15 — information depth / importance. `measure/depth.ts` composes the four existing
+  depth primitives — information density, scale engagement (`scaleEntropy`), closure γ (the frictionless axis),
+  and cognitive novelty — through the normative `fuseResonance` law, gated by coherence. `EngineHost.foldMeasure`
+  computes it every tick and the associative memory write is weighted by `resonance × depth` (deep AND resonant
+  information persists strongest). Exposed on the snapshot (`depth`), the `depth()` accessor, `OmegaLoop`, and
+  the MIND deck. Observe-only, digest-neutral. Battery: r15-depth (4).
+
+- **Ω-19 (2026-09-04):** R16–R19 — the depth/importance/reflection pipeline. Depth-triggered consolidation
+  (`cognition/consolidation.ts` now seals a `DeepMoment` when depth rises across φ⁻¹, alongside ignition);
+  the persistent project context (`cognition/project.ts` bundles deep fields into one addressable object,
+  depth-gated, serialisable); deep reflection (`EngineHost.deepReflect` / `deepReflectAndConsolidate` recalls
+  the deepest patterns and seals the project into the genome); and the depth-weighted concept store
+  (`cognition/concepts.ts` + `Mind.observe` take an optional weight so deep concepts rank above shallow ones).
+  Project wired into cross-session persistence (optional, backward-compatible). Batteries: r16 (3), r17 (3),
+  r18 (3), r19 (3).
+
+- **Ω-20 (2026-09-07):** R20 — sentence structure + capability reporting. The text path now structures
+  sentences, not just bags of words: each term is observed into the salience-weighted `Lexicon` AND adjacent
+  terms are related as typed `temporal` edges in the `RelationGraph` (`relationsView()` exposes the word-order
+  graph). The responder now reports the brain's full capability: `help`/`capabilities` lists the 7 memory
+  systems + 6 measures + the φ-gematria codec, `memory` reports the full inventory (braid/associative/concepts/
+  project/genome/lexicon/depth), and a new `structure`/`terms`/`relations` command reports the most salient
+  terms (tf·idf in log φ) and their word-order edges. Battery: r20-sentencestructure (2).
+
+- **Ω-21 (2026-09-07):** R21 — gematria binary/meaning alignment certified. Measured (not assumed) that the φ-codec is
+  already order-sensitive and unique: `sim("ab","ba") = −1.0` (reversal = exact opposite phase), `sim("cat","cat") = 1.0`,
+  distinct words anti-correlated. Added a **binary channel** to `gematriaAtom`: each character's alphabet code folded
+  into the phase space via the golden angle, position-weighted φ^(−p), mixed at φ⁻¹ — so every word atom now carries
+  BOTH its φ-power meaning AND its literal character-code binary, aligned. Contract locked by r21-gematria (3).
+  Full suite 67 files / 710 tests green; S0 frozen-hash oracle intact.
+
+- **Ω-22 (2026-09-07):** R22 — the Merkle-DAG relation store. `cognition/relationDag.ts` folds the flat
+  `RelationGraph` into a content-addressable, hash-chained structure: each term's digest = sha256(term + edges
+  chaining each target's current digest), computed as a deterministic fixpoint (cycle-convergent); the root
+  digest fingerprints the entire learned structure. Tamper-evident (any edge change cascades to the root) and
+  deterministic. Wired as `EngineHost.relationDigest()` + snapshot field + the responder's `structure` command.
+  Battery: r22-relationdag (4). Full suite 68 files / 714 tests green.
+
+- **Ω-23 (2026-09-07):** R23 — hardening sweep. Fixed: (1) `crossSection.write` now refuses non-finite coherence
+  (was storing braid+tape but skipping cleanup — inconsistent); (2) `IgnitionConsolidator` keeps the last VALID
+  depth across unmeasured (NaN) ticks (was poisoning `prevDepth` and missing the next crossing); (3)
+  `deepReflectAndConsolidate` id is collision-proof (monotonic seal counter). Bound growth: `ProjectContext`
+  evicts the lowest-depth member at capacity (rebuilds bundle + store); `RelationGraph.relate` dedupes identical
+  typed edges; `relationDag` caches flat edges (no per-iteration recompute). Persistence gains a `version` field
+  (v2, backward-compatible). Battery: r23-hardening (6). Full suite 69 files / 720 tests green; S0 + S5.1 intact.
+
+- **Ω-24 (2026-09-07):** R23 — retention hardening (growth fully bounded). `CleanupMemory` gains a `maxLabels`
+  cap (deterministic oldest-label eviction) and a `remove(label)` method. `Lexicon` gains a `capacity` (default 987)
+  and evicts the least-salient word (lowest tf·idf) on new words at capacity, removing it from freq/df/atoms/prototype.
+  The host's associative store now runs at `maxLabels = 610`. Backward-compatible (caps default to unbounded/987).
+  Battery: r23-hardening (8). Full suite 69 files / 722 tests green.
+
+- **Ω-25 (2026-09-07):** LLM tool layer (the instrument's hands). New `app/electron/llmTools.cjs` gives the optional
+  external answerer a LOW-RISK tool registry (OpenAI function-calling schema): `brain_state` (full live snapshot),
+  `brain_recall` (salient terms + relation structure), `web_search` (DuckDuckGo Instant Answer, no key), and
+  `fetch_url` (the "claw" — fetch + strip a page). Every network tool is timeout-bounded (6s), size-capped, and
+  read-only w.r.t. the brain; local tools read only the snapshot. `llmClient.ask` now supports `tools` + `tool_choice`
+  and a bounded 3-round tool loop in `main.cjs` (execute → feed result → re-ask), executed **in parallel per round**
+  and returned as a renderable `tools` trace. The chat renderer surfaces each tool call as its own distinct
+  `🔧` bubble (still `omega llm`, never a brain computation) before the final answer. Smoke test gains offline tool
+  checks. Offline-deterministic; network tools never fire without an active key.
+
+- **Ω-26 (2026-09-07):** Wolfram integration (Phases 0–1) + gematria→semantic engine (Phase 3).
+  - **Wolfram verification loop:** `scripts/wolfram/wolfram-verify.wls` emits the full φ-identity bank at 60-digit
+    precision from the installed **Wolfram Engine 15.0 Professional** (license verified); committed as
+    `trnn-core/test/fixtures/wolfram-verified.json`; new `test/s6-wolfram-lock.test.ts` locks every certified
+    constant to the 60-digit value (7 tests). All 6 symbolic identities residual = 0. Caught + fixed a
+    transposed-digit typo in the LLM system prompt (κ=0.196623 → 0.196726).
+  - **Wolfram|Alpha claw:** `wolfram_compute` (5th tool) in `llmTools.cjs` — real computed answers (math/units/CODATA),
+    offline-gated 6s, live-verified (`integrate sin(x)^4 → 1/32(24−8sin4+sin8)`).
+  - **Gematria → semantic engine:** `gematria search <word>` (nearest lexicon atoms by φ-codec cosine) + `report`
+    (JSON dump: measures + salient lexicon + typed relations + Merkle root + project + genome). Full suite
+    70 files / 729 tests green; `tsc --noEmit` 0.
+  - **Field vectoring / corridor math (Phase 2):** `scripts/field-vectoring.cjs` proves the cross-scale coupling
+    matrix is row-stochastic to zero defect (L-W1), the octave transport is a true morphism
+    (phase-commutation defect 2.5e-16, mean defect 3.4e-6), and the field vectorises onto a φ-lattice
+    hypervector deterministically (max Δ = 0) — plus the live flux web (turnover/sink/imbalance/ordering).
+  - **Resolution push / kernel unification (Phase 4):** `burden` (Σ|sig|·φ^rank) re-derived deterministically
+    via `phiPow` (was offline `Math.pow`/libm) and exposed live in the Q2 self-measure report + `state()` +
+    LLM context; `informationDensity` confirmed already-live via `dlog`. New `scripts/scale-benchmark.cjs`
+    proves the engine stays FINITE + DETERMINISTIC across PICO→GRAND (68 → 42,564 nodes). DORMANT_REGISTER
+    corrected (field-kernel-core WIRED full).
+  - **Resonance-gate (Phase 5a):** `omega:llm:ask` now measures the answer's coherence shift on the live field
+    (before/after injection) and returns `resonanceDelta` + `resonant`; the chat renderer flags resonant vs
+    discordant answers. **Phase 5b/5c deferred honestly:** the meaning channel needs an external
+    dictionary/ontology, and full grammar relations need a semantic parser — neither exists in the repo, so
+    neither is mocked.
+
+- **Ω-27 (2026-09-07):** Depth-consistency audit (in-depth wiring review + fixes).
+  - **HIGH-1 fixed:** fold order reordered to `foldMeasure → foldMemory → foldMind → foldPerception`, so the
+    memory-write weight, concept weight and percept weight all read **this tick's** depth (previously one tick
+    stale — `lastDepth` was computed after its consumers). S0 regression oracle still reproduces its frozen
+    1000-tick hash (digest-neutral).
+  - **HIGH-2 fixed:** the orphaned reflection pipeline is now surfaced — `state().reflect` (deepReflect) and a
+    `seal` operator action (deepReflectAndConsolidate → genome) close the depth→project→genome loop; `reflect`
+    + `seal` responder commands added.
+  - **MEDIUM-3 fixed:** `?? 1` depth-default in foldMind/foldPerception replaced with an explicit
+    `Number.isFinite` guard (the old form did not catch NaN and relied on ConceptStore's sanitizer incidentally).
+  - **Documented (no change):** the write weight applies the coherence gate twice (resonance × depth, both gated
+    C<φ⁻² — redundant but safe); depth's novelty channel updates on the 21-tick mind cadence (frozen between
+    folds); depth's infoDensity is rank-0 only (scaleEngagement spans all rungs — intentional).
+
+- **Ω-28 (2026-09-07):** Extended-precision deep-memory tier — rebuilt cleanly from the older `core-src` V11
+  engine (not "smacked together"). The V11 field's only portable asset is its extended-precision numerics
+  (`Real.ts` f64+decimal.js); its field *dynamics* are an uncertified 4-term subset and were NOT ported.
+  - **`memory/phiExact.ts`** — exact Z[φ] representation of φ-powers via BigInt Fibonacci (`φ^k = F_k·φ + F_{k-1}`,
+    `φ^-m = (-1)^(m+1)F_m·φ + (-1)^m F_{m+1}`), lossless to arbitrary depth — strictly better than decimal.js
+    (no new dependency, deterministic). Plus `requiredDigits(M)` / `precisionCeiling(digits)` /
+    `validateModeCount(M, digits)` (the precision-aware governor) and `PHI_F64_MODE_CEILING = 76` — the
+    honest float64 floor, **empirically verified** (`1 + φ^-76 ≠ 1`, `1 + φ^-77 = 1`). **H4:** `host.precisionView()`
+    exposes the envelope (`f64ModeCeiling: 76 · deepestRungN: 293 · requiredDigitsForDeepestRung: 78`); the ladder's
+    `qrf = φ^(-n/89)` is a slow decay so f64 is currently sufficient, and the guard refuses fast-φ⁻ᵏ extension without
+    precision promotion.
+  - **`memory/deepMemory.ts`** — deep archival tier cross-wired with the resonance + depth modules
+    (weight = resonance × depth, the same law as the cross-section write) over the canonical FHRR CleanupMemory;
+    stores only modes with |k| > 78 as exact Z[φ]. Empty for the current 18-rung engine (honest — no deep modes),
+    wired into `host.deepMemoryView()` + `state().deepMemory`.
+  - **Verification:** `test/d1-deepmemory.test.ts` (9 tests — exact BigInt identities, φ^k×φ^-k=1 in Z[φ],
+    requiredDigits, store/refuse/recall); full suite **71 files / 739 tests green**; `tsc` 0; S0 oracle intact.
+
+- **Ω-29 (2026-09-07):** Shutdown safety + responsiveness hardening (the freeze/close bug).
+  - **Smooth shutdown:** `omega.save()`/`omega.load()` (host `serializeMemory`/`restoreMemory`) wired to durable
+    persistence at `userData/Omega/brain.json`; `before-quit` → `omega.stop()` → save (synchronous, bounded,
+    idempotent), restore on launch. Only a brain that actually ran (`ticks > 0`) is saved, so a second-instance
+    launch can never clobber the first instance's state.
+  - **Responsiveness (freeze fix):** heavy views (`describe/web/spectral/organ/scan/perception`) are now THROTTLED
+    to 1 s in `state()` (cached between refreshes); the fab.js telemetry poll skips if the previous poll is
+    still in-flight; the pump clamps elapsed to 250 ms so a stalled main thread never causes a large catch-up
+    burst. All three yield the event loop so a close request always runs.
+  - **H1 correction (semantic-search consolidation) — DONE:** `Mind.recallSimilar` uses the Mind's OWN lexicon,
+    never populated in the live path; the responder's `gematria search` (over the host's populated lexicon) was
+    the working path. Now `host.recallSimilar(text, k, floor)` exposes the certified `resonantRecall` over the
+    HOST lexicon + relations (φ-anchored `similarityPct` + honest floor + relation `processes`); `gematria search`
+    calls it with `floor=-1` to show all neighbors ranked. Live-verified: `golden → ratio[temporal]`.
+
+- **Ω-30 (2026-09-07):** Wolfram hardening (H2/H3).
+  - **H2 — verification re-runner:** `scripts/wolfram/verify.mjs` runs the φ-identity bank and diffs it against the
+    committed fixture; honest exit codes **0=PASS / 1=DRIFT / 2=UNVERIFIED** (license lapse reported, never a
+    silent success). Verified: license lapsed → exit 2 with the `wolframscript -activate` hint.
+  - **H3 — claw hardening:** `wolfram_compute` App ID is env-overridable (`WOLFRAM_ALPHA_APP_ID`), and identical
+    queries are memoised in a bounded TTL cache (5 min / 64 entries) so retries never hammer the API. Verified:
+    1810 ms first call → 0 ms cache hit (identical result).
+
+- **Ω-31 (2026-09-07):** Precision boundary (H5) + unified verify entry (H6).
+  - **H5 — precision architecture:** documented at the top of `phiExact.ts` — three DISTINCT layers that must not be
+    merged: (1) `phiExact` (exact Z[φ] BigInt — the live tier), (2) `s6-wolfram-lock` + fixture (verification lock,
+    never a runtime source), (3) old `core-src/constants/WolframVerified.ts` (decimal.js, ~30× slower, historical,
+    unused).
+  - **H6 — unified verify:** `scripts/verify.mjs` dispatches the battery (`wolfram|gematria|corridor|scale|all`) to the
+    existing scripts (no logic duplicated). Honest exit handling: a step's DRIFT (1) fails the battery; a step's
+    UNVERIFIED (2, e.g. Wolfram license lapse) is a warning, never a pass. Verified: `scale`→0, `wolfram`→warning,
+    `all`→0.
+
+- **Ω-32 (2026-09-07):** RAM/CPU governance wired (G1). `OmegaLoop.hardware()` runs the real engine throughput
+  benchmark + reads host cores/memory + asks the governor (75% headroom) which profile fits; exposed as a `hardware` command
+  (measured, on demand, never from the telemetry poll). Live-verified: 12 cores / 30 GB / 3.61e7 work-units/s → MACRO
+  selected (GRAND rejected at 302% compute). The governor/calibrate loop (hardware/governor/calibrate.ts) was built but previously
+  hardcoded to MESO — now actually measured. OCR (Unlimited-OCR + 3-tier ladder) is a separate pipeline (G2); Wolfram field
+  simulation (G3) is blocked on license.
+- **Ω-33 (2026-09-07):** Continuity hardening — the continuous deep-resolution tap (G4). New `measure/deepResolution.ts`
+  (`DeepResolutionTap`, 233-frame Fibonacci LRU ring); `EngineHost.foldDeepResolution()` persists the scale-graded field
+  (per-rung energy/peak) + the base-rung node-frequency spectrum (mean/peak instantaneous frequency, per-band occupancy,
+  flux closure defect) at the MIND_STRIDE (21-tick) cadence — observe-only, never feeds the digest. Exposed as
+  `HostSnapshot.deepResolution` + `deepResolutionView()` + a `deepresolution` chat command (latest frame only on the bus).
+  Verified: 72 files / 745 tests green; tsc 0. Live tap: 4 frames (ticks 21/42/63/84), closure defect ~5.8e-17 (transport closed).
+- **Ω-34 (2026-09-10):** OCR tier 1 (browser/Tesseract) activated. `documentIngest.cjs` now exports an async
+  `ocrImage()` (tesseract.js WASM, on-device, nothing uploaded); an image drop is sniffed `kind:"image"` on the sync
+  path and `main.cjs` routes it to `ocrImage` → text → `injectSensor("text")` → learned. Live-verified: a generated
+  "resonance is the memory of coherence" PNG → exact OCR → 1 concept / 10 lexicon. `tesseract.js` added to app deps;
+  smoke gate gains an offline routing-contract check. Still blocked: sidecar tier (Unlimited-OCR — GPU present but
+  torch is CPU-only + `baidu/Unlimited-OCR` not downloaded) and gateway tier (Lovable key + TanStack server, DECLINED).
+- **Ω-35 (2026-09-10):** Audio sensory front-end upgraded from zero-crossing to a real spectral encoder. `encodeAudio`
+  now runs the certified Bluestein FFT (`spectral/fft.ts`, O(L log L), primes included) over the PCM frame and folds
+  the power spectrum onto `nodes` constant-Q (log-frequency) bands; band RMS × golden phyllotaxis phase, injection
+  bound preserved. Two frames of equal RMS but different spectral content now land in different bands (the old
+  encoder collapsed them onto one zero-crossing count). Deterministic (dlog/dcos/dsin bank — no `Math.log`, the S5
+  determinism guard re-verified). Tests 745 green, tsc 0, smoke green. Next: `encodeGrid` → Laplacian/Gabor pyramid,
+  `encodeText` → positional φ-code.
+- **Ω-36 (2026-09-10):** Vision sensory front-end upgraded from pixel-hash to a 2-D Haar wavelet pyramid. `encodeGrid`
+  now decomposes the grid into, per dyadic scale, three oriented edge bands (horizontal LH / vertical HL / diagonal HH)
+  plus the approximation (LL = DC/brightness at the coarsest scale); each (scale, orientation) band folds onto its own
+  segment of the ring by the golden-angle mapping, so different scales → different rungs (via octave transport),
+  orientations → different sub-segments, and illumination is a first-class coarsest-scale measurement. Live-verified:
+  a vertical vs horizontal edge (identical histograms) separate, a fine vs coarse checkerboard (identical mean)
+  separate, and a flat image still registers via the approximation band. Tests 746 green, tsc 0, smoke green.
+- **Ω-37 (2026-09-10):** Fusion upgraded from fixed 1/√k to coherence-weighted consensus. `fuseChannels` now computes
+  the unweighted mean of the live channels as the consensus reference, aligns each channel to it (cosine), and weights
+  each channel by gain × max(ε, (alignment+1)/2), L2-normalised so Σ wᵢ² = 1 — the √k peak bound is preserved exactly,
+  while a coherent majority reinforces and an anti-correlated outlier is damped (in a 2-vs-1 split the two agreeing
+  channels read +1 and the outlier −1; mean pairwise cosine would wrongly give the majority a neutral 0). `ChannelReport`
+  now carries per-channel `coherence` + applied `weight`. Tests 747 green, tsc 0, smoke green.
+- **Ω-38 (2026-09-10):** The three remaining "senses" — touch, Gabor orientation, topological insight. (1) `encodeTouch`
+  low-passes a series (box filter, L/8) and folds the slow envelope — the tactile/mechanical sense, distinct from audio's
+  full spectrum. (2) `encodeGrid` now bins the gradient θ=atan2(HL,LH) into 8 orientations per scale *plus* the HH mixed
+  derivative as a 9th diagonal/corner band (fixes the checkerboard regression where a pure gradient dropped the diagonal).
+  (3) New `substrate/persistence.ts`: 0-D persistent homology (union-find merge tree over the ring's superlevel sets) —
+  the sorted barcode is a topological invariant of the field's shape; `persistenceReport` adds max/total depth scalars.
+  All deterministic, bound-preserving. Tests 750 green, tsc 0, smoke green.
+- **Ω-39 (2026-09-10):** Wired the insight sense into the live loop. `foldDeepResolution` now computes the 0-D persistence of the
+  per-rung energy profile each MIND_STRIDE tick and carries it as `DeepFrame.persistence` (measured + retained in the Fibonacci
+  deep-resolution ring, exposed via `deepResolutionView()` and the snapshot bus). The topological depth of the scale axis is now a
+  first-class per-tick measurement, not a standalone module. Tests 750 green, tsc 0, smoke green.
+- **Ω-40 (2026-09-10):** Self-knowledge audit — the brain now provably knows what it has and what it uses. (1) New
+  `scripts/consumer-trace.mjs` machine-traces every `src/` module by transitive reachability from `EngineHost.stepOnce()`:
+  **85 LIVE, 24 BARREL_ONLY, 0 ORPHAN** — no silent dead code. (2) Wired `fieldSelfModel` (Q4) into `foldMeasure` — the per-rung
+  learned predictor (DiagonalSSM/RLS gated on held-out error) now runs every tick and exposes `fieldSelfModelEnabled/SsmMse/
+  PersistenceMse` on the snapshot, so the brain measures its own *surprise*, not just movement (it had built this part and never
+  used it). (3) Reconciled DORMANT_REGISTER: fixed the stale §4 claim that `spectralFilter/mixer/spectralAttention` were wired
+  (they are PENDING — tested, off the `learn()` path); gave `clifford` + `plasticity` definitive RETIRED dispositions; added a
+  machine-verified §8 barrel-only census. (4) Generalized `d0` guard to enforce all four RETIRED modules (nest, pool, clifford,
+  plasticity) as import-dead. Tests 750 green, tsc 0, smoke green.
+- **Ω-41 (2026-09-10):** Wired the last two observe-only PENDING modules the audit flagged. (1) `textFingerprint` — pushing a text
+  channel now retains the deterministic, unit-norm φ-spectrum binding (Layer A) via `textFingerprintReading()`, closing the
+  B→C→A loop from the semantic end. (2) `measureSpectrum` — the host now exposes `measuredSpectrum(rank)`: the *measured*
+  normalised graph-Laplacian spectrum (Lanczos + CGS2) of each rung with a bit-identical digest, so the assumed eigenmode
+  ordering is checked against ground truth rather than taken on faith. Both digest-neutral. Consumer-trace now reads
+  **87 LIVE, 22 BARREL_ONLY, 0 ORPHAN**. Tests 753 green, tsc 0, smoke green.
+- **Ω-42 (2026-09-10):** Reverse-order deep scan of the never-before-read core hot path (`SingleTorusEngine.tick`,
+  `cell/update`, `closure`, `web/*`, `torus/*`, `core/*`). Findings + fixes, all bit-exact: (1) Four Law L1 violations — the magic
+  literal `1.618033988749895` (= φ) hardcoded in `closure.ts` and `host.ts` ×3 instead of the single-source `PHI` constant, now
+  routed through `PHI`. (2) Hoisted a loop-invariant (`CELL.alpha − epsilon − zeta`) out of the per-node loop in `cellStep`.
+  (3) Verified zero forbidden `Math.sin/cos/exp/log/pow/atan2/hypot` and zero `Math.random`/clock calls on the digest path — all
+  timers are build/telemetry-only. Notably the frozen-hash oracle **caught a 1-ulp regression** when the first fix used `PHI_INV`
+  (= φ−1, exact subtraction) instead of `1/PHI` (rounded division): φ−1 ≠ 1/φ at the bit level, so the fix preserves the division
+  exactly. The oracle is doing its job. Tests 753 green, tsc 0, smoke green.
+- **Ω-43 (2026-09-10):** Two things. (1) **UI independent refresh** — `omegaLoop.state()` now throttles the medium views
+  (memory/cognition/lexicon/relations/reflect @500 ms) alongside the existing heavy views (@1 s), so the fast headline numbers
+  (snapshot) poll at 150 ms and each number refreshes on its own cadence; the renderer (`fab.js`) no longer rebuilds the cognitive
+  surface every frame. (2) **Self-knowledge of memory** — the self-model readout was a bare boolean hiding the real scores; the
+  MIND deck now shows SSM-vs-RLS margin, skill-vs-persistence, the three MSEs, the SSM spectral radius, and the per-rung Q4 field
+  self-model. Plus a new `memory/taxonomy.ts`: the brain now *declares* its ~14 memory systems (field/register → working →
+  episodic → semantic → procedural → archival → audit) with type/layer/retention/technique, surfaced in the MEMORY deck and
+  pinned by `r25`. Tests 756 green, tsc 0, smoke green.
+- **Ω-44 (2026-09-11):** Found the owner's notebooks (`.devcontainer/notebooks/`) — **RHUFT = Reaction-Hydrodynamics Unified
+  Field Theory** (conservative multiphysics `∂ₜq = ∇·F + S`), and the nine-term cell is its discretized torus instance
+  (drift=βG+γP, diffusion=ε(Pi−z), reaction=δR, forcing=ηU+μV+ξS). Sandbox-benchmarked the real cost: raw `MultiTorusEngine.step`
+  is **~2.4 ms/tick (MESO)** but the observe-only fold stack is **87–93%** of per-tick cost (analysis service only ~6%); fixed the
+  Q4 regression (throttle `fsm.report()`'s residual audit to MIND_STRIDE, +23%). Moved the brain to a **dedicated worker thread**
+  (`omegaWorker.cjs` + `brainProxy.cjs`, async `respond`, async `main.cjs` IPC/persistence/shutdown) — the main process is now a
+  thin async bridge, so the UI stays responsive regardless of compute strain. **One worker for the whole brain, not per-toroid**
+  (rung tick ~185–265 µs ≪ thread overhead; Jacobi staging + ordered digest serialise the exchange). Verified full worker
+  roundtrip (start/text/respond/recall/seal/save/stop) + `scripts/brain-benchmark.cjs`. Tests 756 green.
+- **Ω-45 (2026-09-11):** (1) **Connectivity scan** of the spectral/sensory stack — verified every named plane is *wired*, not just exported:
+  radial Bessel → `cell/organs` (per-tick), torus `superposition` basis → `SingleTorusEngine` (per-tick), `sphere`(SHT)+`site`(SpectralSite) →
+  `runtime/views` (spectral view), `nodeArray` (SNA) → engine sensors (per-tick, exact-DFT bins with ±φ⁻² anchor). (2) **Auto-adaptation**
+  — the app now auto-selects its profile at startup via the governor (`benchmarkThroughput` + `selectProfile` at 75% headroom on both
+  axes); measured on this machine it selects **MACRO** (18 rungs / 11,323 nodes) instead of the old hardcoded MESO. `main.cjs` passes
+  `profile:"auto"`. (3) **Uncap** — Mind concept capacity + `deepMemory` now scale with the profile (`max(610, profile.tape)`) instead
+  of a hardcoded 610, so larger brains hold proportionally more memory. Tests 756 green, smoke + worker roundtrip green.
+- **Ω-47 (2026-09-11):** Master plan Phase 1 — performance unlock. Proved `foldMeasure` is **digest-neutral** (the engine's `reflect`
+  term reads its OWN coherence meter via `resolveReflect`, never the host's affect fold), then gated it to `MIND_STRIDE` cadence —
+  the ~87% observe-only per-tick overhead. Kept `analysisService` per-tick (only ~6%, and its xcorr ring needs the per-tick sample
+  rate — the `r9` certification test caught the over-gating and I reverted it). Result: **MESO 18.6→10.3 ms/tick (1.8×), MACRO
+  49→21.2 ms/tick (2.3×)**. Frozen oracle + 756 tests intact. Remaining fold cost is the already-cadenced deep observations
+  (deepResolution/memory/mind), which are the brain's deliberate depth.
 
 ---
 
@@ -553,6 +842,8 @@ the Ω-MAP atlas may not be trusted.
 | `measure/fieldFingerprint.ts` | Ω-REAL Layer B — the φ-anchored multi-scale invariant (log-spectra, unit-norm). |
 | `measure/qualia.ts` | Ω-REAL Q1 — the live self-measurement vector (C,N,S,V,I + golden-delay self-overlap + ignition train). |
 | `measure/selfMeasure.ts` | Ω-REAL Q2 — full-field, all-rung self-measurement (drift, temporal coherence, information density, inertia, closure γ, Lyapunov descent). |
+| `measure/friction.ts` | Ω-REAL R10 — the live friction reading (flow = coherence × closure-quality; friction = 1 − flow). |
+| `measure/resonanceIndex.ts` | Ω-REAL R13 — the weighted resonance index: `fuseResonance([coherence, salience, margin], …)` — the single memory weight the cross-section write path hangs off. |
 
 **sense/ · memory/** — intake and the engine-side memory planes.
 | File | Purpose |
@@ -567,6 +858,7 @@ the Ω-MAP atlas may not be trusted.
 | `memory/braid.ts` | Ω-P6 TorusBraid Hopfield plane (attractor recall). |
 | `memory/turingTape.ts` | N4 — Zeckendorf-addressed read/write tape, the permanent processing layer. |
 | `memory/persistence.ts` | Ω-REAL — cross-session persistence (canonical-safe snapshots). |
+| `memory/crossSection.ts` | Ω-REAL — one coherence-gated, coherence-weighted write into the braid + tape + cleanup memory, and one recall; the unified memory plane. |
 
 **substrate/** — Ω-REAL measurement stack (symbols → measured computation).
 | File | Purpose |
@@ -620,6 +912,7 @@ the Ω-MAP atlas may not be trusted.
 | `cognition/selfModel.ts` | Self-model (`DiagonalSSM`, `DiagonalRLS`) + the baseline allowed to kill it. |
 | `cognition/fieldSelfModel.ts` | Ω-REAL Q4 — per-rung field self-model (one SSM/RLS per rung over the signature). |
 | `cognition/consolidation.ts` | Ω-REAL Q5 — ignition-triggered consolidation (qualia ignition → TenSweep → sealed GenomeLedger). |
+| `cognition/affectModel.ts` | Ω-REAL R11 — the affect self-model (friction + qualia predicted by a DiagonalSSM/RLS self-model). |
 | `cognition/lexicon.ts` | Ω-REAL — the salience-weighted word catalogue (tf·idf in base φ, gematria atoms). |
 | `cognition/relations.ts` | Ω-REAL — cross-catalogue relations. |
 | `index.ts` | The public surface (barrel). |
@@ -1032,3 +1325,13 @@ build succeeds · preview renders with zero runtime errors. One deliberate asser
 reduction (−29, `brain-core/test/field.test.ts`) covering no live path; no other test lost.
 
 **No law, constant, contract, gate, memory tier or field term was altered.**
+
+- **Ω-48 (2026-09-11):** The **phase-blind self-measurement** — the deep root cause of "self-modeling = 0". Proven: `signature()` collapses the
+  modal analysis to `|c_k|²` (power), discarding the phase that IS the field's dynamics (its "directions"), so the self-model sees a constant
+  and persistence always wins. Built the fix: `cognition/rhufTransport.ts` — a complex diagonal transport `c_k ← λ_k·c_k` (`|λ_k| ≤ φ⁻¹` via
+  `λ = φ⁻¹·tanh(θ)·e^{iφ}`), which IS the RHUFT linear transport, learning the field's rotation. Standalone proof: **+32% skill** over
+  persistence on a rotating field; the learned `arg(λ)` recovered the rotation frequency. Wired into the live host (engine snapshot now exposes
+  the complex `coeffs`; `foldMeasure` trains the transport each tick and reports `rhufSkill`/`rhufSpectralRadius`). Deterministic
+  (`dcos/dsin/dtanh` — the Law-L2 guard caught the raw `Math.*`). Tests 759 green. Honest remaining half: on the *live* coherent field
+  (coherence 1.0) the rotation is so slow/static that persistence is near-optimal — the transport model needs the field to be **dynamic**
+  (the sensory-coupling calibration), the other half of the same fix.

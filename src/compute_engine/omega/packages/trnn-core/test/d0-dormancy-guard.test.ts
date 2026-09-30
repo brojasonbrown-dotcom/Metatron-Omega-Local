@@ -23,44 +23,32 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { lyapunovEnergy } from '../../field-kernel-core/src/lyapunov';
 import { createFieldStateN } from '../../field-kernel-core/src/state';
 
 const SRC = join(process.cwd(), 'packages', 'trnn-core', 'src');
 
-function listTs(dir: string): string[] {
-  const out: string[] = [];
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    const p = join(dir, e.name);
-    if (e.isDirectory()) out.push(...listTs(p));
-    else if (e.name.endsWith('.ts')) out.push(p);
-  }
-  return out;
-}
+// Ω-DEPTH + harness modules that were once RETIRED are now WIRED into the live
+// host. This guard asserts the wiring (a retirement is never silently
+// re-introduced): the host must import each one.
+const WIRED = [
+  'algebra/clifford',
+  'fractal/nest',
+  'fractal/pool',
+  'substrate/plasticity',
+  'harness/golden',
+  'harness/battery',
+  'harness/abstention',
+];
 
-describe('d0 · fractal/* RETIRED — import-dead on the live path', () => {
-  it('no live module imports the retired fractal modules', () => {
-    const offenders: string[] = [];
-    for (const f of listTs(SRC)) {
-      const rel = f.slice(SRC.length + 1).replace(/\\/g, '/');
-      // The barrel may keep re-exporting them, and the fractal dir is allowed
-      // to self-reference. Anything ELSE that mentions either module is a
-      // live-path resurrection and must fail this guard.
-      if (rel === 'index.ts' || rel.startsWith('fractal/')) continue;
-      const text = readFileSync(f, 'utf8');
-      if (text.includes('fractal/nest') || text.includes('fractal/pool')) {
-        offenders.push(rel);
-      }
+describe('d0 · WIRED modules — reachable from the live host', () => {
+  it('the host imports every formerly-retired module', () => {
+    const host = readFileSync(join(SRC, 'runtime', 'host.ts'), 'utf8');
+    for (const m of WIRED) {
+      expect(host).toContain(`'../${m}'`);
     }
-    expect(offenders).toEqual([]);
-  });
-
-  it('the retired modules stay reachable ONLY through the public barrel', () => {
-    const barrel = readFileSync(join(SRC, 'index.ts'), 'utf8');
-    expect(barrel).toContain("export * from './fractal/nest'");
-    expect(barrel).toContain("export * from './fractal/pool'");
   });
 });
 

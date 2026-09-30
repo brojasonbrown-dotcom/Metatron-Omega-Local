@@ -52,6 +52,7 @@ export interface LexiconEntry {
 export interface LexiconState {
   readonly dim: number;
   readonly tokenCount: number;
+  readonly capacity?: number;
   /** word → occurrence count (frequency). */
   readonly freq: Readonly<Record<string, number>>;
   /** word → distinct-document count (uniqueness / idf denominator). */
@@ -68,8 +69,8 @@ export class Lexicon {
   private tokenCount = 0;
   private readonly memory: CleanupMemory;
 
-  constructor(readonly dim: number) {
-    this.memory = new CleanupMemory(dim);
+  constructor(readonly dim: number, readonly capacity = 987) {
+    this.memory = new CleanupMemory(dim, undefined, undefined, Math.max(1, Math.floor(capacity)));
   }
 
   private logPhi(x: number): number {
@@ -106,6 +107,10 @@ export class Lexicon {
   /** Register one occurrence. `docId` (optional) separates distinct contexts for idf. */
   observe(word: string, docId?: string): void {
     const prev = this.freq.get(word) ?? 0;
+    // Retention: on a NEW word at capacity, evict the least-salient word.
+    if (prev === 0 && this.freq.size >= this.capacity) {
+      this.evictLeastSalient();
+    }
     this.freq.set(word, prev + 1);
     this.tokenCount++;
     // First sighting → register the prototype once (recall stays O(N·D) per
@@ -118,6 +123,26 @@ export class Lexicon {
         this.df.set(word, (this.df.get(word) ?? 0) + 1);
         this.inDoc.set(word, docId);
       }
+    }
+  }
+
+  /** Evict the least-salient word (deterministic: lowest tf·idf, first-seen tiebreak). */
+  private evictLeastSalient(): void {
+    let worst: string | null = null;
+    let worstSalience = Number.POSITIVE_INFINITY;
+    for (const w of this.freq.keys()) {
+      const s = this.salience(w);
+      if (s < worstSalience) {
+        worstSalience = s;
+        worst = w;
+      }
+    }
+    if (worst !== null) {
+      this.freq.delete(worst);
+      this.df.delete(worst);
+      this.inDoc.delete(worst);
+      this.atoms.delete(worst);
+      this.memory.remove(worst);
     }
   }
 
@@ -180,6 +205,7 @@ export class Lexicon {
     return {
       dim: this.dim,
       tokenCount: this.tokenCount,
+      capacity: this.capacity,
       freq: Object.fromEntries(this.freq),
       df: Object.fromEntries(this.df),
       docIds: [...this.docIds].sort(),
@@ -188,7 +214,7 @@ export class Lexicon {
 
   /** Rebuild a lexicon from a saved state; atoms are recomputed lazily. */
   static restore(s: LexiconState): Lexicon {
-    const lex = new Lexicon(s.dim);
+    const lex = new Lexicon(s.dim, s.capacity ?? 987);
     lex.tokenCount = s.tokenCount;
     for (const [w, n] of Object.entries(s.freq)) lex.freq.set(w, n);
     for (const [w, n] of Object.entries(s.df)) lex.df.set(w, n);

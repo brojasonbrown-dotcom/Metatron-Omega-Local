@@ -109,7 +109,7 @@ export class Mind {
   }
 
   /** One cognitive fold. `vec` is the engine's observation for this tick. */
-  observe(vec: ArrayLike<number>, tick: number, key?: string): Thought {
+  observe(vec: ArrayLike<number>, tick: number, key?: string, weight = 1): Thought {
     for (let i = 0; i < this.dim; i++) {
       const v = i < vec.length ? vec[i] : 0;
       this.obs[i] = Number.isFinite(v) ? v : 0;
@@ -145,17 +145,17 @@ export class Mind {
     let conceptKey: string | null;
     if (!best) {
       conceptKey = key ?? `c${tick}`;
-      conceptId = this.store.add(conceptKey, this.obs, tick);
+      conceptId = this.store.add(conceptKey, this.obs, tick, undefined, weight);
       action = 'seed';
     } else if (novelty >= this.noveltyThreshold) {
       conceptKey = key ?? `c${tick}`;
-      conceptId = this.store.add(conceptKey, this.obs, tick);
+      conceptId = this.store.add(conceptKey, this.obs, tick, undefined, weight);
       action = 'store';
     } else {
       // familiar: refresh the matched concept's recency without adding a slot
       conceptKey = best.key;
       conceptId = best.id;
-      this.store.add(best.key, this.obs, tick);
+      this.store.add(best.key, this.obs, tick, undefined, weight);
       action = 'recognise';
     }
 
@@ -196,7 +196,7 @@ export class Mind {
 
   report(): MindReport {
     const records = this.store.records();
-    const top = records.slice().sort((a, b) => b.hits - a.hits || b.tick - a.tick).slice(0, 13);
+    const top = records.slice().sort((a, b) => b.hits * b.weight - a.hits * a.weight || b.tick - a.tick).slice(0, 13);
     return {
       thoughts: this.count,
       meanNovelty: this.count ? this.noveltySum / this.count : 0,

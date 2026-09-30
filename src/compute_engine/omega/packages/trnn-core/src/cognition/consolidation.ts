@@ -18,6 +18,7 @@ import { QualiaTracker } from '../measure/qualia';
 import { Corpus, TenSweepProtocol } from '../sweeps/tenSweep';
 import { GenomeLedger } from '../genome/record';
 import { randomHv } from '../substrate/vsa';
+import { PHI_INV } from '../core/constants';
 
 export interface ConsolidationConfig {
   /** Ignitions to accumulate before a consolidation cycle (Fibonacci default). */
@@ -25,12 +26,18 @@ export interface ConsolidationConfig {
   /** FHRR dimension of the per-moment atom. */
   readonly dim?: number;
   readonly owner?: string;
+  /** Depth (importance) threshold for the second consolidation trigger — φ⁻¹. */
+  readonly depthThreshold?: number;
 }
 
 export interface ConsolidationObserve {
   readonly ignited: boolean;
   /** True on the up-crossing tick — a NEW transient conscious moment. */
   readonly upCrossing: boolean;
+  /** True on the tick depth rose across `depthThreshold` — a deep moment. */
+  readonly depthUpCrossing: boolean;
+  /** The depth value observed this tick (NaN when unmeasured). */
+  readonly depth: number;
   readonly ignitions: number;
   readonly pending: number;
   /** True when this observation completed a consolidation cycle. */
@@ -44,8 +51,10 @@ export class IgnitionConsolidator {
   private readonly batch: number;
   private readonly dim: number;
   private prevIgnited = false;
+  private prevDepth = 0;
   private pending = 0;
   private cycles = 0;
+  private readonly depthThreshold: number;
 
   constructor(
     private readonly ledger: GenomeLedger,
@@ -53,6 +62,7 @@ export class IgnitionConsolidator {
   ) {
     this.batch = cfg.batch ?? 13;
     this.dim = cfg.dim ?? 512;
+    this.depthThreshold = cfg.depthThreshold ?? PHI_INV;
     this.protocol = new TenSweepProtocol(ledger, cfg.owner);
   }
 
@@ -68,27 +78,58 @@ export class IgnitionConsolidator {
    * Feed one qualia observation. On each up-crossing a moment is recorded; once
    * `batch` moments accumulate, a ten-sweep cycle seals them into the ledger.
    */
-  observe(psi: Float64Array, coherence: number, closureGamma: number, tick: number): ConsolidationObserve {
+  observe(psi: Float64Array, coherence: number, closureGamma: number, tick: number, depth?: number): ConsolidationObserve {
     const q = this.qualia.observe(psi, coherence, closureGamma);
     const upCrossing = q.ignited && !this.prevIgnited;
     this.prevIgnited = q.ignited;
 
-    if (!upCrossing) {
-      return { ignited: q.ignited, upCrossing: false, ignitions: q.ignitions, pending: this.pending, cycled: false };
+    const d = depth !== undefined && Number.isFinite(depth) ? depth : NaN;
+    const depthUpCrossing = Number.isFinite(d) && d >= this.depthThreshold && this.prevDepth < this.depthThreshold;
+    // Keep the last VALID depth: an unmeasured (NaN) tick must not poison the
+    // crossing detector, or the next real crossing would be silently missed.
+    this.prevDepth = Number.isFinite(d) ? d : this.prevDepth;
+
+    if (!upCrossing && !depthUpCrossing) {
+      return {
+        ignited: q.ignited,
+        upCrossing: false,
+        depthUpCrossing: false,
+        depth: d,
+        ignitions: q.ignitions,
+        pending: this.pending,
+        cycled: false,
+      };
     }
 
-    this.corpus.add({
-      id: `moment:${tick}`,
-      kind: 'Ignition',
-      vector: randomHv(this.dim, `moment:${tick}`),
-      trust: q.Cphi,
-      contradicts: [],
-      recordedAt: tick,
-      validFrom: tick,
-      validTo: null,
-      supersededBy: null,
-    });
-    this.pending++;
+    if (upCrossing) {
+      this.corpus.add({
+        id: `moment:${tick}`,
+        kind: 'Ignition',
+        vector: randomHv(this.dim, `moment:${tick}`),
+        trust: q.Cphi,
+        contradicts: [],
+        recordedAt: tick,
+        validFrom: tick,
+        validTo: null,
+        supersededBy: null,
+      });
+      this.pending++;
+    }
+
+    if (depthUpCrossing) {
+      this.corpus.add({
+        id: `deep:${tick}`,
+        kind: 'DeepMoment',
+        vector: randomHv(this.dim, `deep:${tick}`),
+        trust: d,
+        contradicts: [],
+        recordedAt: tick,
+        validFrom: tick,
+        validTo: null,
+        supersededBy: null,
+      });
+      this.pending++;
+    }
 
     let cycled = false;
     if (this.pending >= this.batch) {
@@ -98,6 +139,14 @@ export class IgnitionConsolidator {
       cycled = true;
     }
 
-    return { ignited: q.ignited, upCrossing: true, ignitions: q.ignitions, pending: this.pending, cycled };
+    return {
+      ignited: q.ignited,
+      upCrossing,
+      depthUpCrossing,
+      depth: d,
+      ignitions: q.ignitions,
+      pending: this.pending,
+      cycled,
+    };
   }
 }

@@ -14,12 +14,41 @@
 const path = require("node:path");
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { respond } = require("./omegaResponder.cjs");
-const { OmegaLoop } = require("./omegaLoop.cjs");
-const { ingestDocument } = require("./documentIngest.cjs");
+const { BrainProxy } = require("./brainProxy.cjs");
+const { ingestDocument, ocrImage, sidecarOcr } = require("./documentIngest.cjs");
 const sensory = require("./sensory.cjs");
 const llm = require("./llmClient.cjs");
+const llmTools = require("./llmTools.cjs");
 
-let omega = new OmegaLoop();
+let omega = new BrainProxy({ profile: "auto" });
+
+// ── Durable-memory persistence (.Omega/brain.json under the app's userData) ──
+const fs = require("node:fs");
+const OMEGA_DIR = path.join(app.getPath("userData"), "Omega");
+const BRAIN_FILE = path.join(OMEGA_DIR, "brain.json");
+
+async function loadBrain() {
+  try {
+    if (fs.existsSync(BRAIN_FILE)) {
+      await omega.load(fs.readFileSync(BRAIN_FILE, "utf8"));
+      return true;
+    }
+  } catch (err) {
+    console.error("[main] failed to restore brain state:", err && err.message ? err.message : err);
+  }
+  return false;
+}
+
+async function saveBrain() {
+  try {
+    fs.mkdirSync(OMEGA_DIR, { recursive: true });
+    fs.writeFileSync(BRAIN_FILE, await omega.save());
+    return true;
+  } catch (err) {
+    console.error("[main] failed to persist brain state:", err && err.message ? err.message : err);
+    return false;
+  }
+}
 
 // Last-resort guard: a single bad frame / broken pipe must NEVER take down the
 // whole main process. Log it and keep the app alive — the per-stream handlers
@@ -97,7 +126,7 @@ ipcMain.handle("omega:send", async (_event, message) => {
     return { ok: false, error: "empty message" };
   }
   try {
-    const answer = respond(omega, message.slice(0, 8000));
+    const answer = await respond(omega, message.slice(0, 8000));
     return { ok: true, answer };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
@@ -106,14 +135,19 @@ ipcMain.handle("omega:send", async (_event, message) => {
 
 // Document ingest IPC: read in the trusted main process, text fed to the brain.
 ipcMain.handle("omega:document", async (_event, filePath) => {
-  const ing = ingestDocument(filePath);
+  let ing = ingestDocument(filePath);
+  if (!ing.ok && ing.kind === "image") {
+    ing = await sidecarOcr(filePath); // GPU sidecar (Unlimited-OCR) first
+    if (!ing.ok) ing = await ocrImage(filePath); // on-device Tesseract fallback
+  }
   if (!ing.ok) return ing;
   try {
-    omega.injectSensor("text", `Document "${ing.name}":\n${ing.text}`);
-    const s = omega.state();
+    await omega.injectSensor("text", `Document "${ing.name}":\n${ing.text}`);
+    const s = await omega.state();
+    const verb = ing.ocr ? "OCR'd" : "Ingested";
     return {
       ok: true, name: ing.name, kind: ing.kind,
-      answer: `Ingested "${ing.name}" (${ing.chars} chars${ing.truncated ? ", truncated" : ""}) into the field. The brain is reading it — concepts ${s.concepts}, novelty ${s.novelty.toFixed(4)}.`,
+      answer: `${verb} "${ing.name}" (${ing.chars} chars${ing.truncated ? ", truncated" : ""}) into the field. The brain is reading it — concepts ${s.concepts}, novelty ${s.novelty.toFixed(4)}.`,
     };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
@@ -147,6 +181,11 @@ function brainContext(s) {
     `braid memory ${s.memoryLoad}/${s.memoryCapacity} (${s.memoryStage}) · familiarity ${f(s.familiarity)}`,
     `cognition: ${s.concepts} concepts · novelty ${f(s.novelty)} · surprise ${f(s.surprise)} · top: ${top}`,
     `self-model ${s.selfModel ? "ahead of" : "behind"} baseline (margin ${f(s.selfMargin)})`,
+    `resonance ${f(s.resonance)}${s.resonanceGated ? " (gated)" : ""} · associative ${s.associativeSize ?? 0} prototypes · depth/importance ${f(s.depth)} · burden ${f(s.burden)}`,
+    `project ${s.projectSize ?? 0} deep members (mean ${f(s.projectMeanDepth)}) · genome ${s.genomeSize ?? 0} sealed (${s.genomeCycles ?? 0} cycles)`,
+    `lexicon ${s.lexiconSize ?? 0} words / ${s.lexiconTokens ?? 0} tokens · structure root ${s.relationDigest ? String(s.relationDigest).slice(0, 12) : "none"}`,
+    `felt: friction ${f(s.friction)} · flow ${f(s.flow)} · qualia Cφ ${f(s.qualiaCphi)}${s.qualiaIgnited ? " (ignited)" : ""} · Lyapunov ${f(s.lyapunov)} · scale entropy ${f(s.scaleEntropy)}`,
+    `senses: ${s.senseChannels ?? 0} live channels · peak ${f(s.sensePeak)}`,
   ].join("\n");
 }
 
@@ -158,14 +197,53 @@ ipcMain.handle("omega:llm:ask", async (_event, text) => {
   // synchronously, so the context below is the field AFTER the prompt landed),
   // the instrument answers with that live state in view, and the answer is fed
   // back — the exchange becomes the brain's memory, whichever instrument spoke.
-  omega.injectSensor("text", text);
-  omega.step();
-  const r = await llm.ask(text, brainContext(omega.state()));
-  if (r.ok) {
-    omega.injectSensor("text", `LLM answered: ${r.answer}`);
-    omega.step();
+  await omega.injectSensor("text", text);
+  await omega.step();
+
+  const tools = llmTools.toolDefinitions();
+  const extraMessages = [];
+  const toolTrace = [];
+  let r = await llm.ask(text, brainContext(await omega.state()), { tools });
+
+  // Tool loop: execute the instrument's tool calls (in parallel per round) and
+  // feed results back, bounded to 3 round-trips. Every tool is read-only w.r.t.
+  // the brain. The trace is returned so the renderer can show the hands at work.
+  for (let iter = 0; iter < 3 && r.ok && r.toolCalls && r.toolCalls.length > 0; iter++) {
+    extraMessages.push({ role: "assistant", content: r.answer || null, tool_calls: r.toolCalls });
+    const results = await Promise.all(
+      r.toolCalls.map(async (tc) => {
+        let args = {};
+        try {
+          args = JSON.parse(tc.function?.arguments ?? "{}");
+        } catch {
+          /* malformed arguments — the tool reports an error */
+        }
+        const out = await llmTools.executeTool(tc.function?.name, args, await omega.state());
+        toolTrace.push({ name: tc.function?.name, args, result: out });
+        return { role: "tool", tool_call_id: tc.id, content: out };
+      }),
+    );
+    extraMessages.push(...results);
+    r = await llm.ask(text, brainContext(await omega.state()), { tools, extraMessages });
   }
-  return r;
+
+  // Resonance-gate: measure the answer's effect on the live field. The answer
+  // is fed back as memory regardless (the exchange is always remembered), but
+  // the coherence shift it causes is returned so the UI can flag an answer that
+  // is discordant with the field rather than resonant.
+  let resonanceDelta = null;
+  let resonant = null;
+  if (r.ok) {
+    const before = await omega.state();
+    await omega.injectSensor("text", `LLM answered: ${r.answer}`);
+    await omega.step();
+    const after = await omega.state();
+    if (Number.isFinite(before.coherence) && Number.isFinite(after.coherence)) {
+      resonanceDelta = after.coherence - before.coherence;
+      resonant = resonanceDelta >= 0;
+    }
+  }
+  return { ok: r.ok, answer: r.answer, error: r.error, tools: toolTrace, resonanceDelta, resonant };
 });
 
 // Brain loop IPC: start/stop/state — the live simulation service.
@@ -190,7 +268,7 @@ ipcMain.handle("omega:sensor:audio", async (_event, samples, sampleRate) => {
       if (m > best) { best = m; dom = k; }
     }
     // The real path: raw PCM → the brain's own encodeAudio (single transform).
-    omega.injectSensor("audio", pcm);
+    await omega.injectSensor("audio", pcm);
     return { ok: true, energy, dominantBand: dom };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
@@ -203,16 +281,43 @@ ipcMain.handle("omega:sensor:video", async (_event, grid, width, height) => {
     // Telemetry for the level meter — computed, never injected.
     const mean = sensory.gridMean(g);
     // The real path: raw luminance grid → the brain's own encodeGrid (single transform).
-    omega.injectSensor("vision", g, { width, height });
+    await omega.injectSensor("vision", g, { width, height });
     return { ok: true, mean };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
   }
 });
 
-app.whenReady().then(() => {
+ipcMain.handle("omega:sensor:touch", async (_event, samples) => {
+  try {
+    const data = Float64Array.from(samples);
+    // Telemetry: envelope RMS — the slow variation the touch encoder keeps.
+    let acc = 0;
+    for (let i = 0; i < data.length; i++) acc += data[i] * data[i];
+    const energy = data.length > 0 ? Math.sqrt(acc / data.length) : 0;
+    // The real path: raw mechanical/pressure series → the brain's own encodeTouch.
+    await omega.injectSensor("touch", data);
+    return { ok: true, energy };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  }
+});
+
+ipcMain.handle("omega:sensor:scalar", async (_event, samples) => {
+  try {
+    const data = Float64Array.from(samples);
+    // The real path: raw scalar wave series → the brain's own encodeScalars.
+    await omega.injectSensor("scalar", data);
+    return { ok: true, samples: data.length };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  }
+});
+
+app.whenReady().then(async () => {
   if (!gotLock) return; // second instance — quitting; never build a window
   mainWindow = createWindow();
+  await loadBrain(); // restore durable memory before the engine first wakes
 
   if (CI_MODE) {
     mainWindow.webContents.once("did-finish-load", async () => {
@@ -282,6 +387,32 @@ app.on("second-instance", () => {
   }
 });
 
+// Smooth shutdown: stop the engine and persist durable memory BEFORE quitting,
+// so closing the window (or the OS terminating the app) never loses learned
+// state. Synchronous and bounded — the timer is cleared first, then the brain
+// is serialised to disk, then quit proceeds. `shuttingDown` makes it idempotent
+// across the multiple quit signals Electron emits. Only a brain that actually
+// ran is saved (ticks > 0), so a second-instance launch can never clobber the
+// first instance's state.
+let shuttingDown = false;
+app.on("before-quit", (event) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  event.preventDefault(); // async persistence must finish before quit proceeds
+  (async () => {
+    try {
+      await omega.stop();
+    } catch (err) {
+      console.error("[main] stop during shutdown:", err && err.message ? err.message : err);
+    }
+    try {
+      if (omega.ticks > 0) await saveBrain();
+    } catch (err) {
+      console.error("[main] save during shutdown:", err && err.message ? err.message : err);
+    }
+    app.quit();
+  })();
+});
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });

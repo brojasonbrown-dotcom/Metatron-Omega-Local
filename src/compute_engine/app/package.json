@@ -18,8 +18,12 @@
     "dist": "npm run bundle:omega && node scripts/pre-pack.mjs && node scripts/build-driver.mjs",
     "verify:dist": "node scripts/pre-pack.mjs && node scripts/build-driver.mjs --dir && release/win-unpacked/METATRON-OMEGA.exe --ci"
   },
+  "dependencies": {
+    "tesseract.js": "^7.0.0"
+  },
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.21.5"
   }
 }

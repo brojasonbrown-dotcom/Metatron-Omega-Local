@@ -242,15 +242,27 @@ export class CleanupMemory {
   private readonly re = new Map<string, Float64Array>();
   private readonly im = new Map<string, Float64Array>();
   private readonly n = new Map<string, number>();
+  /** Insertion order, for deterministic oldest-label eviction under `maxLabels`. */
+  private readonly order: string[] = [];
 
   constructor(
     readonly dim: number,
     readonly fanInCap: number = CLEANUP_FAN_IN,
     readonly zFloor: number = CLEANUP_Z_FLOOR,
+    readonly maxLabels: number = Number.POSITIVE_INFINITY,
   ) {}
 
   get size(): number { return this.n.size; }
   labels(): string[] { return [...this.n.keys()].sort(); }
+
+  /** Remove a label outright (used by capacity-bound stores). */
+  remove(label: string): void {
+    this.re.delete(label);
+    this.im.delete(label);
+    this.n.delete(label);
+    const idx = this.order.indexOf(label);
+    if (idx >= 0) this.order.splice(idx, 1);
+  }
 
   /**
    * Fold an exemplar into a prototype.
@@ -267,6 +279,14 @@ export class CleanupMemory {
       re = new Float64Array(this.dim);
       im = new Float64Array(this.dim);
       this.re.set(label, re); this.im.set(label, im); this.n.set(label, 0);
+      this.order.push(label);
+      // Retention: evict the OLDEST label past the cap (deterministic).
+      if (this.order.length > this.maxLabels) {
+        const oldest = this.order.shift() as string;
+        this.re.delete(oldest);
+        this.im.delete(oldest);
+        this.n.delete(oldest);
+      }
     }
     let count = this.n.get(label) ?? 0;
     if (count >= this.fanInCap) {

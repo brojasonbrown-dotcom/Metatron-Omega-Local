@@ -28,6 +28,7 @@ import type { OrganOptions } from '../cell/organs';
 import type { ChordKind } from '../web/coupling';
 import { TuringTape, type TapeStep, type TuringTapeOptions } from '../memory/turingTape';
 import type { SensoryNodeOptions } from '../sense/nodeArray';
+import { LearnableCell } from '../learn/cell';
 
 export interface MultiTorusOptions {
   /** Rungs to instantiate; defaults to the 18-rung dense core. */
@@ -62,6 +63,19 @@ export interface MultiTorusOptions {
    * previous-tick coherence back as a contraction-bounded self-term.
    */
   readonly reflect?: number;
+  /**
+   * S5 — uniform magnetic phase bend (radians) handed to every rung when no
+   * window is supplied. Bends the golden rotation 2πφ⁻¹ by the same offset on
+   * every rung. When a window is present it owns the per-rung phase B and an
+   * explicit `modePhase` is refused (like `nodes`/`coherenceDelay`).
+   */
+  readonly modePhase?: number;
+  /**
+   * Ω-P8 — the learnable cell correction handed to every rung. Absent or
+   * `gate = 0` is bit-identical to the S0 oracle; armed (gate > 0) it applies
+   * the certified bounded correction after the nine terms.
+   */
+  readonly learnable?: LearnableCell;
   /**
    * N0 — per-node organ bank options handed to every rung. Absent means no
    * rung carries organs (pre-N0 behaviour, oracle exact).
@@ -152,6 +166,9 @@ export class MultiTorusEngine {
       if (opts.coherenceDelay !== undefined) {
         throw new Error('MultiTorusEngine: `coherenceDelay` conflicts with `window` — the window owns τ');
       }
+      if (opts.modePhase !== undefined) {
+        throw new Error('MultiTorusEngine: `modePhase` conflicts with `window` — the window owns B');
+      }
       if (opts.rungs && opts.rungs.length !== win.rungs.length) {
         throw new Error(
           `MultiTorusEngine: window has ${win.rungs.length} rungs but ${opts.rungs.length} were supplied`,
@@ -173,9 +190,10 @@ export class MultiTorusEngine {
         coherenceDelay: w ? w.coherenceDelay : opts.coherenceDelay,
         tapeCapacity: opts.tapeCapacity,
         lambda: w ? w.lambda : undefined,
-        modePhase: w ? w.magneticPhase : undefined,
+        modePhase: w ? w.magneticPhase : opts.modePhase,
         drive: opts.drive,
         reflect: opts.reflect,
+        learnable: opts.learnable,
         organs: opts.organs,
         sensors: opts.sensors,
       });
@@ -336,6 +354,15 @@ export class MultiTorusEngine {
       digest,
       finite,
     };
+  }
+
+  /**
+   * Ω-P8 — arm/disarm the learnable cell correction across the whole web.
+   * Setting null (or a cell at gate 0) restores the certified nine-term cell
+   * bit-for-bit on every rung.
+   */
+  setLearnable(cell: LearnableCell | null): void {
+    for (const e of this.engines) e.setLearnable(cell);
   }
 
   run(ticks: number): WebTickReport {

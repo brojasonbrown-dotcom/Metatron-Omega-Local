@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { OmegaLoop } = require("../electron/omegaLoop.cjs");
 const { respond } = require("../electron/omegaResponder.cjs");
-const { ingestDocument } = require("../electron/documentIngest.cjs");
+const { ingestDocument, ocrImage } = require("../electron/documentIngest.cjs");
 const sensory = require("../electron/sensory.cjs");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -46,15 +46,15 @@ check("sense report present", s1.sense && s1.sense.report && typeof s1.sense.rep
 check("cognition view present", s1.cognition && Array.isArray(s1.cognition.top) && Array.isArray(s1.cognition.recent));
 
 // ── responder (chat answers computed from the brain) ──
-check("help is computed", respond(loop, "help").includes("METATRON"));
-check("status reports live state", respond(loop, "status").includes("coherence"));
-check("ladder lists rungs", respond(loop, "ladder").includes("n="));
-check("web reports flux", respond(loop, "web").includes("Flux web"));
-check("spectral reports signature", respond(loop, "spectral").includes("signature"));
-check("memory reports braid", respond(loop, "memory").includes("Braid"));
-check("mind reports cognition", respond(loop, "mind").includes("Cognition"));
-check("learn reports tiers", respond(loop, "learn").includes("Learning tiers"));
-check("free text is encoded + answered", respond(loop, "the field closes on itself").includes("Encoded"));
+check("help is computed", (await respond(loop, "help")).includes("METATRON"));
+check("status reports live state", (await respond(loop, "status")).includes("coherence"));
+check("ladder lists rungs", (await respond(loop, "ladder")).includes("n="));
+check("web reports flux", (await respond(loop, "web")).includes("Flux web"));
+check("spectral reports signature", (await respond(loop, "spectral")).includes("signature"));
+check("memory reports braid", (await respond(loop, "memory")).includes("Braid"));
+check("mind reports cognition", (await respond(loop, "mind")).includes("Cognition"));
+check("learn reports tiers", (await respond(loop, "learn")).includes("Learning tiers"));
+check("free text is encoded + answered", (await respond(loop, "the field closes on itself")).includes("Encoded"));
 
 // ── sensory codec → brain channel ──
 {
@@ -86,6 +86,13 @@ check("free text is encoded + answered", respond(loop, "the field closes on itse
   const text = ingestDocument(tmp("omega-doc.txt", "closure residue never zero by theorem"));
   check("text document reads", text.ok && text.kind === "text" && text.text.includes("closure residue"));
   check("missing file errors cleanly", !ingestDocument(path.join(os.tmpdir(), "omega-nope.txt")).ok);
+  // OCR routing contract (offline — no Tesseract run, no language-data fetch):
+  // an image drop must signal `kind:"image"` so main routes it to ocrImage.
+  const imgPath = path.join(os.tmpdir(), "omega-pic.png");
+  fs.writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  const img = ingestDocument(imgPath);
+  check("image drop signals kind=image for OCR routing", !img.ok && img.kind === "image");
+  check("ocr: ocrImage is exported", typeof ocrImage === "function");
   try { fs.unlinkSync(tmp("omega-doc.txt", "")); } catch {}
 }
 
@@ -106,6 +113,17 @@ check("free text is encoded + answered", respond(loop, "the field closes on itse
   } else {
     check("llm: key present (env) — activation allowed", llm.setActive(true).ok === true && llm.setActive(false).active === false);
   }
+}
+
+// ── LLM tool layer — offline: local tools only, never a network call. ──
+{
+  const llmTools = require("../electron/llmTools.cjs");
+  const defs = llmTools.toolDefinitions();
+  check("llm: tool layer defines ≥5 tools", Array.isArray(defs) && defs.length >= 5);
+  check("llm: brain_state tool works offline", (await llmTools.executeTool("brain_state", {}, { coherence: 0.5, totalNodes: 89 })).length > 0);
+  check("llm: brain_recall tool works offline", (await llmTools.executeTool("brain_recall", {}, { lexicon: { top: [] }, relations: { nodes: 0, edges: [] }, relationDigest: null })).length > 0);
+  check("llm: fetch_url rejects non-http schemes", (await llmTools.executeTool("fetch_url", { url: "file:///etc/passwd" }, {})).startsWith("error"));
+  check("llm: wolfram_compute rejects empty query offline", (await llmTools.executeTool("wolfram_compute", {}, {})).startsWith("error"));
 }
 
 if (failures > 0) {

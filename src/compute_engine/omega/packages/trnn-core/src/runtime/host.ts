@@ -16,7 +16,8 @@
  * slices, so the digest chain is identical whatever the frame rate.
  */
 
-import { DENSE_CORE, type Rung } from '../core/scaleLadder';
+import { DENSE_CORE, LADDER_MAX_N, type Rung } from '../core/scaleLadder';
+import { PHI, PHI_INV, SIGNATURE_MODES } from '../core/constants';
 import { MultiTorusEngine, type WebCheckpoint, type WebTickReport } from '../engine/MultiTorusEngine';
 import { nodesForRank, profileById, profileCost, type Profile, type ProfileId } from './profiles';
 import { RunLedger, type RunMark } from './runLedger';
@@ -26,6 +27,8 @@ import {
   encodeGrid,
   encodeScalars,
   encodeText,
+  encodeTouch,
+  gematriaAtom,
   senseField,
   type EncodeReport,
   type Modality,
@@ -42,6 +45,22 @@ import { runBattery, sampleTrajectory, type BatteryReport } from '../learn/batte
 import { probeTiers, type TierMap, type TierProbeOptions } from '../learn/tiers';
 import type { LearnableCell } from '../learn/cell';
 import type { Certificate } from '../learn/params';
+import { SpectralFilter, FILTER_RHO_MAX } from '../learn/spectralFilter';
+import { SuperpositionMixer } from '../learn/mixer';
+import { applySpectralAttention } from '../learn/spectralAttention';
+import { analyze, coeffBuffer } from '../torus/superposition';
+import { BLADES, magnitude, rotorFromPlane, applyRotor, applyBladeGain } from '../algebra/clifford';
+import { restrict, prolong } from '../fractal/nest';
+import { FractalPool } from '../fractal/pool';
+import { ojaStep } from '../substrate/plasticity';
+import { goldenGate } from '../harness/golden';
+import { abstentionBattery } from '../harness/battery';
+import { scoreAbstention, abstentionGate } from '../harness/abstention';
+import { recallNearest, type RecallEntry, type RecallResult } from '../harness/recall';
+import { measureLatency } from '../harness/latency';
+import { certify } from '../harness/certify';
+import { AdaptiveConformal } from '../harness/conformal';
+import { CHECKPOINT_PERIOD } from '../core/constants';
 import {
   describeEngine,
   fieldFrame,
@@ -55,7 +74,7 @@ import {
   type SpectralView,
   type WebView,
 } from './views';
-import { dlog1p } from '../core/dmath';
+import { dlog1p, datan2 } from '../core/dmath';
 import { largestFibonacciAtMost } from '../core/fibonacci';
 import { AnalysisService, type AnalysisOptions, type AnalysisReport } from '../analysis/service';
 import { EvidenceLedger, type EvidenceSeal } from '../analysis/evidenceLedger';
@@ -63,6 +82,33 @@ import type { OrganOptions } from '../cell/organs';
 import type { SensoryNodeOptions } from '../sense/nodeArray';
 import type { ChordKind } from '../web/coupling';
 import type { TuringTapeOptions } from '../memory/turingTape';
+import { CleanupMemory } from '../substrate/vsa';
+import { fieldToHv } from '../memory/crossSection';
+import { circularPhaseDev } from '../substrate/resonanceBus';
+import { resonanceIndex, type ResonanceIndex } from '../measure/resonanceIndex';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { utf8 } from '../ledger/canonical';
+import { keyPairFromSeed } from '../ledger/sth';
+import { GenomeLedger } from '../genome/record';
+import { IgnitionConsolidator, type ConsolidationObserve } from '../cognition/consolidation';
+import { Lexicon, type LexiconEntry } from '../cognition/lexicon';
+import { ProjectContext } from '../cognition/project';
+import { DeepMemory } from '../memory/deepMemory';
+import { PHI_F64_MODE_CEILING, requiredDigits } from '../memory/phiExact';
+import { relationDag } from '../cognition/relationDag';
+import { AffectModel, type AffectObservation } from '../cognition/affectModel';
+import { SelfMeasureTracker, type SelfMeasureReport } from '../measure/selfMeasure';
+import { fieldFingerprint, type FieldFingerprint } from '../measure/fieldFingerprint';
+import { depthReading, type DepthReading } from '../measure/depth';
+import { scaleSignature } from '../measure/scaleSignature';
+import { DeepResolutionTap, DEEP_TAP_CAPACITY, type DeepResolutionView } from '../measure/deepResolution';
+import { persistenceReport } from '../substrate/persistence';
+import { RelationGraph, resonantRecall, type ResonantHit } from '../cognition/relations';
+import { FieldSelfModel, type FieldSelfModelReport } from '../cognition/fieldSelfModel';
+import { RhufTransport, type RhufTransportReport } from '../cognition/rhufTransport';
+import { textFingerprint } from '../sense/textFingerprint';
+import { measureSpectrum, type SpectrumTable } from '../spectral/laplacian';
+import { serializeBrain, restoreBrain } from '../memory/persistence';
 
 /**
  * Tape capacity for a ladder of `totalNodes`: the largest Fibonacci number at
@@ -75,6 +121,7 @@ function tapeCapacityFor(totalNodes: number): number {
 
 /** Ticks between braid memory folds — the checkpoint cadence (Fibonacci). */
 export const MEMORY_STRIDE = 144;
+const DEEP_MODE_INDICES = [89, 144, 233, 377]; // deep phi-modes beyond the f64 ceiling (abs k above 76)
 
 /** Ticks between cognitive folds (Fibonacci; 21 ≈ 3 Hz at a 64 Hz bus). */
 export const MIND_STRIDE = 21;
@@ -99,7 +146,7 @@ export const DEFAULT_SENSORS: SensoryNodeOptions = { bands: 10, depth: 233 };
 export const DEFAULT_CHORDS: ChordKind[] = ['fibonacci', 'lucas', 'spiral'];
 
 /** Default chord strength — φ⁻¹. */
-export const DEFAULT_CHORD_GAIN = 1 / 1.618033988749895;
+export const DEFAULT_CHORD_GAIN = 1 / PHI;
 
 /**
  * Ω-REAL P9 — default analysis plan: service on, observe-only. The rings and
@@ -109,7 +156,7 @@ export const DEFAULT_CHORD_GAIN = 1 / 1.618033988749895;
 export const DEFAULT_ANALYSIS: AnalysisOptions = {};
 
 /** Default vacuum drive setpoint for a hosted run — φ⁻¹. */
-export const DEFAULT_DRIVE = 1 / 1.618033988749895;
+export const DEFAULT_DRIVE = 1 / PHI;
 
 export const MIN_HZ = 8;
 export const MAX_HZ = 64;
@@ -129,6 +176,22 @@ export interface HostOptions {
    * oracle-exact run.
    */
   readonly drive?: number;
+  /**
+   * Ω-REAL Q3 — self-reflection gain κ_r (the Ψ-of-Ψ observation). When > 0 the
+   * field folds its own previous-tick coherence back as κ_r·⟨C⟩·z — a coherent
+   * field self-reinforces, an incoherent one damps itself. 0 (default) is
+   * oracle-exact. This is the "eye of observation": the field measuring and
+   * reacting to its own coherence, which is how the resonance is bent, not just
+   * read.
+   */
+  readonly reflect?: number;
+  /**
+   * S5 — uniform magnetic phase bend (radians) for every rung. Offsets the
+   * golden rotation 2πφ⁻¹ by the same amount on every rung, so the whole
+   * ladder's modal phase advances uniformly (the "magnetic bend"). 0 (default)
+   * is the exact 2πφ⁻¹ rotation.
+   */
+  readonly modePhase?: number;
   /**
    * N0/N1 — per-node organ bank. Default: organs on, observing only
    * (radialGain 0), at a Fibonacci stride so the cost is bounded. Pass
@@ -255,6 +318,71 @@ export interface HostSnapshot {
   readonly tapeCapacity: number;
   /** N4 — current head address. */
   readonly tapeHead: number;
+  /** Ω-REAL R13 — the weighted resonance index (NaN before the first memory fold). */
+  readonly resonance: number;
+  /** Ω-REAL R13 — whether the coherence gate fired on the last fold. */
+  readonly resonanceGated: boolean;
+  /** Ω-REAL — associative (FHRR cleanup) prototypes held. */
+  readonly associativeSize: number;
+  /** Ω-REAL R11 — friction (1 − flow), flow, and situation from the affect fold. */
+  readonly friction: number;
+  readonly situation: number;
+  readonly flow: number;
+  /** Ω-REAL Q1 — golden-delay self-overlap Cφ and ignition from the qualia fold. */
+  readonly qualiaCphi: number;
+  readonly qualiaIgnited: boolean;
+  /** Ω-REAL Q2 — Lyapunov descent certificate + scale entropy/drift. */
+  readonly lyapunov: number;
+  readonly scaleEntropy: number;
+  readonly scaleDrift: number;
+  /** Ω-REAL Q2 — total information mass (Σ_rung Σ|sig|·φ^rank). */
+  readonly burden: number;
+  /** Ω-REAL Q4 — field-level self-model: did the learned predictor beat persistence. */
+  readonly fieldSelfModelEnabled: boolean;
+  readonly fieldSelfModelSsmMse: number;
+  readonly fieldSelfModelPersistenceMse: number;
+  /** Ω-REAL R27 — RHUFT transport self-model: skill (1 − mse/persistence) and learned spectral radius. */
+  readonly rhufSkill: number;
+  readonly rhufSpectralRadius: number;
+  readonly rhufMse: number;
+  /** Ω-REAL Q5 — sealed genome records + consolidation cycles. */
+  readonly genomeSize: number;
+  readonly genomeCycles: number;
+  /** Ω-REAL — salience-weighted word catalogue. */
+  readonly lexiconSize: number;
+  readonly lexiconTokens: number;
+  /** Ω-REAL — information depth / importance (NaN when gated). */
+  readonly depth: number;
+  /** Ω-REAL — persistent project context (deep fields accumulated). */
+  readonly projectSize: number;
+  readonly projectMeanDepth: number;
+  /** Ω-REAL — extended-precision deep-memory tier (exact φ-modes; empty until |k|>78). */
+  readonly deepMemory: { size: number; meanDepth: number; strongestKey: string | null; strongestModes: number };
+  /** Ω-REAL G4 — deep-resolution ring view (scale-graded field + node frequency). */
+  readonly deepResolution: DeepResolutionView;
+  /** Ω-REAL — the precision envelope (honest f64 φ-mode ceiling + deepest-rung digits). */
+  readonly precision: { f64ModeCeiling: number; deepestRungN: number; requiredDigitsForDeepestRung: number };
+  /** Ω-REAL — Merkle-DAG root digest of the learned relation structure. */
+  readonly relationDigest: string | null;
+  /** Ω-DEPTH — live geometric-algebra / fractal / plasticity channels. */
+  readonly depthExtensions: {
+    readonly cliffordMagnitude: number;
+    readonly fractalOccupied: number;
+    readonly fractalContribution: number;
+    readonly plasticityNorm: number;
+    readonly plasticityDrift: number;
+  };
+  /** Ω-REAL P8 — live self-audit verdict (golden + abstention + coverage + latency gates), or null before the first audit. */
+  readonly selfAudit: {
+    readonly goldenPass: boolean;
+    readonly abstentionRate: number;
+    readonly falseConfident: number;
+    readonly abstentionPass: boolean;
+    readonly auditTick: number;
+    readonly recallLabel: string | null;
+    readonly proofP95: number | null;
+    readonly certifyPass: boolean;
+  } | null;
 }
 
 export interface SenseChannelView {
@@ -284,6 +412,11 @@ export interface MemoryView {
   readonly familiarity: number;
   readonly lastRecall: Recall | null;
   readonly patterns: readonly BraidPattern[];
+  /** Ω-REAL R13 — weighted resonance index (NaN before the first fold). */
+  readonly resonance: number;
+  readonly resonanceGated: boolean;
+  /** Ω-REAL — associative (FHRR cleanup) prototypes held. */
+  readonly associativeSize: number;
 }
 
 export class EngineHost {
@@ -316,6 +449,38 @@ export class EngineHost {
   private stored = 0;
   private skipped = 0;
   private scratchField: CField | null = null;
+  /** Ω-REAL R13 — the weighted resonance index (coherence + braid margin + phase closure). */
+  private resonance: ResonanceIndex | null = null;
+  /** Ω-REAL — the associative (FHRR cleanup) layer, gated/weighted by resonance. */
+  private cleanup: CleanupMemory | null = null;
+  /** Ω-REAL R11 — affect self-model (friction + six qualia axes). */
+  private affect: AffectModel | null = null;
+  /** Ω-REAL Q2 — full-field self-measurement (drift, Lyapunov, scale entropy). */
+  private selfMeasure: SelfMeasureTracker | null = null;
+  private fieldSelfModel: FieldSelfModel | null = null;
+  /** Ω-REAL Q5 — ignition consolidation into the sealed genome. */
+  private genome: GenomeLedger | null = null;
+  private consolidator: IgnitionConsolidator | null = null;
+  /** Ω-REAL — typed relation graph (processes between concept keys). */
+  private relations: RelationGraph | null = null;
+  /** Ω-REAL — salience-weighted word catalogue. */
+  private lexicon: Lexicon | null = null;
+  /** Ω-REAL — persistent project context (deep fields accumulated over time). */
+  private project: ProjectContext | null = null;
+  private deepMemory: DeepMemory | null = null;
+  private lastAffect: AffectObservation | null = null;
+  private lastSelfMeasure: SelfMeasureReport | null = null;
+  private lastFieldSelfModel: FieldSelfModelReport | null = null;
+  private rhufTransport: RhufTransport | null = null;
+  private rhufPrev: { re: Float64Array; im: Float64Array; n: number } | null = null;
+  private lastRhufTransport: RhufTransportReport | null = null;
+  private lastTextFingerprint: Float64Array | null = null;
+  private spectra: Map<number, SpectrumTable> = new Map();
+  /** Ω-REAL G4 — continuous deep-resolution tap (scale-graded field + node frequency). */
+  private deepTap: DeepResolutionTap | null = null;
+  private lastDepth: DepthReading | null = null;
+  private deepReflectSeals = 0;
+  private lastConsolidation: ConsolidationObserve | null = null;
 
   // ---- Ω-P7 cognition ----
   private mind: Mind | null = null;
@@ -349,6 +514,41 @@ export class EngineHost {
   private evidenceLedger: EvidenceLedger | null = null;
   private lastEvidenceSeal: EvidenceSeal | null = null;
 
+  // ---- Ω-DEPTH live extensions (clifford / fractal / plasticity) ----
+  /** Geometric-algebra magnitude of the base rung's dominant-mode multivector². */
+  private lastClifford = 0;
+  /** Demand-driven child-field pool (fractal nesting). */
+  private fractalPool: FractalPool | null = null;
+  /** Residual energy the base rung's basis could not express (last fold). */
+  private lastFractalResidual = 0;
+  /** Occupied child slots (last fold). */
+  private lastFractalOccupied = 0;
+  /** Oja weight vector over the signature (plasticity). */
+  private plasticityWeight: Float64Array | null = null;
+  /** ‖w‖ and Σ|Δw| of the last plasticity step. */
+  private lastPlasticityNorm = 0;
+  private lastPlasticityDrift = 0;
+
+  // ---- Ω-REAL P8 live self-audit (certification harness, run live) ----
+  private lastSelfAudit: {
+    goldenPass: boolean;
+    abstentionRate: number;
+    falseConfident: number;
+    abstentionPass: boolean;
+    auditTick: number;
+    recallLabel: string | null;
+    proofP95: number | null;
+    certifyPass: boolean;
+  } | null = null;
+  /** Host-level ACI fed from the base-rung coherence (coverage gate). */
+  private readonly selfConformal = new AdaptiveConformal();
+  private prevCoherence = NaN;
+  /** Layer-C fingerprint memory (store + abstaining nearest-label recall). */
+  private fingerprintEntries: RecallEntry[] = [];
+  private lastFingerprintRecall: RecallResult | null = null;
+  /** Relation Merkle-root cache, keyed on the relation graph's structural version. */
+  private relationDigestCache: { version: number; digest: string | null } | null = null;
+
 
   constructor(opts: HostOptions) {
     this.profile = typeof opts.profile === 'string' ? profileById(opts.profile) : opts.profile;
@@ -369,6 +569,8 @@ export class EngineHost {
       modes: this.profile.modes,
       tapeCapacity: this.profile.tape,
       drive: opts.drive ?? DEFAULT_DRIVE,
+      reflect: opts.reflect ?? 0,
+      modePhase: opts.modePhase ?? 0,
       organs: opts.organs === null ? undefined : (opts.organs ?? DEFAULT_ORGANS),
       sensors: opts.sensors === null ? undefined : (opts.sensors ?? DEFAULT_SENSORS),
       chords: opts.chords === null ? undefined : (opts.chords ?? DEFAULT_CHORDS),
@@ -433,6 +635,29 @@ export class EngineHost {
       finite: rep.finite,
     };
     this.ledger.mark(mark);
+    // Ω-REAL R27 — train the RHUFT transport self-model EVERY tick (the field's
+    // rotation is a 1-tick phase advance; gating it would feed wrapped jumps).
+    this.foldRhufTransport(rep.tick);
+    // Ω-REAL P1 — foldMeasure (affect/selfMeasure/Q4/depth/project/consolidation)
+    // is digest-neutral (proven: the engine's reflect term reads its OWN coherence
+    // meter, never the host folds) and ~87% of the per-tick cost, so it runs at
+    // MIND_STRIDE cadence. The memory/mind/perception/deepResolution folds gate
+    // themselves internally; the analysis service stays per-tick (only ~6%, and
+    // its xcorr ring needs the per-tick sample rate). foldMeasure computes
+    // `lastDepth` that the gated folds read, and it shares the MIND_STRIDE
+    // boundary with foldMind, so depth is fresh when consumed.
+    if (rep.tick % MIND_STRIDE === 0) {
+      this.foldMeasure(rep);
+      // Ω-DEPTH live extensions (clifford / fractal / plasticity) — observe-only.
+      this.foldDepthExtensions();
+      // Feed the self-audit ACI from the base-rung coherence (coverage gate).
+      const c0 = rep.rungs[0]?.coherence ?? NaN;
+      if (Number.isFinite(c0) && Number.isFinite(this.prevCoherence)) {
+        this.selfConformal.observe(this.prevCoherence, c0);
+      }
+      this.prevCoherence = c0;
+    }
+    this.foldDeepResolution(rep);
     this.foldMemory(rep.tick);
     this.foldMind(rep);
     this.foldPerception(rep);
@@ -481,9 +706,27 @@ export class EngineHost {
     const f = senseField(meta.nodes);
     let report: EncodeReport;
     switch (meta.modality) {
-      case 'text':
-        report = encodeText(typeof data === 'string' ? data : String(data), f);
+      case 'text': {
+        const text = typeof data === 'string' ? data : String(data);
+        report = encodeText(text, f);
+        // Observe the tokens into the salience-weighted word catalogue (the
+        // lexicon feeds the resonance index's salience channel).
+        const words = text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+        const lex = this.ensureLexicon();
+        const docId = `doc:${this.engine.currentTick()}`;
+        for (const w of words) lex.observe(w, docId);
+        // Sentence structure: relate adjacent terms as typed `temporal` edges —
+        // the word-order graph the lexicon sits on, so "every term has a
+        // mathematical function AND terms have structure between them".
+        const rel = this.ensureRelations();
+        for (let i = 0; i + 1 < words.length; i++) {
+          rel.relate(words[i], 'temporal', words[i + 1]);
+        }
+        // Layer A — retain the deterministic φ-spectrum binding of this text
+        // (the cross-modal fingerprint `harness/recall` can resolve).
+        this.lastTextFingerprint = textFingerprint(text, meta.nodes);
         break;
+      }
       case 'grid':
         report = encodeGrid(
           typeof data === 'string' ? [] : data,
@@ -494,6 +737,12 @@ export class EngineHost {
         break;
       case 'audio':
         report = encodeAudio(typeof data === 'string' ? [] : data, f);
+        break;
+      case 'touch':
+        // Mechanical / affective wave band: pressure, temperature, contact force.
+        // The slow-envelope encoder — distinct from audio's full spectrum, and
+        // from the generic scalar phyllotaxis (default branch).
+        report = encodeTouch(typeof data === 'string' ? [] : data, f);
         break;
       default:
         report = encodeScalars(typeof data === 'string' ? [] : data, f);
@@ -543,15 +792,26 @@ export class EngineHost {
     return this.braid;
   }
 
+  private ensureCleanup(): CleanupMemory {
+    if (!this.cleanup) this.cleanup = new CleanupMemory(512, undefined, undefined, 610);
+    return this.cleanup;
+  }
+
   /**
    * Fold the rank-0 field into the braid on the memory stride, behind a
    * novelty gate: a field the braid already recognises is *not* re-stored, so
    * capacity buys distinct experience rather than repetition. The recall that
    * decides this is the same cascade the UI reads as `familiarity`.
+   *
+   * The same fold also computes the weighted resonance index (coherence gate +
+   * braid separation + the field's own phase closure γ) and folds the field's
+   * hypervector address into the associative cleanup store, weighted by it — a
+   * resonant field persists more strongly than a noisy one. All observe-only.
    */
   private foldMemory(tick: number): void {
     if (tick % MEMORY_STRIDE !== 0 || tick === this.lastFoldTick) return;
     const braid = this.ensureBraid();
+    const cleanup = this.ensureCleanup();
     const snap = this.engine.engines[0].snapshot();
     const probe = this.scratchField!;
     const n = Math.min(probe.n, snap.z.n);
@@ -564,6 +824,44 @@ export class EngineHost {
     const r = braid.recall(probe);
     this.lastRecall = r;
     this.lastFoldTick = tick;
+
+    // Ω-REAL R13 — the weighted resonance index: coherence (the gate), braid
+    // separation (the margin), and the field's own phase closure γ.
+    const rep = this.last;
+    const coh = rep && Number.isFinite(rep.coherenceWarm) ? rep.coherenceWarm : (rep?.coherence ?? 0);
+    const margin = Number.isFinite(r.margin) ? r.margin : undefined;
+    const phases: number[] = new Array(n);
+    for (let i = 0; i < n; i++) phases[i] = datan2(probe.im[i], probe.re[i]);
+    this.resonance = resonanceIndex({
+      coherence: coh,
+      margin,
+      salience: this.lexicalSalience(),
+      phaseDev: circularPhaseDev(phases),
+    });
+
+    // Fold the hypervector address into the associative store, weighted by the
+    // index × the field's depth — a resonant AND deep field persists most
+    // strongly, a shallow or noisy one barely registers.
+    const idx = this.resonance;
+    let weight = idx.value;
+    if (Number.isFinite(weight) && this.lastDepth && Number.isFinite(this.lastDepth.value)) {
+      weight *= this.lastDepth.value;
+    }
+    if (Number.isFinite(weight) && weight > 0) {
+      cleanup.add(snap.digest.slice(0, 16), fieldToHv(probe, cleanup.dim), weight);
+      // Exact deep memory: store the hypervector with its deep phi-modes
+      // (Z[phi] exact amplitudes beyond the f64 ceiling), observe-only.
+      if (this.resonance && this.lastDepth) {
+        this.ensureDeepMemory().store(
+          snap.digest.slice(0, 16),
+          fieldToHv(probe, cleanup.dim),
+          this.resonance,
+          this.lastDepth,
+          DEEP_MODE_INDICES,
+        );
+      }
+    }
+
     if (r.accepted && r.similarity >= braid.accept) {
       this.skipped++;
     } else {
@@ -580,7 +878,7 @@ export class EngineHost {
       // xcorr dims (fusedCoherence, meanPlv, maxLag, xcorrSurprise) per rung.
       const perRung = this.injectAnalysis ? 10 : 6;
       const dim = Math.max(perRung, this.engine.rungs.length * perRung);
-      this.mind = new Mind({ dim, capacity: 610, seed: `${this.seed}-mind` });
+      this.mind = new Mind({ dim, capacity: Math.max(610, this.profile.tape), seed: `${this.seed}-mind` });
       this.obs = new Float64Array(dim);
     }
     return this.mind;
@@ -629,7 +927,8 @@ export class EngineHost {
       this.lastMindTick = rep.tick;
       return;
     }
-    this.lastThought = mind.observe(v, rep.tick, rep.digest.slice(0, 16));
+    const depthWeight = this.lastDepth && Number.isFinite(this.lastDepth.value) ? this.lastDepth.value : 1;
+    this.lastThought = mind.observe(v, rep.tick, rep.digest.slice(0, 16), depthWeight);
     this.lastMindTick = rep.tick;
   }
 
@@ -684,7 +983,8 @@ export class EngineHost {
       this.quiescentPercepts++;
       return;
     }
-    this.lastPercept = mind.observe(this.perceptObs, rep.tick, `p${rep.tick}`);
+    const depthWeight = this.lastDepth && Number.isFinite(this.lastDepth.value) ? this.lastDepth.value : 1;
+    this.lastPercept = mind.observe(this.perceptObs, rep.tick, `p${rep.tick}`, depthWeight);
   }
 
   /** The perceptual Mind's report — what the senses have learned. */
@@ -717,7 +1017,555 @@ export class EngineHost {
       familiarity: this.lastRecall?.similarity ?? 0,
       lastRecall: this.lastRecall,
       patterns: braid.patterns().slice(-13),
+      resonance: this.resonance?.value ?? NaN,
+      resonanceGated: this.resonance?.gated ?? false,
+      associativeSize: this.cleanup?.size ?? 0,
     };
+  }
+
+  /** Ω-REAL R13 — the last weighted resonance index, or null before the first fold. */
+  resonanceReading(): ResonanceIndex | null {
+    return this.resonance;
+  }
+
+  /** Ω-REAL — associative (FHRR cleanup) store state. */
+  associative(): { size: number; labels: string[] } {
+    const c = this.cleanup;
+    return c ? { size: c.size, labels: c.labels() } : { size: 0, labels: [] };
+  }
+
+  // ---- Ω-REAL: measure stack (affect, self-measure, genome, fingerprint, lexicon) ----
+
+  private ensureAffect(): AffectModel {
+    if (!this.affect) this.affect = new AffectModel();
+    return this.affect;
+  }
+
+  private ensureSelfMeasure(): SelfMeasureTracker {
+    if (!this.selfMeasure) this.selfMeasure = new SelfMeasureTracker();
+    return this.selfMeasure;
+  }
+
+  private ensureFieldSelfModel(rungs: number, dim: number): FieldSelfModel {
+    if (!this.fieldSelfModel) this.fieldSelfModel = new FieldSelfModel(rungs, dim);
+    return this.fieldSelfModel;
+  }
+
+  private ensureRhufTransport(dim: number): RhufTransport {
+    if (!this.rhufTransport) this.rhufTransport = new RhufTransport(dim);
+    return this.rhufTransport;
+  }
+
+  /**
+   * Ω-REAL R27 — the RHUFT transport self-model, trained EVERY tick (not gated):
+   * the field's phase advances ~φ⁻³ rad/tick, so 1-tick spacing is the learnable
+   * rotation; a MIND_STRIDE-gated feed would see a wrapped phase jump and learn
+   * nothing. The report is still throttled to MIND_STRIDE for the snapshot.
+   */
+  private foldRhufTransport(tick: number): void {
+    const e0 = this.engine.engines[0];
+    const c0 = e0.snapshot().coeffs;
+    if (!c0 || c0.length < 2) return;
+    const K2 = c0.length / 2;
+    const cv = { re: new Float64Array(K2), im: new Float64Array(K2), n: K2 };
+    for (let k = 0; k < K2; k++) {
+      cv.re[k] = c0[2 * k];
+      cv.im[k] = c0[2 * k + 1];
+    }
+    const rt = this.ensureRhufTransport(K2);
+    if (this.rhufPrev) rt.observe(this.rhufPrev, cv);
+    this.rhufPrev = cv;
+    if (tick % MIND_STRIDE === 0) {
+      this.lastRhufTransport = rt.report();
+    }
+  }
+
+  /**
+   * Ω-DEPTH — geometric-algebra / fractal / plasticity channels, now ACTIVE and
+   * functional: each runs its real operator with its real φ-scaled parameter —
+   * clifford rotates at blade gain φ⁻¹, fractal prolongs at μ = φ⁻¹, plasticity
+   * learns at η = φ⁻². They act on the host's own fold state, so the engine
+   * digest is untouched, but the computations are real (a real rotation, a real
+   * energy transfer, a real weight update), never zeroed no-ops.
+   */
+  private foldDepthExtensions(): void {
+    const e0 = this.engine.engines[0];
+    const snap = e0.snapshot();
+    const c0 = snap.coeffs;
+    if (!c0 || c0.length < 2) return;
+
+    // 1 — Clifford: build the dominant-mode multivector, rotate it by the
+    // measured phase through an e12 bivector rotor, and scale the non-scalar
+    // blades by φ⁻¹ — a real geometric-algebra rotation, not an identity.
+    let kStar = 0;
+    let maxMag = -1;
+    const K = c0.length / 2;
+    for (let k = 0; k < K; k++) {
+      const m = c0[2 * k] * c0[2 * k] + c0[2 * k + 1] * c0[2 * k + 1];
+      if (m > maxMag) { maxMag = m; kStar = k; }
+    }
+    const re = c0[2 * kStar];
+    const im = c0[2 * kStar + 1];
+    const theta = datan2(im, re);
+    const mv = new Float64Array(BLADES);
+    mv[0] = Math.sqrt(maxMag);
+    mv[1] = re;
+    mv[2] = im;
+    mv[4] = theta; // bivector = the measured phase
+    const rotor = rotorFromPlane(theta, 1, 0, 0);
+    const rotated = new Float64Array(BLADES);
+    applyRotor(rotor, mv, rotated);
+    applyBladeGain(rotated, PHI_INV);
+    this.lastClifford = magnitude(rotated);
+
+    // 2 — Fractal: restrict the base field into a child and prolong it back at
+    // μ = φ⁻¹ (the certified ISS gain) — the child genuinely carries energy.
+    const pool = this.ensureFractalPool();
+    const z = snap.z;
+    const child = pool.acquire(0, 1);
+    if (child) {
+      restrict(child, z);
+      child.explained = prolong(child, z, PHI_INV);
+      this.lastFractalResidual = child.explained;
+      this.lastFractalOccupied = pool.stats().occupied;
+    }
+
+    // 3 — Plasticity: one Oja step at η = φ⁻² — the weight genuinely moves
+    // toward the principal spectral direction of the signature.
+    const w = this.ensurePlasticityWeight();
+    const pr = ojaStep(w, snap.signature, PHI_INV * PHI_INV);
+    this.lastPlasticityNorm = pr.norm;
+    this.lastPlasticityDrift = pr.drift;
+  }
+
+  private ensureFractalPool(): FractalPool {
+    if (!this.fractalPool) this.fractalPool = new FractalPool(1 << 16, 233);
+    return this.fractalPool;
+  }
+
+  private ensurePlasticityWeight(): Float64Array {
+    if (!this.plasticityWeight) {
+      const w = new Float64Array(SIGNATURE_MODES);
+      const inv = 1 / Math.sqrt(SIGNATURE_MODES);
+      for (let i = 0; i < w.length; i++) w[i] = inv; // uniform unit-norm seed
+      this.plasticityWeight = w;
+    }
+    return this.plasticityWeight;
+  }
+
+  /**
+   * Ω-REAL P8 — the certification harness, run LIVE as a periodic self-audit:
+   * re-digests the golden regression set and re-runs the abstention battery on
+   * the live build, so a running brain re-proves its own epistemic hygiene
+   * rather than trusting a CI run from before it started.
+   */
+  selfAudit(): void {
+    const tick = this.last?.tick ?? 0;
+    const golden = goldenGate();
+    const report = scoreAbstention(abstentionBattery());
+    const gate = abstentionGate(report);
+
+    // Layer-C recall: store the field's multi-scale fingerprint and recall the
+    // nearest stored label (distance + margin gates → abstention when unsure).
+    const fp = fieldFingerprint(this.engine).vector;
+    if (fp && fp.length > 0) {
+      if (this.fingerprintEntries.length > 0) {
+        this.lastFingerprintRecall = recallNearest(this.fingerprintEntries, fp, {
+          maxDistance: 0.5,
+          minMargin: 0.05,
+        });
+      }
+      this.fingerprintEntries.push({ label: `t${tick}`, vector: Float64Array.from(fp) });
+      if (this.fingerprintEntries.length > 64) this.fingerprintEntries.shift();
+    }
+
+    // Proof latency: the relation Merkle root is the integrity proof; time it.
+    const proofLatency = measureLatency('relation-root', 5, () => {
+      this.relationDigest();
+      return true;
+    });
+
+    // Full certification: golden + abstention + coverage (live ACI) + latency.
+    const observations = this.selfConformal.observations();
+    const coverage = this.selfConformal.report();
+    const shiftAt = Math.max(0, observations.length - 100);
+    const cert = certify({
+      golden,
+      abstention: report,
+      observations,
+      coverage,
+      shiftAt,
+      proofLatency,
+    });
+
+    this.lastSelfAudit = {
+      goldenPass: golden.pass,
+      abstentionRate: report.rate ?? NaN,
+      falseConfident: report.falseConfident.length,
+      abstentionPass: gate.pass,
+      auditTick: tick,
+      recallLabel: this.lastFingerprintRecall?.label ?? null,
+      proofP95: proofLatency.p95,
+      certifyPass: cert.pass,
+    };
+  }
+
+  private ensureGenomeLedger(): GenomeLedger {
+    if (!this.genome) {
+      // Deterministic keys from the host seed — the ledger is byte-reproducible.
+      const master = sha256(utf8(`${this.seed}:genome:master`));
+      const signer = keyPairFromSeed(sha256(utf8(`${this.seed}:genome:signer`)));
+      this.genome = new GenomeLedger('omega-genome', master, signer);
+    }
+    return this.genome;
+  }
+
+  private ensureGenome(): IgnitionConsolidator {
+    if (!this.consolidator) this.consolidator = new IgnitionConsolidator(this.ensureGenomeLedger());
+    return this.consolidator;
+  }
+
+  private ensureRelations(): RelationGraph {
+    if (!this.relations) this.relations = new RelationGraph();
+    return this.relations;
+  }
+
+  private ensureProject(): ProjectContext {
+    if (!this.project) this.project = new ProjectContext();
+    return this.project;
+  }
+
+  private ensureDeepMemory(): DeepMemory {
+    if (!this.deepMemory) this.deepMemory = new DeepMemory({ capacity: Math.max(610, this.profile.tape) });
+    return this.deepMemory;
+  }
+
+  private ensureDeepTap(): DeepResolutionTap {
+    if (!this.deepTap) this.deepTap = new DeepResolutionTap();
+    return this.deepTap;
+  }
+
+  /** Ω-REAL — the canonical cross-session document of the durable memory. */
+  serializeMemory(): string {
+    return serializeBrain(
+      this.ensureLexicon(),
+      this.ensureRelations(),
+      this.ensureGenomeLedger(),
+      this.project ?? undefined,
+    );
+  }
+
+  /**
+   * Ω-REAL — rebuild the durable memory from a saved document. The master + signer
+   * keys are re-derived from the host seed, so the same seed restores the same
+   * ledger; a different seed is a different brain. File/browser I/O stays with the
+   * caller — this is pure.
+   */
+  restoreMemory(doc: string): void {
+    const master = sha256(utf8(`${this.seed}:genome:master`));
+    const signer = keyPairFromSeed(sha256(utf8(`${this.seed}:genome:signer`)));
+    const m = restoreBrain(doc, { master, signer });
+    this.lexicon = m.lexicon;
+    this.relations = m.relations;
+    this.relationDigestCache = null; // the restored graph is a fresh structure
+    this.genome = m.genome;
+    this.project = m.project;
+    this.consolidator = new IgnitionConsolidator(m.genome);
+    this.lastConsolidation = null;
+  }
+
+  private ensureLexicon(): Lexicon {
+    if (!this.lexicon) this.lexicon = new Lexicon(512);
+    return this.lexicon;
+  }
+
+  /**
+   * Ω-REAL — refined semantic recall over the HOST's word lexicon + relation
+   * graph (the certified φ-codec path). Encodes `text` through gematriaAtom and
+   * recalls the nearest words with their φ-anchored similarity and attached
+   * relation processes. Observe-only. (The Mind carries its own separate lexicon
+   * that the live path never populates — this is the populated one.)
+   */
+  recallSimilar(text: string, k = 5, floor?: number): ResonantHit[] {
+    const lex = this.ensureLexicon();
+    const probe = gematriaAtom(text, lex.dim);
+    return resonantRecall(probe, lex.atomsMap(), this.ensureRelations(), { k, floor });
+  }
+
+  /** Mean [0,1) salience weight of the lexicon, or undefined when empty. */
+  private lexicalSalience(): number | undefined {
+    const lex = this.lexicon;
+    if (!lex || lex.size === 0) return undefined;
+    const cat = lex.catalogue();
+    let s = 0;
+    for (const e of cat) s += e.weight;
+    return s / cat.length;
+  }
+
+  /**
+   * Fold the observe-only measure stack once per tick: the affect self-model
+   * (friction + six qualia axes) over the rank-0 signature, the full-field
+   * self-measure (drift, temporal coherence, information density, inertia,
+   * Lyapunov descent, scale entropy/drift) across the ladder, the ignition
+   * consolidation into the sealed genome, and the φ-anchored multi-scale
+   * fingerprint. None of these write back into the dynamics — the digest chain
+   * is untouched.
+   */
+  private foldMeasure(rep: WebTickReport): void {
+    const e0 = this.engine.engines[0];
+    const r0 = rep.rungs[0];
+    if (!r0) return;
+    const snap0 = e0.snapshot();
+    const sig0 = snap0.signature;
+    const z0 = snap0.z;
+
+    this.lastAffect = this.ensureAffect().observe(
+      sig0,
+      r0.coherence,
+      r0.closureQuality,
+      r0.closureDefect,
+      r0.regime,
+      rep.tick,
+    );
+
+    const K = this.engine.rungs.length;
+    const signatures: Float64Array[] = new Array(K);
+    const gammas: number[] = new Array(K);
+    const energies: number[] = new Array(K);
+    const ns: number[] = new Array(K);
+    for (let i = 0; i < K; i++) {
+      signatures[i] = i === 0 ? sig0 : this.engine.engines[i].snapshot().signature;
+      const ri = rep.rungs[i];
+      gammas[i] = ri?.closureQuality ?? 0;
+      energies[i] = ri?.energy ?? 0;
+      ns[i] = this.engine.rungs[i].n;
+    }
+    this.lastSelfMeasure = this.ensureSelfMeasure().observe(signatures, gammas, energies, ns);
+
+    // Ω-REAL Q4 — the field-level self-model: a per-rung learned predictor
+    // (DiagonalSSM/RLS gated on held-out error) over the same 13-mode signature,
+    // so the brain measures its own *surprise*, not just its movement. Training
+    // (`predict`) runs every tick; the aggregate report — whose residual audit
+    // is O(dim²·window) — is throttled to MIND_STRIDE so the hot path stays light.
+    const fsm = this.ensureFieldSelfModel(K, sig0.length);
+    fsm.predict(signatures, rep.tick);
+    if (rep.tick % MIND_STRIDE === 0) {
+      this.lastFieldSelfModel = fsm.report();
+    }
+
+    this.lastDepth = depthReading({
+      coherence: r0.coherence,
+      signatures,
+      energies,
+      gammas,
+      novelty: this.lastThought?.novelty ?? 0,
+    });
+
+    // Fold deep fields into the persistent project (gated by the project's own
+    // depth threshold — shallow ticks never join).
+    if (this.lastDepth && Number.isFinite(this.lastDepth.value)) {
+      const proj = this.ensureProject();
+      proj.observe(`proj:${rep.tick}`, fieldToHv(z0, proj.dim), this.lastDepth.value);
+    }
+
+    this.lastConsolidation = this.ensureGenome().observe(
+      sig0,
+      r0.coherence,
+      r0.closureQuality,
+      rep.tick,
+      this.lastDepth?.value,
+    );
+  }
+
+  /**
+   * Ω-REAL G4 — continuous deep-resolution tap. Every MIND_STRIDE ticks the
+   * scale-graded field (per-rung energy/peak) and the base-rung node-frequency
+   * spectrum are pushed into a bounded ring, so node-level reactions through the
+   * scales are retained at high frequency, not just summarised. Observe-only:
+   * reads the engine + scale signature, never writes back.
+   */
+  private foldDeepResolution(rep: WebTickReport): void {
+    if (rep.tick % MIND_STRIDE !== 0 || rep.tick === 0) return;
+    const report = scaleSignature(this.engine);
+    const scan = this.scan(0);
+    if (!report.rungs.length || !scan || !Number.isFinite(scan.energy.meanFrequency)) return;
+    this.ensureDeepTap().push({
+      tick: rep.tick,
+      energy: Float64Array.from(report.rungs.map((r) => r.energy)),
+      peak: Float64Array.from(report.rungs.map((r) => r.peak)),
+      meanFrequency: scan.energy.meanFrequency,
+      peakFrequency: scan.energy.peakFrequency,
+      occupancy: Float64Array.from(scan.spectral.occupancy),
+      closureDefect: scan.flux.closureDefect,
+      persistence: persistenceReport(report.rungs.map((r) => r.energy)).total,
+    });
+  }
+
+  /** Ω-REAL G4 — the deep-resolution ring view (latest frame only on the bus). */
+  deepResolutionView(): DeepResolutionView {
+    return this.deepTap?.view() ?? { size: 0, capacity: DEEP_TAP_CAPACITY, latest: null };
+  }
+
+  /** Ω-REAL R11 — the last affect observation (friction + qualia), or null. */
+  affectReading(): AffectObservation | null {
+    return this.lastAffect;
+  }
+
+  /** Ω-REAL Q2 — the last full-field self-measure report, or null. */
+  selfMeasureReading(): SelfMeasureReport | null {
+    return this.lastSelfMeasure;
+  }
+
+  /** Ω-REAL Q4 — the last field-level self-model report, or null. */
+  fieldSelfModelReading(): FieldSelfModelReport | null {
+    return this.lastFieldSelfModel;
+  }
+
+  /** Ω-REAL Layer A — the last text→field binding fingerprint, or null. */
+  textFingerprintReading(): Float64Array | null {
+    return this.lastTextFingerprint;
+  }
+
+  /**
+   * Ω-SHFN Section A — the *measured* graph-Laplacian spectrum for one rung
+   * (Lanczos + CGS2 over the Fibonacci-chord ring), cached on first call. The
+   * eigenmode ladder in `torus/eigenmodes` assumes an ordering; this measures
+   * the operator the field actually propagates under, with a digest that lets
+   * two engines prove bit-identical agreement. Read-only — never enters the
+   * digest chain.
+   */
+  measuredSpectrum(rank: number, modes = 13): SpectrumTable {
+    const rung = this.engine.rungs[rank];
+    if (!rung) throw new RangeError(`measuredSpectrum: no rung at rank ${rank}`);
+    let t = this.spectra.get(rank);
+    if (!t) {
+      t = measureSpectrum(this.nodes[rank], modes);
+      this.spectra.set(rank, t);
+    }
+    return t;
+  }
+
+  /** Ω-REAL — the last information-depth / importance reading, or null. */
+  depth(): DepthReading | null {
+    return this.lastDepth;
+  }
+
+  /** Ω-REAL Q5 — genome + consolidation state. */
+  genomeState(): { size: number; cycles: number; pending: number; corpus: number } {
+    return {
+      size: this.genome?.size ?? 0,
+      cycles: this.consolidator?.cycleCount ?? 0,
+      pending: this.lastConsolidation?.pending ?? 0,
+      corpus: this.consolidator?.corpusSize ?? 0,
+    };
+  }
+
+  /** Ω-REAL — the salience-weighted word catalogue view. */
+  lexiconView(): { size: number; tokens: number; documents: number; top: LexiconEntry[] } {
+    const lex = this.lexicon;
+    return lex
+      ? { size: lex.size, tokens: lex.tokens, documents: lex.documents, top: lex.catalogue(5) }
+      : { size: 0, tokens: 0, documents: 0, top: [] };
+  }
+
+  /** Ω-REAL — the typed relation graph (sentence-structure edges) view. */
+  relationsView(): { nodes: number; edges: { source: string; type: string; target: string; weight: number }[] } {
+    const g = this.relations;
+    if (!g) return { nodes: 0, edges: [] };
+    const st = g.serialize();
+    const edges: { source: string; type: string; target: string; weight: number }[] = [];
+    for (const [src, list] of Object.entries(st.edges)) {
+      for (const e of list) edges.push({ source: src, type: e.type, target: e.target, weight: e.weight });
+    }
+    return { nodes: Object.keys(st.edges).length, edges };
+  }
+
+  /** Ω-REAL — the Merkle-DAG root digest of the learned relation structure. */
+  relationDigest(): string | null {
+    const g = this.relations;
+    if (!g) return null;
+    // The Merkle root only changes when the relation graph mutates. Cache it on
+    // the structural version so the hot snapshot() path never re-folds the whole
+    // DAG — a large learned graph (thousands of terms) used to cost O(n²) on
+    // every poll, which froze the live UI.
+    const v = g.version;
+    if (this.relationDigestCache && this.relationDigestCache.version === v) {
+      return this.relationDigestCache.digest;
+    }
+    const digest = relationDag(g).root;
+    this.relationDigestCache = { version: v, digest };
+    return digest;
+  }
+
+  /** Ω-REAL — the persistent project context view. */
+  projectView(): { size: number; meanDepth: number; threshold: number } {
+    const p = this.project;
+    return p
+      ? { size: p.size, meanDepth: p.meanDepth, threshold: p.threshold }
+      : { size: 0, meanDepth: 0, threshold: 0 };
+  }
+
+  /** Ω-REAL — the deep-memory tier view (exact φ-modes; empty until |k| > 78). */
+  deepMemoryView(): { size: number; meanDepth: number; strongestKey: string | null; strongestModes: number } {
+    return this.deepMemory?.view() ?? { size: 0, meanDepth: 0, strongestKey: null, strongestModes: 0 };
+  }
+
+  /**
+   * Ω-REAL — the precision envelope. The honest f64 φ-mode floor is
+   * PHI_F64_MODE_CEILING (empirically: 1 + φ^-76 ≠ 1, 1 + φ^-77 = 1); the deepest
+   * ladder rung is n = LADDER_MAX_N, whose qrf is φ^(-n/89) — a slow decay, so f64
+   * is currently sufficient. requiredDigitsForDeepestRung reports what a RAW φ^-n
+   * amplitude at the deepest rung would need (fixed-point 'bd' digits), for when a
+   * fast φ^-k basis is introduced.
+   */
+  precisionView(): { f64ModeCeiling: number; deepestRungN: number; requiredDigitsForDeepestRung: number } {
+    return {
+      f64ModeCeiling: PHI_F64_MODE_CEILING,
+      deepestRungN: LADDER_MAX_N,
+      requiredDigitsForDeepestRung: requiredDigits(LADDER_MAX_N),
+    };
+  }
+
+  /** Ω-REAL — reflect: recall the deepest stored patterns (project + associative). */
+  deepReflect(): {
+    projectSize: number;
+    projectMeanDepth: number;
+    projectVector: Float64Array | null;
+    associativeSize: number;
+    associativeLabels: string[];
+  } {
+    const p = this.project;
+    const c = this.cleanup;
+    return {
+      projectSize: p?.size ?? 0,
+      projectMeanDepth: p?.meanDepth ?? 0,
+      projectVector: p && p.size > 0 ? p.vector() : null,
+      associativeSize: c?.size ?? 0,
+      associativeLabels: c ? c.labels() : [],
+    };
+  }
+
+  /** Ω-REAL — second-pass consolidation: seal the project's accumulated shape
+   *  into the genome as one durable record. Off the tick path (an explicit
+   *  operator action like learn()). Deterministic, observe-only. */
+  deepReflectAndConsolidate(): number {
+    const p = this.ensureProject();
+    if (p.size === 0) return 0;
+    const ledger = this.ensureGenomeLedger();
+    const tick = this.engine.currentTick();
+    const rec = ledger.append({
+      id: `project:${tick}:${this.deepReflectSeals++}`,
+      kind: 'DeepProject',
+      body: { size: p.size, meanDepth: p.meanDepth, project: p.serialize() },
+      recordedAt: tick,
+      provenance: { attributedTo: this.seed, generatedBy: 'deepReflectAndConsolidate', evidence: 'measured' },
+    });
+    return rec.leafIndex;
+  }
+
+  /** Ω-REAL Layer B — the φ-anchored multi-scale fingerprint, computed on demand. */
+  fingerprint(): FieldFingerprint {
+    return fieldFingerprint(this.engine);
   }
 
   /**
@@ -752,7 +1600,7 @@ export class EngineHost {
     // adaptive bus: back off on overrun, recover geometrically (φ-paced).
     if (done < wanted || this.lastLoad > 1) {
       this.overruns++;
-      this.busHz = Math.max(MIN_HZ, this.busHz / 1.618033988749895);
+      this.busHz = Math.max(MIN_HZ, this.busHz / PHI);
     } else if (this.lastLoad < 0.5) {
       this.busHz = Math.min(this.targetHz, this.busHz * 1.1);
     }
@@ -854,6 +1702,43 @@ export class EngineHost {
       tapeOccupancy: this.engine.tape?.occupied() ?? 0,
       tapeCapacity: this.engine.tape?.capacity ?? 0,
       tapeHead: this.engine.tape?.position() ?? 0,
+      resonance: this.resonance?.value ?? NaN,
+      resonanceGated: this.resonance?.gated ?? false,
+      associativeSize: this.cleanup?.size ?? 0,
+      friction: this.lastAffect?.friction ?? 0,
+      situation: this.lastAffect?.situation ?? 0,
+      flow: this.lastAffect?.flow ?? 0,
+      qualiaCphi: this.lastAffect?.qualia.Cphi ?? 0,
+      qualiaIgnited: this.lastAffect?.qualia.ignited ?? false,
+      lyapunov: this.lastSelfMeasure?.lyapunov ?? 0,
+      scaleEntropy: this.lastSelfMeasure?.scaleEntropy ?? 0,
+      scaleDrift: this.lastSelfMeasure?.scaleDrift ?? 0,
+      burden: this.lastSelfMeasure?.burden ?? 0,
+      fieldSelfModelEnabled: this.lastFieldSelfModel?.enabled ?? false,
+      fieldSelfModelSsmMse: this.lastFieldSelfModel?.ssmMse ?? 0,
+      fieldSelfModelPersistenceMse: this.lastFieldSelfModel?.persistenceMse ?? 0,
+      rhufSkill: this.lastRhufTransport?.skill ?? 0,
+      rhufSpectralRadius: this.lastRhufTransport?.spectralRadius ?? 0,
+      rhufMse: this.lastRhufTransport?.mse ?? 0,
+      genomeSize: this.genome?.size ?? 0,
+      genomeCycles: this.consolidator?.cycleCount ?? 0,
+      lexiconSize: this.lexicon?.size ?? 0,
+      lexiconTokens: this.lexicon?.tokens ?? 0,
+      depth: this.lastDepth?.value ?? NaN,
+      projectSize: this.project?.size ?? 0,
+      projectMeanDepth: this.project?.meanDepth ?? 0,
+      deepMemory: this.deepMemory?.view() ?? { size: 0, meanDepth: 0, strongestKey: null, strongestModes: 0 },
+      deepResolution: this.deepResolutionView(),
+      precision: this.precisionView(),
+      relationDigest: this.relationDigest(),
+      depthExtensions: {
+        cliffordMagnitude: this.lastClifford,
+        fractalOccupied: this.lastFractalOccupied,
+        fractalContribution: this.lastFractalResidual,
+        plasticityNorm: this.lastPlasticityNorm,
+        plasticityDrift: this.lastPlasticityDrift,
+      },
+      selfAudit: this.lastSelfAudit ? { ...this.lastSelfAudit } : null,
     };
   }
 
@@ -961,11 +1846,65 @@ export class EngineHost {
       seed: `${this.seed}-spsa`,
     });
     this.learnCell = cell;
+    // Ω-P8 — arm the learned cell on the LIVE engine only when the battery
+    // passed (held-out margin ≥ φ⁻²). A kill verdict leaves the engine on the
+    // certified nine-term cell (gate 0, bit-exact baseline).
+    const applied = report.enabled && cell.gate > 0;
+    this.engine.setLearnable(applied ? cell : null);
+
+    // Ω-P8 — spectral primitives, measured observe-only. The dispersion filter
+    // learns the field's own per-mode decay (the contraction rate) from the
+    // battery trajectory; the mixer and attention operate on the LIVE base
+    // rung's driven (non-trivial) coefficients, so their gain/rotation are real
+    // numbers rather than a division by a near-zero decayed field.
+    const modes = traj.basis.vectors.length;
+    const prev = coeffBuffer(traj.basis);
+    const curr = coeffBuffer(traj.basis);
+    const lastIdx = traj.frames.length - 1;
+    analyze(traj.basis, traj.frames[lastIdx - 1], prev);
+    analyze(traj.basis, traj.frames[lastIdx], curr);
+    const target = new Float64Array(modes);
+    for (let k = 0; k < modes; k++) {
+      const a0 = Math.sqrt(prev[2 * k] ** 2 + prev[2 * k + 1] ** 2);
+      const a1 = Math.sqrt(curr[2 * k] ** 2 + curr[2 * k + 1] ** 2);
+      target[k] = a0 > 0 ? Math.min(FILTER_RHO_MAX, a1 / a0) : 0;
+    }
+    const filter = new SpectralFilter(modes);
+    const filterRms = filter.fitMagnitudes(target, 1, 512);
+
+    const e0 = this.engine.engines[0];
+    const liveModes = e0.basis.vectors.length;
+    const liveBefore = Float64Array.from(e0.snapshot().coeffs);
+    const mixerInput = Float64Array.from(liveBefore);
+    // The mixer/attention operate on the LIVE base rung, so they use ITS basis
+    // (a profile may carry fewer than SIGNATURE_MODES modes).
+    const mixer = new SuperpositionMixer(e0.basis);
+    const mixerReport = mixer.apply(mixerInput);
+
+    // attention: align the live field against its own one-tick-earlier copy, so
+    // the reported lag/rotation measure the field's per-tick modal advance.
+    this.stepOnce();
+    const liveAfter = Float64Array.from(e0.snapshot().coeffs);
+    const attention = applySpectralAttention(liveAfter, liveBefore, liveModes, 1);
+
     this.lastLearn = {
       report,
       elapsedMs: Date.now() - t0,
-      certificates: cell.certificates().map((c) => ({ ...c })),
+      certificates: [
+        ...cell.certificates().map((c) => ({ ...c })),
+        filter.certificate(),
+      ],
       nodes: traj.nodes,
+      applied,
+      spectral: {
+        filterRms,
+        filterGain: filter.gain(),
+        mixerGain: mixerReport.gain,
+        mixerTransfer: mixerReport.transfer,
+        attentionLag: attention.lag,
+        attentionAlignment: attention.alignment,
+        attentionRotation: attention.meanRotation,
+      },
     };
     return this.lastLearn;
   }
@@ -994,6 +1933,25 @@ export interface LearnRun {
   readonly elapsedMs: number;
   readonly certificates: readonly Certificate[];
   readonly nodes: number;
+  /** True when the learned cell was armed on the live engine (battery passed). */
+  readonly applied: boolean;
+  /** Ω-P8 spectral primitives, measured on the same trajectory (observe-only). */
+  readonly spectral: {
+    /** RMS |ρ_k − target| after fitting the dispersion filter to per-mode decay. */
+    readonly filterRms: number;
+    /** max_k |α_k| of the fitted filter (≤ φ⁻¹). */
+    readonly filterGain: number;
+    /** ‖c'‖/‖c‖ of the superposition mixer. */
+    readonly mixerGain: number;
+    /** Fraction of mixer output energy in modes the input did not occupy. */
+    readonly mixerTransfer: number;
+    /** Modal offset (lag) of the cross-spectral attention peak. */
+    readonly attentionLag: number;
+    /** Peak alignment, normalised by the geometric mean of the two energies. */
+    readonly attentionAlignment: number;
+    /** Mean |θ_k| applied by attention, radians. */
+    readonly attentionRotation: number;
+  };
 }
 
 

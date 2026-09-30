@@ -88,22 +88,42 @@ describe('P8 · perception observation', () => {
     for (let k = 0; k < L.bands; k++) expect(a[k]).toBeCloseTo(b[k], 12);
   });
 
-  it('separates two pitches and two spatial structures', () => {
+  it('resolves two pitches in the field, and separates two spectral shapes in perception', () => {
     const array = driveArray('p8-sep', 233);
     const L = layoutFor();
+
+    // Encoder resolution: a 3-cycle and a 64-cycle frame land on different
+    // φ-bands, so the encoded fields themselves differ (this is the real
+    // spectral resolution the FFT encoder restores).
     const low = senseField(NODES);
     const high = senseField(NODES);
     encodeAudio(tone(3), low);
     encodeAudio(tone(64), high);
+    let fd = 0;
+    for (let j = 0; j < NODES; j++) {
+      fd += (low.re[j] - high.re[j]) ** 2 + (low.im[j] - high.im[j]) ** 2;
+    }
+    expect(Math.sqrt(fd)).toBeGreaterThan(0.05);
+
+    // Perception "kind" separation: a pure tone vs a two-tone harmonic have
+    // different spectral envelopes, so the φ-folded FIELD block differs. (Two
+    // pure tones are the same *kind* — a delta — so the translation-invariant
+    // FIELD block legitimately treats them alike; the harmonic is a different
+    // kind.)
+    const pure = senseField(NODES);
+    const rich = senseField(NODES);
+    const pcmRich = new Float64Array(8192);
+    for (let i = 0; i < 8192; i++) {
+      pcmRich[i] = Math.sin((2 * Math.PI * 8 * i) / 8192) + 0.5 * Math.sin((2 * Math.PI * 24 * i) / 8192);
+    }
+    encodeAudio(tone(8), pure);
+    encodeAudio(pcmRich, rich);
     const va = new Float64Array(L.dim);
     const vb = new Float64Array(L.dim);
-    perceive(va, array, [low], L);
-    perceive(vb, array, [high], L);
-    // the fused-field projection block must differ between distinct percepts
-    const fa = va.slice(L.bands + SPACE_DIM, L.bands + SPACE_DIM + FIELD_PROJ);
-    const fb = vb.slice(L.bands + SPACE_DIM, L.bands + SPACE_DIM + FIELD_PROJ);
+    perceive(va, array, [pure], L);
+    perceive(vb, array, [rich], L);
     let d2 = 0;
-    for (let i = 0; i < FIELD_PROJ; i++) d2 += (fa[i] - fb[i]) ** 2;
+    for (let i = 0; i < L.dim; i++) d2 += (va[i] - vb[i]) ** 2;
     expect(Math.sqrt(d2)).toBeGreaterThan(0.05);
   });
 

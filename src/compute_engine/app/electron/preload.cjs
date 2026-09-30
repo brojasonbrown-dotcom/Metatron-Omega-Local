@@ -37,6 +37,10 @@ contextBridge.exposeInMainWorld("omega", {
     ipcRenderer.invoke("omega:sensor:audio", samples, sampleRate),
   sensorVideo: (grid, width, height) =>
     ipcRenderer.invoke("omega:sensor:video", grid, width, height),
+  /** Mechanical / affective wave band (pressure, contact force, temperature). */
+  sensorTouch: (samples) => ipcRenderer.invoke("omega:sensor:touch", samples),
+  /** Generic scalar wave series (EMF / telemetry / oscillator). */
+  sensorScalar: (samples) => ipcRenderer.invoke("omega:sensor:scalar", samples),
 
   /**
    * LLM instrument — the OPTIONAL external answerer (toggled in the Σ panel).
