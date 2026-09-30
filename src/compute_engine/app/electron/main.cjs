@@ -317,9 +317,15 @@ ipcMain.handle("omega:sensor:scalar", async (_event, samples) => {
 app.whenReady().then(async () => {
   if (!gotLock) return; // second instance — quitting; never build a window
   mainWindow = createWindow();
-  await loadBrain(); // restore durable memory before the engine first wakes
 
   if (CI_MODE) {
+    // Watchdog: if the renderer/IPC roundtrip ever wedges (renderer never loads,
+    // or the probe hangs), fail the build instead of hanging the packaging step.
+    const ciWatchdog = setTimeout(() => {
+      console.error("[ci] timeout: renderer+IPC roundtrip did not complete in 90s");
+      require("node:fs").writeFileSync(CI_REPORT, `FAIL (timeout) ${new Date().toISOString()}\n`);
+      app.exit(1);
+    }, 90000);
     mainWindow.webContents.once("did-finish-load", async () => {
       try {
         const probe = await mainWindow.webContents.executeJavaScript(`(async () => {
@@ -374,6 +380,11 @@ app.whenReady().then(async () => {
       }
     });
   }
+
+  // Restore durable memory AFTER the load listeners are registered, so a fast
+  // page load can never fire did-finish-load before we are listening (the old
+  // order raced and left the --ci/--shot exe hanging with no report written).
+  await loadBrain();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow();
