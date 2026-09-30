@@ -2,7 +2,7 @@
 chcp 65001 >nul
 REM ══════════════════════════════════════════════════════════════════════════
 REM  METATRON Ω — FULL BUILD PIPELINE  (double-click)
-REM  deps → bundle brain → smoke test → pack (--ci verify) → dist (NSIS + portable)
+REM  deps → bundle → full test suite → smoke/roundtrip → pack (--ci verify) → dist
 REM  Output: release\METATRON-OMEGA-<version>-setup.exe + -portable.exe
 REM ══════════════════════════════════════════════════════════════════════════
 setlocal EnableExtensions
@@ -25,7 +25,7 @@ if errorlevel 1 (
 
 echo.
 echo  ═══ METATRON OMEGA BUILD PIPELINE ═══
-echo  [1/5] checking dependencies (electron + electron-builder + esbuild)…
+echo  [1/6] checking dependencies (electron + electron-builder + esbuild)…
 REM electron-builder does NOT ship esbuild, so esbuild is declared directly and
 REM checked by resolution (Node walks node_modules up the tree, so a hoisted
 REM install at the parent level is found too). One install covers any missing piece.
@@ -38,20 +38,30 @@ if defined NEED_INSTALL (
   call npm install --no-audit --no-fund || goto :fail
 )
 
-echo  [2/5] bundling the OMEGA brain (esbuild → electron\omega-bundle.cjs)…
+echo  [2/6] bundling the OMEGA brain (esbuild → electron\omega-bundle.cjs)…
 call npm run bundle:omega || goto :fail
 
-echo  [3/5] smoke tests (chat + sensory codec + brain loop)…
-call node scripts\smoke.mjs || goto :fail
+echo  [3/6] trnn-core test suite (769 tests: determinism S0 + module guards)…
+REM The certified engine lives one directory up (omega\). Run its full vitest
+REM suite so a packaging build can never ship a regressed brain.
+pushd "..\omega"
+call npx vitest run
+set "VITEST_EXIT=%ERRORLEVEL%"
+popd
+if not "%VITEST_EXIT%"=="0" goto :fail
 
-echo  [4/5] pack (unpacked verification build)…
+echo  [4/6] smoke (chat + sensory codec + brain loop) + worker roundtrip…
+call node scripts\smoke.mjs || goto :fail
+call node scripts\test-worker-roundtrip.cjs || goto :fail
+
+echo  [5/6] pack (unpacked verification build)…
 REM pre-pack reconciles stale in-tree release\ staging; build-driver stages the
 REM real output OUTSIDE the watched tree (an IDE watcher locking win-unpacked.tmp
 REM is what EBUSY-kills a direct npx electron-builder run — ADR-011).
 call node scripts\pre-pack.mjs
 call node scripts\build-driver.mjs --dir || goto :fail
 
-echo  [4b/5] verifying packaged exe (--ci roundtrip)…
+echo  [5b/6] verifying packaged exe (--ci roundtrip)…
 REM `start /wait` (not `call`) — the exe is a GUI-subsystem app, so `call`
 REM would return immediately and race the report write. /wait blocks until
 REM the --ci roundtrip finishes and the exe exits.
@@ -60,7 +70,7 @@ if not exist "%TEMP%\omega-ci-report.txt" goto :fail
 findstr /C:"PASS" "%TEMP%\omega-ci-report.txt" >nul || goto :fail
 del "%TEMP%\omega-ci-report.txt" >nul 2>&1
 
-echo  [5/5] dist (NSIS installer + portable)…
+echo  [6/6] dist (NSIS installer + portable)…
 call node scripts\build-driver.mjs || goto :fail
 
 echo.
