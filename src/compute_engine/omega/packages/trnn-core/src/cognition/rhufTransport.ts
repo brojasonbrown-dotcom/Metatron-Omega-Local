@@ -50,7 +50,8 @@ export interface RhufTransportReport {
   readonly mse: number;
   readonly persistenceMse: number;
   readonly skill: number; // 1 - mse/persistenceMse  (>0 = learned the rotation)
-  readonly spectralRadius: number; // max |λ_k| ≤ φ⁻¹
+  readonly spectralRadius: number; // max |λ_k| ≤ 1
+  readonly phaseCoherence: number; // |Σ λ_k| / Σ|λ_k| in [0,1] (1 = all modes rotate in phase)
   readonly lambdaMax: number;
 }
 
@@ -132,10 +133,16 @@ export class RhufTransport {
     const mse = this.mseSum / (n * this.dim);
     const persist = this.persistSum / (n * this.dim);
     let radius = 0;
+    let sumRe = 0;
+    let sumIm = 0;
+    let sumAbs = 0;
     for (let k = 0; k < this.dim; k++) {
       const l = this.lambda(k);
       const r = Math.sqrt(l.re * l.re + l.im * l.im);
       if (r > radius) radius = r;
+      sumRe += l.re;
+      sumIm += l.im;
+      sumAbs += r;
     }
     return {
       dim: this.dim,
@@ -144,6 +151,7 @@ export class RhufTransport {
       persistenceMse: persist,
       skill: persist > 0 ? 1 - mse / persist : 0,
       spectralRadius: radius,
+      phaseCoherence: sumAbs > 0 ? Math.sqrt(sumRe * sumRe + sumIm * sumIm) / sumAbs : 0,
       lambdaMax: LAMBDA_MAX,
     };
   }

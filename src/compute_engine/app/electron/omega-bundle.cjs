@@ -16838,10 +16838,16 @@ var RhufTransport = class {
     const mse = this.mseSum / (n * this.dim);
     const persist = this.persistSum / (n * this.dim);
     let radius = 0;
+    let sumRe = 0;
+    let sumIm = 0;
+    let sumAbs = 0;
     for (let k = 0; k < this.dim; k++) {
       const l = this.lambda(k);
       const r = Math.sqrt(l.re * l.re + l.im * l.im);
       if (r > radius) radius = r;
+      sumRe += l.re;
+      sumIm += l.im;
+      sumAbs += r;
     }
     return {
       dim: this.dim,
@@ -16850,6 +16856,7 @@ var RhufTransport = class {
       persistenceMse: persist,
       skill: persist > 0 ? 1 - mse / persist : 0,
       spectralRadius: radius,
+      phaseCoherence: sumAbs > 0 ? Math.sqrt(sumRe * sumRe + sumIm * sumIm) / sumAbs : 0,
       lambdaMax: LAMBDA_MAX2
     };
   }
@@ -17844,9 +17851,11 @@ var EngineHost = class {
    * fast φ^-k basis is introduced.
    */
   precisionView() {
+    const deepest = rungByIndex(LADDER_MAX_N);
     return {
       f64ModeCeiling: PHI_F64_MODE_CEILING,
       deepestRungN: LADDER_MAX_N,
+      deepestRungQrf: deepest ? deepest.qrf : NaN,
       requiredDigitsForDeepestRung: requiredDigits(LADDER_MAX_N)
     };
   }

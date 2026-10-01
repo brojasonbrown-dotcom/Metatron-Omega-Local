@@ -16,7 +16,7 @@
  * slices, so the digest chain is identical whatever the frame rate.
  */
 
-import { DENSE_CORE, LADDER_MAX_N, type Rung } from '../core/scaleLadder';
+import { DENSE_CORE, LADDER_MAX_N, rungByIndex, type Rung } from '../core/scaleLadder';
 import { PHI, PHI_INV, SIGNATURE_MODES } from '../core/constants';
 import { MultiTorusEngine, type WebCheckpoint, type WebTickReport } from '../engine/MultiTorusEngine';
 import { nodesForRank, profileById, profileCost, type Profile, type ProfileId } from './profiles';
@@ -361,7 +361,7 @@ export interface HostSnapshot {
   /** Ω-REAL G4 — deep-resolution ring view (scale-graded field + node frequency). */
   readonly deepResolution: DeepResolutionView;
   /** Ω-REAL — the precision envelope (honest f64 φ-mode ceiling + deepest-rung digits). */
-  readonly precision: { f64ModeCeiling: number; deepestRungN: number; requiredDigitsForDeepestRung: number };
+  readonly precision: { f64ModeCeiling: number; deepestRungN: number; deepestRungQrf: number; requiredDigitsForDeepestRung: number };
   /** Ω-REAL — Merkle-DAG root digest of the learned relation structure. */
   readonly relationDigest: string | null;
   /** Ω-DEPTH — live geometric-algebra / fractal / plasticity channels. */
@@ -1518,10 +1518,12 @@ export class EngineHost {
    * amplitude at the deepest rung would need (fixed-point 'bd' digits), for when a
    * fast φ^-k basis is introduced.
    */
-  precisionView(): { f64ModeCeiling: number; deepestRungN: number; requiredDigitsForDeepestRung: number } {
+  precisionView(): { f64ModeCeiling: number; deepestRungN: number; deepestRungQrf: number; requiredDigitsForDeepestRung: number } {
+    const deepest = rungByIndex(LADDER_MAX_N);
     return {
       f64ModeCeiling: PHI_F64_MODE_CEILING,
       deepestRungN: LADDER_MAX_N,
+      deepestRungQrf: deepest ? deepest.qrf : NaN,
       requiredDigitsForDeepestRung: requiredDigits(LADDER_MAX_N),
     };
   }
