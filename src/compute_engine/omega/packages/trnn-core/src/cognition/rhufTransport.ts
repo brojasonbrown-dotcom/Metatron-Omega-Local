@@ -22,10 +22,17 @@
  * Deterministic: only +,−,×,÷,√, tanh (via dtanh) — no RNG, no clock.
  */
 
-import { PHI_INV, phiPow } from '../core/constants';
 import { dtanh, dcos, dsin } from '../core/dmath';
 
-export const LAMBDA_MAX = phiPow(-1);
+/**
+ * Unitary transport cap: |lambda| <= 1. The RHUFT transport is an observe-only
+ * PREDICTOR of the holomorphic field, so a pure rotation (|lambda| = 1 - marginal
+ * stability) is a legitimate, representable mode. It never actuates the field, so
+ * there is no Jury contraction to protect. The old phi^-1 cap (inherited from the
+ * real DiagonalSSM hidden-state bound) forced every rotation to damp - a
+ * symmetry violation: a conserved rotation must stay representable.
+ */
+export const LAMBDA_MAX = 1;
 
 export interface ComplexVec {
   readonly re: Float64Array;

@@ -267,6 +267,7 @@ __export(src_exports, {
   crossCorrelate: () => crossCorrelate,
   crossScaleDrift: () => crossScaleDrift,
   decimate: () => decimate,
+  decodeGematria: () => decodeGematria,
   decodePosition: () => decodePosition,
   decodeRole: () => decodeRole,
   depthRate: () => depthRate,
@@ -283,6 +284,7 @@ __export(src_exports, {
   emittedMass: () => emittedMass,
   emptyRoot: () => emptyRoot,
   encodeAudio: () => encodeAudio,
+  encodeGematria: () => encodeGematria,
   encodeGrid: () => encodeGrid,
   encodeRecord: () => encodeRecord,
   encodeScalars: () => encodeScalars,
@@ -16760,7 +16762,7 @@ var FieldSelfModel = class {
 };
 
 // ../omega/packages/trnn-core/src/cognition/rhufTransport.ts
-var LAMBDA_MAX2 = phiPow(-1);
+var LAMBDA_MAX2 = 1;
 function zeros2(n) {
   return { re: new Float64Array(n), im: new Float64Array(n), n };
 }
@@ -18182,6 +18184,65 @@ var EngineHost = class {
   }
 };
 
+// ../omega/packages/trnn-core/src/sense/gematriaCodec.ts
+var ALPHABET_SIZE = 28;
+function alphabetIndex2(cp) {
+  if (cp >= 97 && cp <= 122) return cp - 97;
+  if (cp === 32) return 26;
+  return 27;
+}
+function indexToChar(k) {
+  if (k >= 0 && k <= 25) return String.fromCharCode(97 + k);
+  if (k === 26) return " ";
+  return "\uFFFD";
+}
+function encodeGematria(text) {
+  const cps = Array.from(text.normalize("NFKD").toLowerCase().replace(/\s+/g, " ").trim());
+  const L = cps.length;
+  const re = new Float64Array(L);
+  const im = new Float64Array(L);
+  for (let k = 0; k < L; k++) {
+    let r = 0;
+    let i = 0;
+    for (let p = 0; p < L; p++) {
+      const v = dpow(PHI, alphabetIndex2(cps[p].codePointAt(0) ?? 0) / 2);
+      const ph = 2 * Math.PI * k * p / L;
+      r += v * dcos(ph);
+      i += v * dsin(ph);
+    }
+    re[k] = r;
+    im[k] = i;
+  }
+  return { length: L, re, im };
+}
+function decodeGematria(code) {
+  const L = code.length;
+  const vals = new Float64Array(L);
+  for (let p = 0; p < L; p++) {
+    let v = 0;
+    for (let k = 0; k < L; k++) {
+      const ph = 2 * Math.PI * k * p / L;
+      v += code.re[k] * dcos(ph) + code.im[k] * dsin(ph);
+    }
+    vals[p] = v / L;
+  }
+  let out = "";
+  for (let p = 0; p < L; p++) {
+    let best = 0;
+    let bestD = Infinity;
+    for (let k = 0; k < ALPHABET_SIZE; k++) {
+      const target = dpow(PHI, k / 2);
+      const d = Math.abs(vals[p] - target);
+      if (d < bestD) {
+        bestD = d;
+        best = k;
+      }
+    }
+    out += indexToChar(best);
+  }
+  return out;
+}
+
 // ../omega/packages/trnn-core/src/memory/taxonomy.ts
 var MEMORY_TAXONOMY = [
   {
@@ -18577,6 +18638,7 @@ function memoryTaxonomy() {
   crossCorrelate,
   crossScaleDrift,
   decimate,
+  decodeGematria,
   decodePosition,
   decodeRole,
   depthRate,
@@ -18593,6 +18655,7 @@ function memoryTaxonomy() {
   emittedMass,
   emptyRoot,
   encodeAudio,
+  encodeGematria,
   encodeGrid,
   encodeRecord,
   encodeScalars,
